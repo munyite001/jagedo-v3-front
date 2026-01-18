@@ -14,6 +14,7 @@ import { toast, Toaster } from "sonner"
 import { verifyOtp } from "@/api/auth.api"
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties"
+import GoogleSignIn from "@/components/GoogleSignIn";
 interface CustomerSignupFormProps {
   currentStep: number
   formData: any
@@ -411,6 +412,14 @@ export function CustomerSignupForm({
                 </div>
                 {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
               </div>
+
+              <div className="relative flex items-center my-8">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="mx-4 flex-shrink text-gray-400 text-sm">or</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+
+              </div>
+              <GoogleSignIn />
 
               {/* <div className="relative flex items-center my-8">
                 <div className="flex-grow border-t border-gray-300"></div>

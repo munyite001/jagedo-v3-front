@@ -19,6 +19,7 @@ import {
 import { toast, Toaster } from "sonner";
 import { verifyOtp } from "@/api/auth.api";
 import { counties } from "@/pages/data/counties"
+import GoogleSignIn from "@/components/GoogleSignIn";
 interface ProviderSignupFormProps {
     currentStep: number;
     formData: any;
@@ -709,6 +710,12 @@ export function ProviderSignupForm({
                                 </div>
 
                             </div>
+                            <div className="relative flex items-center my-8">
+                                <div className="flex-grow border-t border-gray-300"></div>
+                                <span className="mx-4 flex-shrink text-gray-400 text-sm">or</span>
+                                <div className="flex-grow borderd-t border-gray-300"></div>
+                            </div>
+                            <GoogleSignIn />
 
                             {/* <div className="relative flex items-center my-8">
                                 <div className="flex-grow border-t border-gray-300"></div>
