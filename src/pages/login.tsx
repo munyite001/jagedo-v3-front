@@ -44,7 +44,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { setUser, setIsLoggedIn } = useGlobalContext();
 
-  const [isOtpFlow, setIsOtpFlow] = useState(false);
+  const [isOtpFlow, setIsOtpFlow] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
