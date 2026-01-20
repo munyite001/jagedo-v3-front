@@ -45,7 +45,8 @@ export default function ContractorSignup() {
     });
 
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 6: 5;
+    //const totalSteps = formData.accountType === "ORGANIZATION" ? 6: 5;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -108,45 +109,89 @@ export default function ContractorSignup() {
         }
     };
 
+    // const handleSubmit = async () => {
+    //     const data = {
+    //         email: formData.email,
+    //         firstName: formData.firstName || "Pending",
+    //         lastName: formData.lastName || "User",
+    //         organizationName: formData.organizationName || "Pending",
+    //         contactFirstName: formData.contactFirstName || "Pending",
+    //         contactLastName: formData.contactLastName || "User",
+    //         contactPhone: formData.contactPhone || formData.phone,
+    //         contactEmail: formData.contactEmail || formData.email,
+    //         country: formData.country || "Kenya",
+    //         county: formData.county || "Pending",
+    //         subCounty: formData.subCounty || "Pending",
+    //         estate: formData.estate || "Pending",
+    //         password: formData.password,
+    //         gender: formData.gender || "male",
+    //         state: formData.country,
+    //     };
+    //     try {
+    //         //const response = await handleCompleteRegistration(data);
+    //         const response = {
+    //              data: {
+    //                  success: true,
+    //                  message: "Account Created Successfully (Mock)",
+    //                  user: { email: formData.email, role: "CONTRACTOR" },
+    //                  accessToken: "mock_token_123"
+    //              }
+    //          };
+    //         if (response.data.success) {
+    //             toast.success("Account Created Successfully.Redirecting to login...");
+    //             localStorage.setItem(
+    //                 "user",
+    //                 JSON.stringify(response.data.user)
+    //             );
+    //             localStorage.setItem("token", response.data.accessToken);
+    //             setUser(response.data.user);
+    //             setIsLoggedIn(true);
+    //             setTimeout(() => {
+    //                 navigate("/login");
+    //             }, 2000);
+    //         } else {
+    //             toast.error(
+    //                 `Failed To Create Account: ${response.data.message}`
+    //             );
+    //         }
+    //     } catch (error: any) {
+    //         toast.error(`Error sending OTP: ${error.response.data.message}`);
+    //     }
+    // };
     const handleSubmit = async () => {
-        const data = {
+        // 1. Prepare the user object
+        const newUser = {
+            id: crypto.randomUUID(),
             email: formData.email,
-            firstName: formData.firstName || "Pending",
-            lastName: formData.lastName || "User",
-            organizationName: formData.organizationName || "Pending",
-            contactFirstName: formData.contactFirstName || "Pending",
-            contactLastName: formData.contactLastName || "User",
-            contactPhone: formData.contactPhone || formData.phone,
-            contactEmail: formData.contactEmail || formData.email,
-            country: formData.country || "Kenya",
-            county: formData.county || "Pending",
-            subCounty: formData.subCounty || "Pending",
-            estate: formData.estate || "Pending",
             password: formData.password,
-            gender: formData.gender || "male",
-            state: formData.country,
-        };
+            userType: "CONTRACTOR",
+            firstName: formData.firstName || "CONTRACTOR",
+            lastName: formData.lastName || "User",
+            accountType: formData.accountType,
+            phone: formData.phone
+        }
         try {
-            const response = await handleCompleteRegistration(data);
-            if (response.data.success) {
-                toast.success("Account Created Successfully.Redirecting to login...");
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(response.data.user)
-                );
-                localStorage.setItem("token", response.data.accessToken);
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            } else {
-                toast.error(
-                    `Failed To Create Account: ${response.data.message}`
-                );
+            // 2. mock db save
+            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
+                toast.error("User with this email already exists!");
+                return;
             }
+            exisitingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+
+           // 3. successs message and redirect
+           toast.success("Account created successfully, Please login")
+           
+           setTimeout(() => {
+            navigate("/login");
+           }, 2000);
+
+           
+
         } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response.data.message}`);
+            toast.error("An error occurred during mock registration");
         }
     };
 

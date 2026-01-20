@@ -110,9 +110,9 @@ export default function CustomerSignup() {
         }
     };
 
-    const handleSubmit = async () => {
-        const data = {
-            email: formData.email,
+    // const handleSubmit = async () => {
+        // const data = {
+        //     email: formData.email,
             // firstName: formData.firstName,
             // lastName: formData.lastName,
             // organizationName: formData.organizationName,
@@ -124,37 +124,73 @@ export default function CustomerSignup() {
             // county: formData.county,
             // subCounty: formData.subCounty,
             // estate: formData.estate,
-            password: formData.password
-        };
+        //     password: formData.password
+        // };
 
-        try {
+        // try {
             // commented out the API call for now to allow testing without backend
             //const response = await handleCompleteRegistration(data);
-            const response = {
-                data: {
-                    success: true,
-                    message: "Mock account created successfully",
-                    user: { email: formData.email, role: "CUSTOMER" },
-                    accessToken: "fake_token_for_testing"
-                }
-            };
+        //     const response = {
+        //         data: {
+        //             success: true,
+        //             message: "Mock account created successfully",
+        //             user: { email: formData.email, role: "CUSTOMER" },
+        //             accessToken: "fake_token_for_testing"
+        //         }
+        //     };
 
-            if (response.data.success) {
-                toast.success("Account Created Successfully. Redirecting to login...");
+        //     if (response.data.success) {
+        //         toast.success("Account Created Successfully. Redirecting to login...");
 
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.accessToken);
-                setUser(response.data.user);
-                setIsLoggedIn(true);
+        //         localStorage.setItem("user", JSON.stringify(response.data.user));
+        //         localStorage.setItem("token", response.data.accessToken);
+        //         setUser(response.data.user);
+        //         setIsLoggedIn(true);
 
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            } else {
-                toast.error(`Failed To Create Account: ${response.data.message}`);
+        //         setTimeout(() => {
+        //             navigate("/login");
+        //         }, 2000);
+        //     } else {
+        //         toast.error(`Failed To Create Account: ${response.data.message}`);
+        //     }
+        // } catch (error: any) {
+        //     toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+        // }
+    // };
+    const handleSubmit = async () => {
+        // 1. Prepare the user object
+        const newUser = {
+            id: crypto.randomUUID(),
+            email: formData.email,
+            password: formData.password,
+            userType: "CUSTOMER",
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
+            accoutnType: formData.accountType,
+            phone: formData.phone
+        }
+        try {
+            // 2. mock db save
+            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
+                toast.error("User with this email already exists!");
+                return;
             }
+            exisitingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+
+           // 3. successs message and redirect
+           toast.success("Account created successfully, Please login")
+           
+           setTimeout(() => {
+            navigate("/login");
+           }, 2000);
+
+           
+
         } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+            toast.error("An error occurred during mock registration");
         }
     };
 

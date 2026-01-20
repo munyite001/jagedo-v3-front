@@ -1,4 +1,4 @@
-import notFoundImage from "../../public/not-found.png";
+// import notFoundImage from "../../public/not-found.png";
 import { PiHouseLineBold } from "react-icons/pi";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +8,8 @@ const NotFound = () => {
     <div className="flex grow items-center px-6 xl:px-10">
       <div className="mx-auto text-center">
         <img
-          src={notFoundImage}
+          // src={notFoundImage}
+          src="/not-found.png"
           alt="not found"
           className="mx-auto mb-8 aspect-[360/326] max-w-[256px] xs:max-w-[370px] lg:mb-12 2xl:mb-16"
         />
