@@ -79,6 +79,7 @@ export default function GoogleSignIn() {
                 useOneTap={true}
                 nonce={nonce}
                 ux_mode="popup"
+                text="continue_with"
             />
         </div>
     );
