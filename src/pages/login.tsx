@@ -9,50 +9,8 @@ import { loginUser, verifyOtpLogin, phoneLogin } from "@/api/auth.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { MOCK_USERS } from "@/pages/mockusers"; // Make sure path is correct
+import { MOCK_PROFILES } from "@/pages/mockProfiles";
 
-// import { MOCK_USERS } from "@/pages/mockusers"; 
-
-
-// const MOCK_USERS = [
-//   {
-//     username: "customer01@jagedo.co.ke",
-//     password: "Customer@123",
-//     userType: "customer",
-//     profileType: "individual",
-//     name: "Individual Customer 1",
-//   },
-//   {
-//     username: "customer02@jagedo.co.ke@2",
-//     password: "Customer@123",
-//     userType: "customer",
-//     profileType: "organization",
-//     name: "Organization Customer 2",
-//   },
-//   {
-//     username: "fundi01@jagedo.co.ke",
-//     password: "Builder@123",
-//     userType: "fundi",
-//     name: "Fundi User",
-//   },
-//   {
-//     username: "professional01@jagedo.co.ke",
-//     password: "Builder@123",
-//     userType: "professional",
-//     name: "Professional User",
-//   },
-//   {
-//     username: "contractor01@jagedo.co.ke",
-//     password: "Builder@123",
-//     userType: "contractor",
-//     name: "Contractor User",
-//   },
-//   {
-//     username: "hardware01@jagedo.co.ke1",
-//     password: "Builder@123",
-//     userType: "hardware",
-//     name: "Hardware User",
-//   },
-// ];
 
 
 /* =====================
@@ -235,6 +193,31 @@ export default function Login() {
 //     toast.success("Login successful!");
 //     redirectUser(user.userType);
 //   };
+// const completeLogin = (username, password) => {
+//   const user = MOCK_USERS.find(
+//     (u) => u.username === username && u.password === password
+//   );
+
+//   if (!user) {
+//     toast.error("Invalid credentials");
+//     setIsLoading(false);
+//     return;
+//   }
+
+//   // Store user in localStorage
+//   localStorage.setItem("user", JSON.stringify(user));
+//   localStorage.setItem("token", "mock-token");
+
+//   setUser(user);
+//   setIsLoggedIn(true);
+
+//   toast.success("Login successful!");
+
+//   // Redirect based on userType
+// //   redirectUser(user);
+// navigate("/profile");
+// };
+
 const completeLogin = (username, password) => {
   const user = MOCK_USERS.find(
     (u) => u.username === username && u.password === password
@@ -242,24 +225,21 @@ const completeLogin = (username, password) => {
 
   if (!user) {
     toast.error("Invalid credentials");
-    setIsLoading(false);
     return;
   }
 
-  // Store user in localStorage
-  localStorage.setItem("user", JSON.stringify(user));
-  localStorage.setItem("token", "mock-token");
+  const key = username.split("@")[0]; 
+  const profile = MOCK_PROFILES[key];
 
-  setUser(user);
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("profile", JSON.stringify(profile));
+  localStorage.setItem("token", "mock-token"); // 🔥 REQUIRED
+
+  setUser({ ...user, profile });
   setIsLoggedIn(true);
 
-  toast.success("Login successful!");
-
-  // Redirect based on userType
-//   redirectUser(user);
-navigate("/profile");
+  redirectUser(user);
 };
-
 
   /* =====================
      REDIRECT
@@ -270,32 +250,46 @@ navigate("/profile");
 //     }, 800);
 //   };
 const redirectUser = (user) => {
-  let path = "/dashboard/customer"; // default
+  const role = user.userType.toLowerCase(); // 🔥 THIS LINE
 
-  switch (user.userType) {
+  let path = "/dashboard/customer";
+
+  switch (role) {
+   case "admin":
+  path = "/dashboard/admin";
+  break;
+
     case "customer":
-      path = user.profileType === "organization"
-        ? "/dashboard/customer/organization"
-        : "/dashboard/customer/individual";
+      path =
+        user.profileType === "organization"
+          ? "/dashboard/customer/organization"
+          : "/dashboard/customer";
       break;
+
     case "fundi":
       path = "/dashboard/fundi";
       break;
+
     case "professional":
       path = "/dashboard/professional";
       break;
+
     case "contractor":
       path = "/dashboard/contractor";
       break;
+
     case "hardware":
       path = "/dashboard/hardware";
       break;
+
     default:
       path = "/dashboard";
   }
 
   navigate(path);
 };
+
+
 
   const toggleOtpFlow = () => {
     setIsOtpFlow(!isOtpFlow);
@@ -424,3 +418,7 @@ const redirectUser = (user) => {
     </div>
   );
 }
+
+
+
+
