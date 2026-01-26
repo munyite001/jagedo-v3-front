@@ -22,6 +22,17 @@ const requiredProjectsByGrade: { [key: string]: number } = {
   "G4: Unskilled": 0,
 };
 
+const fundiSpecializations = [
+  "General Plumbing",
+  "Water Systems",
+  "Drainage & Sewer",
+  "Gas Plumbing",
+  "Bathroom Installation",
+  "Kitchen Installation",
+  "Pipe Welding",
+  "Solar Water Systems",
+];
+
 // Prefilled projects tailored for a Plumber
 const prefilledAttachments: FundiAttachment[] = [
   {
@@ -55,6 +66,7 @@ const FundiExperience = () => {
   const [experience, setExperience] = useState("5+ years");
   const [evaluationResults, setEvaluationResults] = useState<any>(null);
   const [visibleProjectRows, setVisibleProjectRows] = useState(requiredProjectsByGrade[grade]);
+  const [specialization, setSpecialization] = useState("");
 
   const isReadOnly = user?.adminApproved === true;
 
@@ -66,6 +78,8 @@ const FundiExperience = () => {
           const data = response.data.userProfile;
           if (data.grade) setGrade(data.grade);
           if (data.experience) setExperience(data.experience);
+          if (data.specialization) setSpecialization(data.specialization);
+
           if (data.fundiEvaluation) setEvaluationResults(data.fundiEvaluation);
           if (data.previousJobPhotoUrls && data.previousJobPhotoUrls.length > 0) {
             const groupedProjects = data.previousJobPhotoUrls.reduce((acc: any, item: any) => {
@@ -167,7 +181,13 @@ const FundiExperience = () => {
         )
       );
       const previousJobPhotoUrls = await Promise.all(allFilePromises);
-      await updateFundiExperience(axiosInstance, { skill: "Plumber", grade, experience, previousJobPhotoUrls });
+     await updateFundiExperience(axiosInstance, {
+        skill: "Plumber",
+        specialization,
+        grade,
+        experience,
+        previousJobPhotoUrls,
+      });
     };
 
     try {
@@ -189,9 +209,9 @@ const FundiExperience = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
-      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">Fundi Experience</h1>
-        <form className="space-y-8" onSubmit={handleSubmit}>
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-4xl font-bold mb-8 text-gray-800">Fundi Experience</h1>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {isReadOnly && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg text-sm">
               Your profile has been approved and is read-only. Contact support for changes.
@@ -199,11 +219,27 @@ const FundiExperience = () => {
           )}
           <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">Fundi Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Skill</label>
                 <input type="text" value="Plumber" readOnly className="w-full p-3 bg-gray-200 text-gray-700 border rounded-lg" />
               </div>
+              <div>
+              <label className="text-sm font-medium">Specialization</label>
+              <select
+                value={specialization}
+                onChange={e => setSpecialization(e.target.value)}
+                className={inputStyles}
+                disabled={isReadOnly}
+              >
+                <option value="">Select Specialization</option>
+                {fundiSpecializations.map(spec => (
+                  <option key={spec} value={spec}>
+                    {spec}
+                  </option>
+                ))}
+              </select>
+            </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Grade</label>
                 <select value={grade} onChange={e => setGrade(e.target.value)} className={inputStyles} disabled={isReadOnly}>
@@ -270,7 +306,16 @@ const FundiExperience = () => {
         </form>
       </div>
     </div>
+    
   );
 };
 
 export default FundiExperience;
+
+
+
+
+
+
+
+

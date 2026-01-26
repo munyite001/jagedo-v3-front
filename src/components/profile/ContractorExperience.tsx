@@ -15,13 +15,11 @@ import { useGlobalContext } from "@/context/GlobalProvider";
 type FileOrUrl = File | string | null;
 
 interface ContractorCategory {
-  id: string;
+ id: string;
   category: string;
+  specialization: string;
   categoryClass: string;
   yearsOfExperience: string;
-  certificateFile: FileOrUrl;
-  licenseFile: FileOrUrl;
-  isEditing: boolean;
 }
 
 interface ContractorProject {
@@ -30,6 +28,17 @@ interface ContractorProject {
   projectFile: FileOrUrl;
   referenceLetterFile: FileOrUrl;
 }
+
+const BUILDING_WORKS_SPECIALIZATIONS = [
+  "Residential Buildings",
+  "Commercial Buildings",
+  "Industrial Buildings",
+  "Renovation & Refurbishment",
+  "Road & Pavement Works",
+  "Bridges & Culverts",
+  "Water & Drainage Works",
+  "Steel Structures",
+];
 
 const ContractorExperience = () => {
   const { user } = useGlobalContext();
@@ -50,19 +59,9 @@ const ContractorExperience = () => {
       category: "Building Works",
       categoryClass: "NCA 3",
       yearsOfExperience: "5-10 years",
-      certificateFile: "https://example.com/certificate_building.pdf",
-      licenseFile: "https://example.com/license_building.pdf",
       isEditing: false,
     },
-    {
-      id: "2",
-      category: "Electrical Works",
-      categoryClass: "NCA 2",
-      yearsOfExperience: "3-5 years",
-      certificateFile: "https://example.com/certificate_electrical.pdf",
-      licenseFile: "https://example.com/license_electrical.pdf",
-      isEditing: false,
-    }
+    
   ];
 
   const prefilledProjects: ContractorProject[] = [
@@ -72,12 +71,7 @@ const ContractorExperience = () => {
       projectFile: "https://example.com/project_file_mall.pdf",
       referenceLetterFile: "https://example.com/reference_letter_mall.pdf",
     },
-    {
-      id: "2",
-      projectName: "River Bridge Construction",
-      projectFile: "https://example.com/project_file_bridge.pdf",
-      referenceLetterFile: "https://example.com/reference_letter_bridge.pdf",
-    }
+    
   ];
 
   useEffect(() => {
@@ -92,10 +86,10 @@ const ContractorExperience = () => {
             const populatedCategories = profile.contractorExperiences.map(exp => ({
               id: Math.random().toString(),
               category: exp.category,
+                specialization: exp.specialization,
               categoryClass: exp.categoryClass,
               yearsOfExperience: exp.yearsOfExperience,
-              certificateFile: exp.certificate,
-              licenseFile: exp.license,
+              
               isEditing: false,
             }));
             setCategories(populatedCategories);
@@ -137,10 +131,11 @@ const ContractorExperience = () => {
     const contractorCategories = await Promise.all(
       currentCategories.map(async cat => ({
         category: cat.category,
+      specialization: cat.specialization,
+
         categoryClass: cat.categoryClass,
         yearsOfExperience: cat.yearsOfExperience,
-        certificate: cat.certificateFile instanceof File ? (await uploadFile(cat.certificateFile)).url : cat.certificateFile || "",
-        license: cat.licenseFile instanceof File ? (await uploadFile(cat.licenseFile)).url : cat.licenseFile || "",
+        
       }))
     );
 
@@ -186,7 +181,16 @@ const ContractorExperience = () => {
   };
 
   const addCategoryRow = () => {
-    setCategories(prev => [...prev, { id: Math.random().toString(), category: "", categoryClass: "", yearsOfExperience: "", certificateFile: null, licenseFile: null, isEditing: true }]);
+    setCategories(prev => [
+      ...prev,
+      {
+        id: Math.random().toString(),
+        category: "Building Works",
+        specialization: "",
+        categoryClass: "",
+        yearsOfExperience: "",
+      },
+    ]);
   };
 
   const removeCategoryRow = (id: string) => {
@@ -294,10 +298,10 @@ const ContractorExperience = () => {
                   <thead className="hidden md:table-header-group">
                     <tr className="bg-gray-100 text-left text-sm font-semibold text-gray-600">
                       <th className="px-3 py-3 w-[20%]">Category</th>
+                      <th className="px-3 py-3 w-[20%]">Specialization</th>
                       <th className="px-3 py-3 w-[15%]">Class</th>
                       <th className="px-3 py-3 w-[15%]">Years of Exp.</th>
-                      <th className="px-3 py-3 w-[22%]">Certificate</th>
-                      <th className="px-3 py-3 w-[22%]">License</th>
+                      
                       <th className="px-3 py-3 w-[5%] text-center">Action</th>
                     </tr>
                   </thead>
@@ -308,6 +312,25 @@ const ContractorExperience = () => {
                           <span className="font-semibold text-gray-600 md:hidden">Category: </span>
                           <input type="text" value={cat.category} onChange={e => handleCategoryChange(cat.id, 'category', e.target.value)} className={inputStyles} required disabled={isReadOnly} />
                         </td>
+                         <select
+                    value={cat.specialization}
+                    onChange={e =>
+                      handleCategoryChange(
+                        cat.id,
+                        "specialization",
+                        e.target.value
+                      )
+                    }
+                    className={inputStyles}
+                    disabled={isReadOnly}
+                  >
+                    <option value="">Select Specialization</option>
+                    {BUILDING_WORKS_SPECIALIZATIONS.map(s => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                         <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
                           <span className="font-semibold text-gray-600 md:hidden">Class: </span>
                           <select value={cat.categoryClass} onChange={e => handleCategoryChange(cat.id, 'categoryClass', e.target.value)} className={inputStyles} required disabled={isReadOnly}>
@@ -322,12 +345,8 @@ const ContractorExperience = () => {
                             {["10+ years","5-10 years","3-5 years","1-3 years"].map(y => <option key={y} value={y}>{y}</option>)}
                           </select>
                         </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          {renderFileState(cat.certificateFile, () => removeCategoryFile(cat.id, 'certificateFile'), e => handleCategoryFileChange(cat.id, 'certificateFile', e.target.files?.[0] || null))}
-                        </td>
-                        <td className="block md:table-cell py-2 md:py-3 md:px-3 align-top">
-                          {renderFileState(cat.licenseFile, () => removeCategoryFile(cat.id, 'licenseFile'), e => handleCategoryFileChange(cat.id, 'licenseFile', e.target.files?.[0] || null))}
-                        </td>
+                        
+                       
                         <td className="block md:table-cell py-2 md:py-3 md:px-3 md:text-center align-top absolute top-2 right-2 md:relative md:top-auto md:right-auto">
                           {!isReadOnly && <button type="button" onClick={() => removeCategoryRow(cat.id)} className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100"><TrashIcon className="w-5 h-5" /></button>}
                         </td>
@@ -396,3 +415,8 @@ const ContractorExperience = () => {
 };
 
 export default ContractorExperience;
+
+
+
+
+

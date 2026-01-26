@@ -59,6 +59,8 @@ const AccountUploads = () => {
         { label: "Business Permit", key: "businessPermit" },
         { label: "KRA PIN", key: "kraPIN" },
         { label: "Company Profile", key: "companyProfile" },
+        {label: "Certificate", key: "certificate" },
+        {label: "Practice License", key: "practiceLicense" },
       ],
       fundi: [
         { label: "ID Front", key: "idFrontUrl" },

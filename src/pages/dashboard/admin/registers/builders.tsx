@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getAllProviders } from "@/api/provider.api";
 import { kenyanLocations } from "@/data/kenyaLocations";
+import { mockBuilders } from "@/data/mockBuilders";
 
 const navItems = [
   { name: "FUNDI" },
@@ -37,8 +38,10 @@ export default function BuildersAdmin() {
       setLoading(true);
       setError(null);
       try {
-        const data = await getAllProviders(axiosInstance);
-        setBuilders(data?.hashSet || []);
+        setBuilders(mockBuilders);
+
+        // const data = await getAllProviders(axiosInstance);
+        // setBuilders(data?.hashSet || []);
       } catch (err: any) {
         setError(err.message || "Failed to fetch builders");
       } finally {
@@ -85,9 +88,10 @@ export default function BuildersAdmin() {
     <div className="flex flex-col h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b p-4">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
           {/* Navigation buttons */}
-          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 w-full md:w-auto">
+          <div className="flex flex-nowrap gap-2 w-full overflow-x-auto md:overflow-visible">
+
             {navItems.map((nav) => (
               <button
                 key={nav.name}
@@ -96,7 +100,7 @@ export default function BuildersAdmin() {
                   setActiveTab(nav.name);
                   setCurrentPage(1);
                 }}
-                className={`px-4 md:px-20 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
+                className={`px-2 md:px-18 py-2 rounded-md font-semibold text-center transition-colors duration-200 border focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm ${activeTab === nav.name
                   ? "bg-blue-900 text-white border-blue-900"
                   : "bg-blue-100 text-blue-900 border-blue-100 hover:bg-blue-200"
                   }`}
@@ -279,5 +283,6 @@ export default function BuildersAdmin() {
         </>
       )}
     </div>
+    
   );
 }

@@ -30,10 +30,55 @@ import hardwareImg from "../assets/hardware.jpeg";
 import JamesImg from "../assets/Builder.jpg";
 import micaImg from "../assets/mutonga.jpg";
 import ChatWidgetWrapper from "@/components/ChatWidget";
+import woman1 from "../assets/woman1.jpg";
+import woman2 from "../assets/woman2.jpg";
+import Builder from "../assets/Builder.jpg";
+
 
 const GreenCheckIcon = (
   <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />
 );
+
+
+const testimonials = [
+  {
+    name: "Wanjiku Mwangi",
+    role: "Homeowner, Nairobi",
+    image: woman1,
+    text: "Jagedo made finding a reliable plumber so easy. The reviews were spot on, and knowing my payment was secure until the job was done gave me peace of mind.",
+  },
+  {
+    name: "Eng. James Kariuki",
+    role: "Contractor, Thika",
+    image: Builder,
+    text: "As a contractor, sourcing materials used to be a headache. Now I order everything on Jagedo and get site delivery. It saves me time and transport costs.",
+  },
+  {
+    name: "Peter Omondi",
+    role: "Hardware Owner, Kisumu",
+    image: woman2,
+    text: "My hardware business has grown 30% since joining Jagedo. The platform connects me with serious customers I wouldn't have reached otherwise.",
+  },
+  {
+    name: "Wanjiku Mwangi",
+    role: "Homeowner, Nairobi",
+    image: woman1,
+    text: "Jagedo made finding a reliable plumber so easy. The reviews were spot on, and knowing my payment was secure until the job was done gave me peace of mind.",
+  },
+  {
+    name: "Eng. James Kariuki",
+    role: "Contractor, Thika",
+    image: Builder,
+    text: "As a contractor, sourcing materials used to be a headache. Now I order everything on Jagedo and get site delivery. It saves me time and transport costs.",
+  },
+  {
+    name: "Peter Omondi",
+    role: "Hardware Owner, Kisumu",
+    image: woman2,
+    text: "My hardware business has grown 30% since joining Jagedo. The platform connects me with serious customers I wouldn't have reached otherwise.",
+  },
+];
+
 
 const Home = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -256,6 +301,11 @@ const Home = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const sliderRef = useRef(null);
+
+ 
+
 
   const scrollToSection = (ref) => {
     if (ref.current) {
@@ -576,6 +626,8 @@ const Home = () => {
         )}
       </motion.div>
 
+
+
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -763,6 +815,59 @@ const Home = () => {
       </motion.div>
 
 
+<motion.section
+  initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ duration: 1 }}
+  className="bg-gray-50 py-16 overflow-hidden"
+>
+  <div className="max-w-7xl mx-auto px-6">
+    <h2 className="text-3xl font-bold text-center mb-3">
+      What Our Users Say
+    </h2>
+    <p className="text-center text-gray-600 mb-12">
+      Join thousands of satisfied homeowners, builders, and suppliers building with Jagedo.
+    </p>
+
+    {/* CAROUSEL */}
+    <div className="relative w-full overflow-hidden">
+      <div className="flex w-max animate-marquee gap-6">
+        {[...testimonials, ...testimonials].map((item, index) => (
+          <div
+            key={index}
+            className="min-w-[300px] bg-white p-6 rounded-2xl shadow-lg relative"
+          >
+            <div className="absolute top-4 right-4 text-gray-200 text-6xl font-serif">
+              “
+            </div>
+
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-12 h-12 rounded-full object-cover"
+              />
+              <div>
+                <h4 className="font-bold text-sm">{item.name}</h4>
+                <p className="text-[rgb(0,0,122)] text-sm">{item.role}</p>
+              </div>
+            </div>
+
+            <p className="text-gray-600 text-sm leading-relaxed mb-4">
+              "{item.text}"
+            </p>
+
+            <div className="flex gap-1 text-orange-400">
+              {Array(5).fill(0).map((_, i) => (
+                <span key={i}>★</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</motion.section>
 
 
 

@@ -40,14 +40,29 @@ const PROJECT_REQUIREMENTS = {
     student: 0,
 };
 
+
+const SPECIALIZATIONS_BY_CATEGORY: Record<string, string[]> = {
+    
+    
+   
+ 
+    "Architect": [
+        "Residential",
+        "Commercial",
+        "Industrial",
+        "Urban",
+    ],
+    
+};
+
 const ProffExperience = () => {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const { logout, user: contextUser } = useGlobalContext();
     const user = contextUser || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user") || "{}") : null);
-
+    const [specialization, setSpecialization] = useState("Architect");
     // Prefilled fields
-    const [category, setCategory] = useState("Civil Engineer");
-    const [specialization, setSpecialization] = useState("Structural Engineer");
+    const [category, setCategory] = useState("Architect");
+    // const [specialization, setSpecialization] = useState("Structural Engineer");
     const [level, setLevel] = useState("Professional");
     const [experience, setExperience] = useState("5+ years");
     const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
@@ -193,10 +208,21 @@ const ProffExperience = () => {
                                             <label className="block text-sm font-medium text-gray-700">Category</label>
                                             <input type="text" value={category} readOnly className="w-full p-3 bg-gray-200 border rounded-lg" />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Specialization</label>
-                                            <input type="text" value={specialization} readOnly className="w-full p-3 bg-gray-200 border rounded-lg" />
-                                        </div>
+                                         <div>
+                            <label className="text-sm font-medium">Specialization</label>
+                            <select
+                                value={specialization}
+                                onChange={(e) => setSpecialization(e.target.value)}
+                                disabled={isReadOnly}
+                                className={inputStyles}
+                            >
+                                {SPECIALIZATIONS_BY_CATEGORY[category].map(spec => (
+                                    <option key={spec} value={spec}>
+                                        {spec}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                         <div>
@@ -275,3 +301,12 @@ const ProffExperience = () => {
 };
 
 export default ProffExperience;
+
+
+
+
+
+
+
+
+
