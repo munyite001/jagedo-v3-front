@@ -1,22 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, User, MapPin, MessageSquare, ShieldCheck, Check } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // Import your data/API hooks
 import { getAllCountries } from "@/api/countries.api";
-import { counties } from "@/pages/data/counties"; 
+import { counties } from "@/pages/data/counties";
 
 // Interfaces
 interface ProfileCompletionProps {
     user: any;
-    accountType: "INDIVIDUAL" | "ORGANIZATION";
+    accountType: "INDIVIDUAL" | "ORGANIZATION" | "CONTRACTOR" | "HARDWARE";
     onComplete: (profileData: any) => void;
     onCancel?: () => void;
+    isModal?: boolean;
 }
 
 export function ProfileCompletion({
@@ -24,6 +26,7 @@ export function ProfileCompletion({
     accountType,
     onComplete,
     onCancel,
+    isModal = false,
 }: ProfileCompletionProps) {
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +50,7 @@ export function ProfileCompletion({
         country: "Kenya",
         county: "",
         subCounty: "",
-        town: "", 
+        town: "",
         estate: "",
     });
 
@@ -73,7 +76,7 @@ export function ProfileCompletion({
             try {
                 const data = await getAllCountries();
                 // @ts-ignore
-                setCountries(data.hashSet || []); 
+                setCountries(data.hashSet || []);
             } catch (error) {
                 console.error("Failed to fetch countries:", error);
                 toast.error("Could not load country list.");
@@ -89,7 +92,7 @@ export function ProfileCompletion({
         if (!user) return;
 
         const signupMethod = localStorage.getItem("otpDeliveryMethod");
-        let secondaryMethod = "PHONE"; 
+        let secondaryMethod = "PHONE";
 
         if (signupMethod) {
             secondaryMethod = signupMethod.toUpperCase() === "EMAIL" ? "PHONE" : "EMAIL";
@@ -109,19 +112,22 @@ export function ProfileCompletion({
 
     // --- HELPERS ---
     const countyList = location.country === "Kenya" ? Object.keys(counties) : [];
-    const subCountyList = (location.country === "Kenya" && location.county) 
-        ? counties[location.county as keyof typeof counties] || [] 
+    const subCountyList = (location.country === "Kenya" && location.county)
+        ? counties[location.county as keyof typeof counties] || []
         : [];
+
+    // Helper to check if account type uses organization fields
+    const isOrganizationType = accountType === "ORGANIZATION" || accountType === "CONTRACTOR" || accountType === "HARDWARE";
 
     // --- VALIDATION ---
     const validateStep1 = (): boolean => {
         if (accountType === "INDIVIDUAL") {
             return (
                 personalInfo.firstName.trim().length >= 2 &&
-                personalInfo.lastName.trim().length >= 2 &&
-                personalInfo.idNumber.trim().length >= 5
+                personalInfo.lastName.trim().length >= 2
             );
         } else {
+            // ORGANIZATION, CONTRACTOR, HARDWARE all use org name + contact person
             return (
                 personalInfo.organizationName.trim().length >= 3 &&
                 personalInfo.contactFullName.trim().length >= 3
@@ -186,7 +192,7 @@ export function ProfileCompletion({
             return;
         }
         setSecondaryContact((prev) => ({ ...prev, isLoading: true }));
-        
+
         try {
             setTimeout(() => {
                 toast.success(`OTP sent to ${secondaryContact.contact}`);
@@ -250,45 +256,95 @@ export function ProfileCompletion({
         }
     };
 
+    const stepInfo = [
+        { icon: User, label: "Personal" },
+        { icon: MapPin, label: "Location" },
+        { icon: MessageSquare, label: "Source" },
+        { icon: ShieldCheck, label: "Verify" }
+    ];
+
     return (
-        <div className="w-full min-h-screen bg-gray-50 py-8 font-roboto">
-            <div className="max-w-2xl mx-auto px-4">
-                <div className="mb-8 flex items-center justify-between">
+        <div className={cn("w-full font-roboto", isModal ? "bg-gradient-to-br from-slate-50 via-white to-blue-50 p-0" : "min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8")}>
+            <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
+                {/* Header */}
+                <div className="mb-6 flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Complete Your Profile</h1>
-                        <p className="text-gray-600 mt-2 text-sm">
-                            Step {currentStep} of 4 • {
-                                currentStep === 1 ? "Personal Information" :
-                                currentStep === 2 ? "Location" :
-                                currentStep === 3 ? "Source" :
-                                "Verification"
-                            }
+                        <h1 className={cn("font-bold bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 bg-clip-text text-transparent", isModal ? "text-2xl" : "text-3xl")}>
+                            Complete Your Profile
+                        </h1>
+                        <p className="text-gray-500 mt-1 text-sm font-medium">
+                            Step {currentStep} of 4 • {stepInfo[currentStep - 1].label}
                         </p>
                     </div>
                     {onCancel && (
-                        <button onClick={handleCancel} className="text-gray-500 hover:text-gray-700">
-                            <ArrowLeft className="h-6 w-6" />
+                        <button
+                            onClick={handleCancel}
+                            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
                         </button>
                     )}
                 </div>
 
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-8">
+                {/* Step Indicators */}
+                <div className="flex items-center justify-between mb-6 px-2">
+                    {stepInfo.map((step, index) => {
+                        const StepIcon = step.icon;
+                        const stepNumber = index + 1;
+                        const isCompleted = currentStep > stepNumber;
+                        const isCurrent = currentStep === stepNumber;
+
+                        return (
+                            <div key={index} className="flex items-center flex-1">
+                                <div className="flex flex-col items-center">
+                                    <div className={cn(
+                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                                        isCompleted ? "bg-green-500 text-white" :
+                                            isCurrent ? "bg-[rgb(0,0,122)] text-white ring-4 ring-blue-100" :
+                                                "bg-gray-100 text-gray-400"
+                                    )}>
+                                        {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+                                    </div>
+                                    <span className={cn(
+                                        "text-xs mt-1.5 font-medium transition-colors",
+                                        isCurrent ? "text-[rgb(0,0,122)]" :
+                                            isCompleted ? "text-green-600" : "text-gray-400"
+                                    )}>
+                                        {step.label}
+                                    </span>
+                                </div>
+                                {index < stepInfo.length - 1 && (
+                                    <div className={cn(
+                                        "flex-1 h-0.5 mx-2 rounded transition-colors duration-300",
+                                        currentStep > stepNumber ? "bg-green-400" : "bg-gray-200"
+                                    )} />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
                     <div
-                        className="bg-[rgb(0,0,122)] h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-[rgb(0,0,122)] to-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${(currentStep / 4) * 100}%` }}
                     />
                 </div>
 
-                <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-100/50 border border-gray-100/80 p-8 mb-6">
                     {currentStep === 1 && (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="flex justify-center mb-4">
-                                <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12" />
+                        <div className="space-y-5 animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 mb-4">
+                                    <User className="h-8 w-8 text-[rgb(0,0,122)]" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    Personal Details
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">Tell us about yourself</p>
                             </div>
-                            <h3 className="text-xl font-semibold text-[rgb(0,0,122)] text-center mb-4">
-                                Personal Details
-                            </h3>
-                            {accountType === "INDIVIDUAL" ? (
+                            {!isOrganizationType ? (
                                 <>
                                     <div className="space-y-2">
                                         <Label htmlFor="firstName">First Name *</Label>
@@ -308,31 +364,6 @@ export function ProfileCompletion({
                                             className="w-full border-gray-300"
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="idType">ID Type *</Label>
-                                        <Select
-                                            value={personalInfo.idType}
-                                            onValueChange={(value) => setPersonalInfo({ ...personalInfo, idType: value })}
-                                        >
-                                            <SelectTrigger className="w-full border-gray-300">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white">
-                                                <SelectItem value="NATIONAL_ID">National ID</SelectItem>
-                                                <SelectItem value="PASSPORT">Passport</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="idNumber">ID Number *</Label>
-                                        <Input
-                                            id="idNumber"
-                                            value={personalInfo.idNumber}
-                                            onChange={(e) => setPersonalInfo({ ...personalInfo, idNumber: e.target.value.replace(/\D/g, "") })}
-                                            placeholder="Enter ID Number"
-                                            className="w-full border-gray-300"
-                                        />
-                                    </div>
                                 </>
                             ) : (
                                 <div className="space-y-4">
@@ -346,7 +377,7 @@ export function ProfileCompletion({
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="contactFullName">Contact Person Full Name *</Label>
+                                        <Label htmlFor="contactFullName">Contact Person *</Label>
                                         <Input
                                             id="contactFullName"
                                             value={personalInfo.contactFullName}
@@ -361,13 +392,16 @@ export function ProfileCompletion({
                     )}
 
                     {currentStep === 2 && (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="flex justify-center mb-4">
-                                <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12" />
+                        <div className="space-y-5 animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-100 mb-4">
+                                    <MapPin className="h-8 w-8 text-emerald-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    Location Information
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">Where are you based?</p>
                             </div>
-                            <h3 className="text-xl font-semibold text-[rgb(0,0,122)] text-center mb-4">
-                                Location Information
-                            </h3>
 
                             <div className="space-y-2">
                                 <Label>Country *</Label>
@@ -449,13 +483,16 @@ export function ProfileCompletion({
                     )}
 
                     {currentStep === 3 && (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="flex justify-center mb-4">
-                                <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12" />
+                        <div className="space-y-5 animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-100 mb-4">
+                                    <MessageSquare className="h-8 w-8 text-violet-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    Reference Information
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">How did you find us?</p>
                             </div>
-                            <h3 className="text-xl font-semibold text-[rgb(0,0,122)] text-center mb-4">
-                                Reference Information
-                            </h3>
                             <div className="space-y-2">
                                 <Label>How did you hear about us? *</Label>
                                 <Select
@@ -480,8 +517,8 @@ export function ProfileCompletion({
                                 <div className="space-y-2 animate-fade-in">
                                     <Label>
                                         {reference.howDidYouHearAboutUs === "SOCIAL_MEDIA" ? "Which platform?" :
-                                         reference.howDidYouHearAboutUs === "DIRECT_REFERRAL" ? "Who referred you?" :
-                                         "Please specify"} *
+                                            reference.howDidYouHearAboutUs === "DIRECT_REFERRAL" ? "Who referred you?" :
+                                                "Please specify"} *
                                     </Label>
                                     <Input
                                         value={reference.referralDetail}
@@ -495,16 +532,19 @@ export function ProfileCompletion({
                     )}
 
                     {currentStep === 4 && (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="flex justify-center mb-4">
-                                <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12" />
+                        <div className="space-y-5 animate-fade-in">
+                            <div className="text-center mb-6">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 mb-4">
+                                    <ShieldCheck className="h-8 w-8 text-amber-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-800">
+                                    Verify Your Contact
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">One last step to secure your account</p>
                             </div>
-                            <h3 className="text-xl font-semibold text-[rgb(0,0,122)] text-center mb-4">
-                                Verify Secondary Contact
-                            </h3>
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                <p className="text-sm text-blue-800">
-                                    Verify your <strong>{secondaryContact.contactType}</strong> to complete profile setup.
+                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                                <p className="text-sm text-blue-700 text-center">
+                                    Verify your <strong className="font-semibold">{secondaryContact.contactType === "EMAIL" ? "email address" : "phone number"}</strong> to complete profile setup.
                                 </p>
                             </div>
 
@@ -514,34 +554,58 @@ export function ProfileCompletion({
                                 </Label>
                                 <Input
                                     value={secondaryContact.contact}
-                                    onChange={(e) => setSecondaryContact({...secondaryContact, contact: e.target.value})}
+                                    onChange={(e) => setSecondaryContact({ ...secondaryContact, contact: e.target.value })}
                                     placeholder={`Enter your ${secondaryContact.contactType.toLowerCase()}`}
                                     className="w-full border-gray-300"
                                 />
                             </div>
 
                             {!secondaryContact.isOtpSent ? (
-                                <Button onClick={handleSendOtp} disabled={secondaryContact.isLoading} className="w-full bg-[rgb(0,0,122)] text-white">
-                                    {secondaryContact.isLoading ? "Sending..." : "Send OTP"}
+                                <Button
+                                    onClick={handleSendOtp}
+                                    disabled={secondaryContact.isLoading}
+                                    className="w-full h-12 rounded-xl bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 text-white font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200"
+                                >
+                                    {secondaryContact.isLoading ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </span>
+                                    ) : "Send Verification Code"}
                                 </Button>
                             ) : (
                                 <>
                                     <div className="space-y-2">
-                                        <Label>Enter OTP</Label>
+                                        <Label className="text-gray-700 font-medium">Enter OTP</Label>
                                         <Input
                                             value={secondaryContact.otp}
                                             onChange={(e) => setSecondaryContact({ ...secondaryContact, otp: e.target.value })}
-                                            placeholder="6-digit code"
+                                            placeholder="• • • • • •"
                                             maxLength={6}
-                                            className="text-center text-lg tracking-widest border-gray-300"
+                                            className="text-center text-2xl tracking-[0.5em] border-gray-200 h-14 rounded-xl font-mono focus:border-blue-400 focus:ring-blue-100"
                                         />
                                     </div>
-                                    <Button 
-                                        onClick={handleVerifyOtp} 
+                                    <Button
+                                        onClick={handleVerifyOtp}
                                         disabled={secondaryContact.isVerified || isVerifying}
-                                        className={`w-full ${secondaryContact.isVerified ? "bg-green-600" : "bg-[rgb(0,0,122)]"} text-white`}
+                                        className={cn(
+                                            "w-full h-12 rounded-xl font-medium shadow-lg transition-all duration-200",
+                                            secondaryContact.isVerified
+                                                ? "bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-500/25"
+                                                : "bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 shadow-blue-500/25 hover:shadow-xl"
+                                        )}
                                     >
-                                        {secondaryContact.isVerified ? "Verified ✓" : (isVerifying ? "Verifying..." : "Verify OTP")}
+                                        {secondaryContact.isVerified ? (
+                                            <span className="flex items-center gap-2">
+                                                <Check className="h-5 w-5" />
+                                                Verified Successfully
+                                            </span>
+                                        ) : isVerifying ? (
+                                            <span className="flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Verifying...
+                                            </span>
+                                        ) : "Verify OTP"}
                                     </Button>
                                 </>
                             )}
@@ -554,21 +618,29 @@ export function ProfileCompletion({
                         onClick={handlePreviousStep}
                         disabled={currentStep === 1}
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 h-12 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-medium transition-all duration-200 disabled:opacity-40"
                     >
                         Back
                     </Button>
                     {currentStep < 4 ? (
-                        <Button onClick={handleNextStep} className="flex-1 bg-[rgb(0,0,122)] text-white hover:bg-opacity-90">
-                            Next
+                        <Button
+                            onClick={handleNextStep}
+                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 text-white font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:scale-[1.02] transition-all duration-200"
+                        >
+                            Continue
                         </Button>
                     ) : (
-                        <Button 
-                            onClick={handleSubmit} 
+                        <Button
+                            onClick={handleSubmit}
                             disabled={isSubmitting || !secondaryContact.isVerified}
-                            className="flex-1 bg-green-600 text-white hover:bg-green-700"
+                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100"
                         >
-                            {isSubmitting ? "Completing..." : "Complete Profile"}
+                            {isSubmitting ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Completing...
+                                </span>
+                            ) : "Complete Profile"}
                         </Button>
                     )}
                 </div>
