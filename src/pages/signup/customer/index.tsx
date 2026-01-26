@@ -6,9 +6,9 @@ import { useGlobalContext } from "@/context/GlobalProvider";
 import GenericFooter from "@/components/generic-footer";
 
 import { CustomerSignupForm } from "@/components/customer-signup-form";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
 import {
     initiateRegistraion,
-    handleCompleteRegistration,
     resendOtp
 } from "@/api/auth.api";
 import { toast, Toaster } from "sonner";
@@ -17,6 +17,11 @@ export default function CustomerSignup() {
     const navigate = useNavigate();
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
+    
+    // New States for Profile Completion
+    const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+    const [registeredUser, setRegisteredUser] = useState<any>(null);
+
     const [formData, setFormData] = useState({
         accountType: "",
         email: "",
@@ -38,11 +43,13 @@ export default function CustomerSignup() {
         subCounty: "",
         estate: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        agreeToTerms: false //mock for testing. Can be removed afterwards
     });
 
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 9 : 8;
+    //const totalSteps = formData.accountType === "ORGANIZATION" ? 9 : 8;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -109,42 +116,81 @@ export default function CustomerSignup() {
     };
 
     const handleSubmit = async () => {
-        const data = {
+        // 1. Prepare the user object
+        const newUser = {
+            id: crypto.randomUUID(),
             email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            organizationName: formData.organizationName,
-            contactFirstName: formData.contactFirstName,
-            contactLastName: formData.contactLastName,
-            contactPhone: formData.contactPhone,
-            contactEmail: formData.contactEmail,
-            country: formData.country,
-            county: formData.county,
-            subCounty: formData.subCounty,
-            estate: formData.estate,
-            password: formData.password
+            password: formData.password,
+            userType: "CUSTOMER",
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false
+        }
+        try {
+            // 2. mock db save
+            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
+                toast.error("User with this email already exists!");
+                return;
+            }
+            exisitingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
+
+           // 3. successs message and redirect
+            const response = {
+                data: {
+                    success: true,
+                    user: newUser,
+                    accessToken: "mock_access_token" + newUser.id
+                }
+            };
+
+            // 4. Show Profile Completion Modal instead of immediate redirect
+             if (response.data.success) {
+                toast.success("Account created successfully. Please complete your profile.");
+                setRegisteredUser(newUser);
+                setShowProfileCompletionModal(true);
+             }
+           
+        } catch (error: any) {
+            toast.error("An error occurred during mock registration");
+        }
+    };
+
+    const handleProfileComplete = (profileData: any) => {
+        // Here we would normally save the profile data to the backend
+        // For now, we update the mock user and local storage
+
+        const updatedUser = {
+            ...registeredUser,
+            ...profileData,
+            profileCompleted: true
         };
 
-        try {
-            const response = await handleCompleteRegistration(data);
-
-            if (response.data.success) {
-                toast.success("Account Created Successfully. Redirecting to login...");
-
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.accessToken);
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            } else {
-                toast.error(`Failed To Create Account: ${response.data.message}`);
-            }
-        } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+        // Update in mock DB
+        const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = exisitingUsers.findIndex((u: any) => u.email === updatedUser.email);
+        if (userIndex !== -1) {
+            exisitingUsers[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
         }
+
+        // Login
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("token", "mock_access_token" + updatedUser.id);
+        setUser(updatedUser);
+        setIsLoggedIn(true);
+
+        toast.success("Profile completed! Redirecting to dashboard...");
+        setShowProfileCompletionModal(false);
+        
+        setTimeout(() => {
+            navigate("/profile");
+        }, 1500);
     };
 
 
@@ -185,7 +231,16 @@ export default function CustomerSignup() {
                 </div>
             </main>
 
+            <ProfileCompletionModal 
+                isOpen={showProfileCompletionModal}
+                user={registeredUser}
+                accountType={formData.accountType as any}
+                onComplete={handleProfileComplete}
+                onClose={() => setShowProfileCompletionModal(false)}
+            />
+
             <GenericFooter />
         </div>
+        
     );
 }

@@ -11,11 +11,14 @@ import {
 import { toast, Toaster } from "sonner";
 import { ProviderSignupForm } from "@/components/provider-signup-form";
 import GenericFooter from "@/components/generic-footer";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
 
 export default function HardwareSignup() {
     const navigate = useNavigate();
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
+    const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+    const [registeredUser, setRegisteredUser] = useState<any>(null);
     const [formData, setFormData] = useState({
         accountType: "INDIVIDUAL",
         skills: "",
@@ -28,7 +31,7 @@ export default function HardwareSignup() {
         otp: "",
         firstName: "",
         lastName: "",
-        gender: "",
+        gender: "male",
         organizationName: "",
         contactFirstName: "",
         contactLastName: "",
@@ -40,11 +43,13 @@ export default function HardwareSignup() {
         subCounty: "",
         estate: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        agreeToTerms: false
     });
 
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 10 : 9;
+    // const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -107,46 +112,122 @@ export default function HardwareSignup() {
         }
     };
 
+    // const handleSubmit = async () => {
+    //     const data = {
+    //         email: formData.email,
+    //         firstName: formData.firstName || "Pending",
+    //         lastName: formData.lastName || "User",
+    //         organizationName: formData.organizationName || "Pending",
+    //         contactFirstName: formData.contactFirstName || "Pending",
+    //         contactLastName: formData.contactLastName || "User",
+    //         contactPhone: formData.contactPhone || formData.phone,
+    //         contactEmail: formData.contactEmail || formData.email,
+    //         country: formData.country || "Kenya",
+    //         county: formData.county || "Pending",
+    //         subCounty: formData.subCounty || "Pending",
+    //         estate: formData.estate || "Pending",
+    //         password: formData.password,
+    //         gender: formData.gender || "male",
+    //         state: formData.country,
+    //     };
+    //     try {
+    //         //const response = await handleCompleteRegistration(data);
+    //         const response = {
+    //              data: {
+    //                  success: true,
+    //                  message: "Account Created Successfully (Mock)",
+    //                  user: { email: formData.email, role: "HARDWARE" },
+    //                  accessToken: "mock_token_123"
+    //              }
+    //          };
+    //         if (response.data.success) {
+    //             toast.success("Account Created Successfully. Redirecting to login...");
+    //             localStorage.setItem(
+    //                 "user",
+    //                 JSON.stringify(response.data.user)
+    //             );
+    //             localStorage.setItem("token", response.data.accessToken);
+    //             setUser(response.data.user);
+    //             setIsLoggedIn(true);
+    //             setTimeout(() => {
+    //                 navigate("/login");
+    //             }, 2000);
+    //         } else {
+    //             toast.error(
+    //                 `Failed To Create Account: ${response.data.message}`
+    //             );
+    //         }
+    //     } catch (error: any) {
+    //         toast.error(`Error sending OTP: ${error.response.data.message}`);
+    //     }
+    // };
     const handleSubmit = async () => {
-        const data = {
+        // 1. Prepare the user object
+        const newUser = {
+            id: crypto.randomUUID(),
             email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            organizationName: formData.organizationName,
-            contactFirstName: formData.contactFirstName,
-            contactLastName: formData.contactLastName,
-            contactPhone: formData.contactPhone,
-            contactEmail: formData.contactEmail,
-            country: formData.country,
-            county: formData.county,
-            subCounty: formData.subCounty,
-            estate: formData.estate,
             password: formData.password,
-            gender: formData.gender,
-            state: formData.country,
-        };
-        try {
-            const response = await handleCompleteRegistration(data);
-            if (response.data.success) {
-                toast.success("Account Created Successfully. Redirecting to login...");
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(response.data.user)
-                );
-                localStorage.setItem("token", response.data.accessToken);
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            } else {
-                toast.error(
-                    `Failed To Create Account: ${response.data.message}`
-                );
-            }
-        } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response.data.message}`);
+            userType: "HARDWARE",
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false
         }
+        try {
+            // 2. mock db save
+            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
+                toast.error("User with this email already exists!");
+                return;
+            }
+            exisitingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
+
+           // 3. successs message and redirect
+            const response = {
+                data: {
+                    success: true,
+                    user: newUser,
+                    accessToken: "mock_access_token_" + newUser.id
+                }
+            };
+
+            // 4. Show Profile Completion Modal
+             if (response.data.success) {
+                toast.success("Account created successfully. Please complete your profile.");
+                setRegisteredUser(newUser);
+                setShowProfileCompletionModal(true);
+             }
+
+        } catch (error: any) {
+            toast.error("An error occurred during mock registration");
+        }
+    };
+
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = {
+            ...registeredUser,
+            ...profileData,
+            profileCompleted: true
+        };
+        const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = existingUsers.findIndex((u: any) => u.email === updatedUser.email);
+        if (userIndex !== -1) {
+            existingUsers[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+        }
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("token", "mock_access_token_" + updatedUser.id);
+        setUser(updatedUser);
+        setIsLoggedIn(true);
+        toast.success("Profile completed! Redirecting to dashboard...");
+        setShowProfileCompletionModal(false);
+        setTimeout(() => {
+            navigate("/profile");
+        }, 1500);
     };
 
     return (
@@ -184,6 +265,14 @@ export default function HardwareSignup() {
                     </div>
                 </div>
             </main>
+
+            <ProfileCompletionModal
+                isOpen={showProfileCompletionModal}
+                user={registeredUser}
+                accountType={"HARDWARE" as any}
+                onComplete={handleProfileComplete}
+                onClose={() => setShowProfileCompletionModal(false)}
+            />
 
             <GenericFooter />
         </div>

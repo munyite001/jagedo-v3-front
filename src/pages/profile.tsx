@@ -30,6 +30,7 @@ function ProfilePage() {
         }
     }, [user]);
 
+
     const renderContent = () => {
         const userType = (user?.userType || '').toLowerCase();
 

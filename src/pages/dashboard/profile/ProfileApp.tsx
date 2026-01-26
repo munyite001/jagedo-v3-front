@@ -93,6 +93,7 @@ function ProfileApp() {
         userData={user}
       />
     </div>
+    
   );
 }
 

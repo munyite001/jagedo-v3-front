@@ -11,11 +11,15 @@ import {
 import { toast, Toaster } from "sonner";
 import { ProviderSignupForm } from "@/components/provider-signup-form";
 import GenericFooter from "@/components/generic-footer";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
+
 
 export default function FundiSignup() {
     const navigate = useNavigate();
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
+    const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+    const [registeredUser, setRegisteredUser] = useState<any>(null);
     const [formData, setFormData] = useState({
         accountType: "INDIVIDUAL",
         skills: "",
@@ -29,7 +33,7 @@ export default function FundiSignup() {
         otp: "",
         firstName: "",
         lastName: "",
-        gender: "",
+        gender: "male",
         organizationName: "",
         contactFirstName: "",
         contactLastName: "",
@@ -41,11 +45,15 @@ export default function FundiSignup() {
         estate: "",
         town: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        agreeToTerms: false
     });
 
+    
 
-    const totalSteps = formData.accountType === "ORGANIZATION" ? 10 : 9;
+
+    //const totalSteps = formData.accountType === "ORGANIZATION" ? 6 : 5;
+    const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
         setFormData((prev) => ({ ...prev, ...data }));
@@ -111,45 +119,66 @@ export default function FundiSignup() {
     };
 
     const handleSubmit = async () => {
-        const data = {
+        // 1. Prepare the user object
+        const newUser = {
+            id: crypto.randomUUID(),
             email: formData.email,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            organizationName: formData.organizationName,
-            contactFirstName: formData.contactFirstName,
-            contactLastName: formData.contactLastName,
-            contactPhone: formData.contactPhone,
-            contactEmail: formData.contactEmail,
-            country: formData.country,
-            county: formData.county,
-            subCounty: formData.subCounty,
-            estate: formData.estate,
             password: formData.password,
-            gender: formData.gender,
-            state: formData.country,
+            userType: "FUNDI",
+            firstName: formData.firstName || "Pending",
+            lastName: formData.lastName || "User",
+            accountType: formData.accountType,
+            phone: formData.phone,
+            profileCompleted: false // Flag for the dashboard to catch
         };
+
         try {
-            const response = await handleCompleteRegistration(data);
-            if (response.data.success) {
-                toast.success("Account Created Successfully. Redirecting to login...");
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(response.data.user)
-                );
-                localStorage.setItem("token", response.data.accessToken);
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            } else {
-                toast.error(
-                    `Failed To Create Account: ${response.data.message}`
-                );
+            // 2. Mock DB save
+            const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+
+            if (existingUsers.find((u: any) => u.email === newUser.email)) {
+                toast.error("User with this email already exists!");
+                return;
             }
+            existingUsers.push(newUser);
+            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+            
+            // Save OTP method for the profile completion step
+            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
+
+            // 3. Show Profile Completion Modal
+            if (true) {
+                toast.success("Account created successfully. Please complete your profile.");
+                setRegisteredUser(newUser);
+                setShowProfileCompletionModal(true);
+            }
+
         } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response.data.message}`);
+            toast.error("An error occurred during mock registration");
         }
+    };
+
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = {
+            ...registeredUser,
+            ...profileData,
+            profileCompleted: true
+        };
+        const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = existingUsers.findIndex((u: any) => u.email === updatedUser.email);
+        if (userIndex !== -1) {
+            existingUsers[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+        }
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("token", "mock_access_token_" + updatedUser.id);
+        setUser(updatedUser);
+        setIsLoggedIn(true);
+        toast.success("Profile completed! Redirecting to dashboard...");
+        setShowProfileCompletionModal(false);
+        setTimeout(() => {
+            navigate("/profile");
+        }, 1500);
     };
 
     return (
@@ -186,6 +215,14 @@ export default function FundiSignup() {
                     </div>
                 </div>
             </main>
+
+            <ProfileCompletionModal
+                isOpen={showProfileCompletionModal}
+                user={registeredUser}
+                accountType={formData.accountType as any}
+                onComplete={handleProfileComplete}
+                onClose={() => setShowProfileCompletionModal(false)}
+            />
 
             <GenericFooter />
         </div>

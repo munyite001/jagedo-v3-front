@@ -1,338 +1,424 @@
-/* eslint-disable no-useless-escape */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-//@ts-nocheck
+/* eslint-disable */
+// @ts-nocheck
 
 import React, { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { useGlobalContext } from "@/context/GlobalProvider";
 import { useNavigate } from "react-router-dom";
 import { loginUser, verifyOtpLogin, phoneLogin } from "@/api/auth.api";
-import GoogleSignIn from "@/components/GoogleSignIn"
-import { jwtDecode } from "jwt-decode";
+import { useGlobalContext } from "@/context/GlobalProvider";
+import GoogleSignIn from "@/components/GoogleSignIn";
+import { MOCK_USERS } from "@/pages/mockusers"; // Make sure path is correct
+import { MOCK_PROFILES } from "@/pages/mockProfiles";
 
-// Mock components for demonstration
-const Button = ({
-    children,
-    className = "",
-    disabled = false,
-    type = "button",
-    variant = "default",
-    onClick,
-    ...props
-}) => {
-    const baseClasses =
-        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
-    const variants = {
-        default:
-            "bg-[#00007a] text-white hover:bg-[#00007a]/90 hover:shadow-lg hover:shadow-[#00007a]/25 focus:ring-[#00007a]/50",
-        outline:
-            "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:ring-gray-500/50"
-    };
-    const disabledClasses = disabled
-        ? "opacity-50 cursor-not-allowed"
-        : "cursor-pointer";
-    return (
-        <button
-            className={`${baseClasses} ${variants[variant]} ${disabledClasses} ${className}`}
-            disabled={disabled}
-            type={type as "button" | "submit" | "reset" | undefined}
-            onClick={onClick}
-            {...props}
-        >
-            {children}
-        </button>
-    );
-};
 
-const Input = ({ className = "", ...props }) => (
-    <input
-        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00007a]/50 focus:border-[#00007a] transition-all duration-200 ${className}`}
-        {...props}
-    />
+
+/* =====================
+   VALIDATORS
+===================== */
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPhone = (phone) => /^\d{10}$/.test(phone);
+
+/* =====================
+   UI COMPONENTS
+===================== */
+const Button = ({ children, disabled, ...props }) => (
+  <button
+    disabled={disabled}
+    className={`w-full h-12 rounded-lg bg-[#00007a] text-white font-medium ${
+      disabled ? "opacity-50" : "hover:bg-[#00007a]/90"
+    }`}
+    {...props}
+  >
+    {children}
+  </button>
 );
 
+const Input = (props) => (
+  <input
+    {...props}
+    className="w-full h-12 px-4 border rounded-lg focus:ring-2 focus:ring-[#00007a]/50"
+  />
+);
+
+/* =====================
+   MAIN COMPONENT
+===================== */
 export default function Login() {
-    const { setUser, setIsLoggedIn } = useGlobalContext();
-    const navigate = useNavigate();
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-    const [isOtpFlow, setIsOtpFlow] = useState(false);
-    const [otpSent, setOtpSent] = useState(false);
-    const [otp, setOtp] = useState("");
-    const [formData, setFormData] = useState({
-        email: "",
-        password: ""
-    });
-    const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
+  const { setUser, setIsLoggedIn } = useGlobalContext();
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) {
-            setErrors((prev) => ({ ...prev, [name]: "" }));
-        }
+  const [isOtpFlow, setIsOtpFlow] = useState(true);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [errors, setErrors] = useState({});
+
+  /* =====================
+     VALIDATION
+  ===================== */
+  const validateForm = () => {
+    const errs = {};
+    const phone = formData.email.replace(/\D/g, "");
+    const email = formData.email.trim();
+
+    if (!formData.email) {
+      errs.email = "Phone number or email is required";
+    }
+
+    if (isOtpFlow) {
+      if (!isValidPhone(phone) && !isValidEmail(email)) {
+        errs.email = "Enter a valid phone number or email";
+      }
+      if (otpSent && !/^\d{6}$/.test(otp)) {
+        errs.otp = "OTP must be 6 digits";
+      }
+    } else {
+      if (!formData.password) {
+        errs.password = "Password is required";
+      }
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  /* =====================
+     SUBMIT HANDLER
+  ===================== */
+  const handleSubmit = (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setIsLoading(true);
+
+  setTimeout(() => {
+    const username = formData.email.trim();
+    const password = formData.password;
+
+    completeLogin(username, password);
+    setIsLoading(false);
+  }, 800);
+};
+
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+//     if (!validateForm()) return;
+
+//     setIsLoading(true);
+
+//     setTimeout(() => {
+//       const phone = formData.email.replace(/\D/g, "");
+//       const email = formData.email.trim();
+
+//       if (isOtpFlow) {
+//         if (!otpSent) {
+//           setOtpSent(true);
+//           toast.success("OTP sent successfully");
+//           setIsLoading(false);
+//           return;
+//         }
+
+//         const mockUser = {
+//           userType: "customer",
+//           phone: isValidPhone(phone) ? phone : null,
+//           email: isValidEmail(email) ? email : null,
+//           name: "Mock OTP User",
+//           authType: "otp",
+//         };
+
+//         completeLogin(mockUser);
+//       } else {
+//         const mockUser = {
+//           userType: "customer",
+//           email,
+//           name: "Mock Password User",
+//           authType: "password",
+//         };
+
+//         completeLogin(mockUser);
+//       }
+//     }, 800);
+//   };
+
+  /* =====================
+     GOOGLE LOGIN HANDLER
+  ===================== */
+  const handleGoogleSuccess = (googleUser) => {
+    setIsGoogleLoading(true);
+
+    /**
+     * Expected googleUser shape:
+     * {
+     *   email,
+     *   name,
+     *   picture,
+     *   sub (google id)
+     * }
+     */
+
+    const user = {
+      userType: "customer",
+      email: googleUser.email,
+      name: googleUser.name,
+      avatar: googleUser.picture,
+      googleId: googleUser.sub,
+      authType: "google",
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-        if (!formData.email) {
-            newErrors.email = "Email or phone number is required";
-        }
+    setTimeout(() => {
+      completeLogin(user);
+      setIsGoogleLoading(false);
+    }, 800);
+  };
 
-        if (isOtpFlow) {
-            const isPhone = /^[\+]?[0-9\s\-()]+$/.test(formData.email);
-            if (!isPhone) {
-                newErrors.email = "Please enter a valid phone number for OTP login";
+  /* =====================
+     COMPLETE LOGIN
+  ===================== */
+//   const completeLogin = (user) => {
+//     localStorage.setItem("user", JSON.stringify(user));
+//     localStorage.setItem("token", "mock-token");
+
+//     setUser(user);
+//     setIsLoggedIn(true);
+
+//     toast.success("Login successful!");
+//     redirectUser(user.userType);
+//   };
+// const completeLogin = (username, password) => {
+//   const user = MOCK_USERS.find(
+//     (u) => u.username === username && u.password === password
+//   );
+
+//   if (!user) {
+//     toast.error("Invalid credentials");
+//     setIsLoading(false);
+//     return;
+//   }
+
+//   // Store user in localStorage
+//   localStorage.setItem("user", JSON.stringify(user));
+//   localStorage.setItem("token", "mock-token");
+
+//   setUser(user);
+//   setIsLoggedIn(true);
+
+//   toast.success("Login successful!");
+
+//   // Redirect based on userType
+// //   redirectUser(user);
+// navigate("/profile");
+// };
+
+const completeLogin = (username, password) => {
+  const user = MOCK_USERS.find(
+    (u) => u.username === username && u.password === password
+  );
+
+  if (!user) {
+    toast.error("Invalid credentials");
+    return;
+  }
+
+  const key = username.split("@")[0]; 
+  const profile = MOCK_PROFILES[key];
+
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("profile", JSON.stringify(profile));
+  localStorage.setItem("token", "mock-token"); // 🔥 REQUIRED
+
+  setUser({ ...user, profile });
+  setIsLoggedIn(true);
+
+  redirectUser(user);
+};
+
+  /* =====================
+     REDIRECT
+  ===================== */
+//   const redirectUser = () => {
+//     setTimeout(() => {
+//       navigate("/dashboard/customer");
+//     }, 800);
+//   };
+const redirectUser = (user) => {
+  const role = user.userType.toLowerCase(); // 🔥 THIS LINE
+
+  let path = "/dashboard/customer";
+
+  switch (role) {
+   case "admin":
+  path = "/dashboard/admin";
+  break;
+
+    case "customer":
+      path =
+        user.profileType === "organization"
+          ? "/dashboard/customer/organization"
+          : "/dashboard/customer";
+      break;
+
+    case "fundi":
+      path = "/dashboard/fundi";
+      break;
+
+    case "professional":
+      path = "/dashboard/professional";
+      break;
+
+    case "contractor":
+      path = "/dashboard/contractor";
+      break;
+
+    case "hardware":
+      path = "/dashboard/hardware";
+      break;
+
+    default:
+      path = "/dashboard";
+  }
+
+  navigate(path);
+};
+
+
+
+  const toggleOtpFlow = () => {
+    setIsOtpFlow(!isOtpFlow);
+    setOtpSent(false);
+    setOtp("");
+    setErrors({});
+    setFormData({ email: "", password: "" });
+  };
+
+  /* =====================
+     UI
+  ===================== */
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <Toaster position="top-center" richColors />
+
+      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
+        <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12 mb-6" />
+
+        <h1 className="text-2xl font-semibold text-center mb-4">
+          User Login
+        </h1>
+
+        <p className="text-gray-600 mb-6 text-center">
+          {isOtpFlow
+            ? "Enter your phone number or email to receive OTP"
+            : "What is your phone number or email?"}
+        </p>
+
+        <form className="space-y-5 w-full" onSubmit={handleSubmit}>
+          <Input
+            placeholder="Phone number or email"
+            value={formData.email}
+            disabled={isOtpFlow && otpSent}
+            onChange={(e) =>
+              setFormData({ ...formData, email: e.target.value })
             }
-            if (otpSent && !otp) {
-                newErrors.otp = "OTP is required";
-            }
-        } else {
-            if (!formData.password) {
-                newErrors.password = "Password is required";
-            } else if (formData.password.length < 6) {
-                newErrors.password = "Password must be at least 6 characters";
-            }
-        }
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm">{errors.email}</p>
+          )}
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    // --- CHANGE 1: ADDED PHONE NUMBER NORMALIZATION FUNCTION ---
-    const normalizePhoneNumber = (phone) => {
-        const trimmedPhone = phone.trim();
-        if (trimmedPhone.startsWith('07') || trimmedPhone.startsWith('01')) {
-            return trimmedPhone.substring(1);
-        }
-        return trimmedPhone;
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-        setIsLoading(true);
-
-        try {
-            let response;
-            const isPhone = /^[\+]?[0-9\s\-()]+$/.test(formData.email);
-
-            if (isOtpFlow) {
-                // --- OTP flow logic starts here ---
-                const normalizedPhone = normalizePhoneNumber(formData.email); // Use the normalized number
-
-                if (!otpSent) {
-                    // Send OTP request
-                    response = await phoneLogin({
-                        phoneNumber: normalizedPhone // Send normalized number
-                    });
-
-                    if (response?.success) {
-                        setOtpSent(true);
-                        toast.success("OTP sent successfully!");
-                    } else {
-                        toast.error(`Failed to send OTP: ${response?.message || "Unknown error"}`);
-                    }
-                } else {
-                    // Verify OTP
-                    response = await verifyOtpLogin({
-                        phoneNumber: normalizedPhone, // Send normalized number
-                        otp: otp
-                    });
-
-                    if (response?.success) {
-                        localStorage.setItem("user", JSON.stringify(response.user));
-                        localStorage.setItem("token", response.accessToken);
-                        const rocketAuthToken = jwtDecode(response.accessToken).rocketAuthToken;
-                        console.log("Decoded Rocket Auth Token:", rocketAuthToken);
-                        localStorage.setItem("rocketAuthToken", rocketAuthToken);
-                        setUser(response.user);
-                        setIsLoggedIn(true);
-                        toast.success("Login successful! Redirecting to dashboard...");
-                        redirectUser(response.user.userType);
-                    } else {
-                        toast.error(`Failed to verify OTP: ${response?.message || "Invalid OTP"}`);
-                    }
+          {isOtpFlow && otpSent && (
+            <>
+              <Input
+                placeholder="Enter 6-digit OTP"
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
-            } else {
-                // --- CHANGE 2: STANDARD PASSWORD LOGIN NOW REJECTS PHONE NUMBERS ---
-                if (isPhone) {
-                    toast.error("To log in with a phone number, please use the 'Login with OTP' option.");
-                    setIsLoading(false); // Stop loading before returning
-                    return; // Stop the function here
+              />
+              {errors.otp && (
+                <p className="text-red-500 text-sm">{errors.otp}</p>
+              )}
+            </>
+          )}
+
+          {!isOtpFlow && (
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
                 }
-
-                // If not a phone number, proceed with email/username login
-                response = await loginUser({
-                    username: formData.email,
-                    password: formData.password,
-                    firebaseToken: ""
-                });
-
-                if (response?.success) {
-                    localStorage.setItem("user", JSON.stringify(response.user));
-                    localStorage.setItem("token", response.accessToken);
-                    setUser(response.user);
-                    setIsLoggedIn(true);
-                    toast.success("Login successful! Redirecting to dashboard...");
-                    redirectUser(response.user.userType);
-                } else {
-                    toast.error(`Failed to login: ${response?.message || "Invalid credentials"}`);
-                }
-            }
-        } catch (error) {
-            console.error("Login error:", error);
-            toast.error(`Failed to login: ${error?.response?.data?.message || "Invalid credentials"}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const redirectUser = (userType) => {
-        setTimeout(() => {
-            switch (userType?.toLowerCase()) {
-                case "customer": navigate("/dashboard/customer"); break;
-                case "fundi": navigate("/dashboard/fundi"); break;
-                case "professional": navigate("/dashboard/professional"); break;
-                case "contractor": navigate("/dashboard/contractor"); break;
-                case "hardware": navigate("/dashboard/hardware"); break;
-                case "admin": navigate("/dashboard/admin"); break;
-                default: navigate("/");
-            }
-        }, 1500);
-    };
-
-    const handleGoogleSignIn = () => { /* Your Google Sign-In Logic */
-        setIsGoogleLoading(false)
-    };
-
-    const toggleOtpFlow = () => {
-        setIsOtpFlow(!isOtpFlow);
-        setOtpSent(false);
-        setOtp("");
-        setErrors({});
-        setFormData({ email: "", password: "" });
-    };
-
-    const handleResendOtp = async () => {
-        setIsLoading(true);
-        try {
-            const isPhone = /^[\+]?[0-9\s\-()]+$/.test(formData.email);
-            if (isPhone) {
-                // --- CHANGE 1: Use normalized number for resend ---
-                const normalizedPhone = normalizePhoneNumber(formData.email);
-                const response = await phoneLogin({
-                    phoneNumber: normalizedPhone
-                });
-
-                if (response?.success) {
-                    toast.success("OTP resent successfully!");
-                } else {
-                    toast.error(`Failed to resend OTP: ${response?.message || "Unknown error"}`);
-                }
-            } else {
-                toast.error("Invalid phone number format");
-            }
-        } catch (error) {
-            console.error("Resend OTP error:", error);
-            toast.error("Failed to resend OTP");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // The entire JSX return block is unchanged from your last "correct" version.
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <Toaster position="top-center" richColors />
-            <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
-                <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12 mb-6" />
-                <h1 className="text-2xl font-semibold text-gray-800 mb-4">User Login</h1>
-                <p className="text-gray-600 mb-6 text-center">
-                    {isOtpFlow ? "Enter your phone number to receive OTP" : "What is your phone number or email?"}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.password}
                 </p>
-                <form className="w-full space-y-6" onSubmit={handleSubmit}>
-                    <div>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="text"
-                            placeholder={isOtpFlow ? "Enter phone number" : "Enter phone number or email"}
-                            className="w-full h-12 px-4 border border-gray-300 rounded-lg"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            disabled={isOtpFlow && otpSent}
-                        />
-                        {errors.email && (<p className="text-red-500 text-sm mt-1">{errors.email}</p>)}
-                    </div>
-                    {isOtpFlow && otpSent && (
-                        <div>
-                            <Input
-                                id="otp"
-                                name="otp"
-                                type="text"
-                                placeholder="Enter 6-digit OTP"
-                                className="w-full h-12 px-4 border border-gray-300 rounded-lg"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                maxLength={6}
-                            />
-                            {errors.otp && (<p className="text-red-500 text-sm mt-1">{errors.otp}</p>)}
-                            <div className="mt-2">
-                                <button type="button" className="text-blue-500 hover:text-blue-700 text-sm font-medium" onClick={handleResendOtp} disabled={isLoading}>
-                                    Resend OTP
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                    {!isOtpFlow && (
-                        <div className="relative">
-                            <Input
-                                id="password"
-                                name="password"
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password..."
-                                className="w-full h-12 px-4 border border-gray-300 rounded-lg pr-10"
-                                value={formData.password}
-                                onChange={handleInputChange}
-                            />
-                            <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" onClick={() => setShowPassword(!showPassword)}>
-                                {showPassword ? (<EyeOff className="h-5 w-5" />) : (<Eye className="h-5 w-5" />)}
-                            </button>
-                            {errors.password && (<p className="text-red-500 text-sm mt-1">{errors.password}</p>)}
-                        </div>
-                    )}
-                    <div className="text-center">
-                        <button type="button" className="text-blue-500 hover:text-blue-700 text-sm font-medium" onClick={toggleOtpFlow}>
-                            {isOtpFlow ? "Login with password instead" : "Login with OTP instead"}
-                        </button>
-                    </div>
-                    <Button type="submit" className="w-full h-12 bg-[#00007a] hover:bg-[#00007a]/90 text-white font-medium rounded-lg" disabled={isLoading}>
-                        {isLoading ? (
-                            <div className="flex items-center justify-center">
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                {isOtpFlow ? (otpSent ? "Verifying..." : "Sending OTP...") : "Login..."}
-                            </div>
-                        ) : (isOtpFlow ? (otpSent ? "Verify OTP" : "Send OTP") : "Login")}
-                    </Button>
-                    {!isOtpFlow && (
-                        <div className="text-center">
-                            <a href="/forgot-password" className="text-blue-500 hover:text-blue-700 text-sm font-medium">Forgot password?</a>
-                        </div>
-                    )}
-                    {/* GOOGLE LOGIN */}
-                    <div className="flex justify-center items-center h-full mt-6">
-                        {!isOtpFlow && <GoogleSignIn />}
-                    </div>
-
-                    <div className="text-center mt-6">
-                        <p className="text-gray-700">Don't have an account?{" "}<a href="/" className="text-blue-500 hover:text-blue-700 font-medium">Sign Up</a></p>
-                    </div>
-                </form>
+              )}
             </div>
+          )}
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-blue-600 text-sm"
+              onClick={toggleOtpFlow}
+            >
+              {isOtpFlow
+                ? "Login with password instead"
+                : "Login with OTP instead"}
+            </button>
+          </div>
+
+          <Button disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mx-auto animate-spin" />
+            ) : isOtpFlow ? (
+              otpSent ? "Verify OTP" : "Send OTP"
+            ) : (
+              "Login"
+            )}
+          </Button>
+
+          {!isOtpFlow && (
+            <GoogleSignIn
+              loading={isGoogleLoading}
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google sign-in failed")}
+            />
+          )}
+        </form>
+
+        <div className="text-center mt-6">
+          <p className="text-gray-700">
+            Don't have an account?{" "}
+            <a
+              href="/"
+              className="text-blue-500 hover:text-blue-700 font-medium"
+            >
+              Sign Up
+            </a>
+          </p>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
+
+
+
+

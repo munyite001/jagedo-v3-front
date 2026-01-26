@@ -125,6 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType }) =
         </p>
       </div>
     </div>
+    
   );
 };
 

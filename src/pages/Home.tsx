@@ -3,19 +3,82 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Menu, X, CheckCircleIcon, ChevronDown, User, PencilRuler, HardHat, Store, SquareUser } from "lucide-react";
+import {
+  Menu,
+  X,
+  CheckCircleIcon,
+  ChevronDown,
+  User,
+  PencilRuler,
+  HardHat,
+  Store,
+  SquareUser,
+} from "lucide-react";
 import { motion } from "framer-motion";
-import { FaFacebookF, FaXTwitter, FaLinkedinIn, FaInstagram, FaTiktok } from "react-icons/fa6";
+import {
+  FaFacebookF,
+  FaXTwitter,
+  FaLinkedinIn,
+  FaInstagram,
+  FaTiktok,
+} from "react-icons/fa6";
 import customerImg from "../assets/customer(1).png";
 import fundiImg from "../assets/fundi.jpeg";
 import professionalImg from "../assets/professional.jpeg";
 import contractorImg from "../assets/contractor.jpeg";
 import hardwareImg from "../assets/hardware.jpeg";
-import JamesImg from '../assets/Builder.jpg';
+import JamesImg from "../assets/Builder.jpg";
 import micaImg from "../assets/mutonga.jpg";
 import ChatWidgetWrapper from "@/components/ChatWidget";
+import woman1 from "../assets/woman1.jpg";
+import woman2 from "../assets/woman2.jpg";
+import Builder from "../assets/Builder.jpg";
 
-const GreenCheckIcon = <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />;
+
+const GreenCheckIcon = (
+  <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />
+);
+
+
+const testimonials = [
+  {
+    name: "Wanjiku Mwangi",
+    role: "Homeowner, Nairobi",
+    image: woman1,
+    text: "Jagedo made finding a reliable plumber so easy. The reviews were spot on, and knowing my payment was secure until the job was done gave me peace of mind.",
+  },
+  {
+    name: "Eng. James Kariuki",
+    role: "Contractor, Thika",
+    image: Builder,
+    text: "As a contractor, sourcing materials used to be a headache. Now I order everything on Jagedo and get site delivery. It saves me time and transport costs.",
+  },
+  {
+    name: "Peter Omondi",
+    role: "Hardware Owner, Kisumu",
+    image: woman2,
+    text: "My hardware business has grown 30% since joining Jagedo. The platform connects me with serious customers I wouldn't have reached otherwise.",
+  },
+  {
+    name: "Wanjiku Mwangi",
+    role: "Homeowner, Nairobi",
+    image: woman1,
+    text: "Jagedo made finding a reliable plumber so easy. The reviews were spot on, and knowing my payment was secure until the job was done gave me peace of mind.",
+  },
+  {
+    name: "Eng. James Kariuki",
+    role: "Contractor, Thika",
+    image: Builder,
+    text: "As a contractor, sourcing materials used to be a headache. Now I order everything on Jagedo and get site delivery. It saves me time and transport costs.",
+  },
+  {
+    name: "Peter Omondi",
+    role: "Hardware Owner, Kisumu",
+    image: woman2,
+    text: "My hardware business has grown 30% since joining Jagedo. The platform connects me with serious customers I wouldn't have reached otherwise.",
+  },
+];
+
 
 const Home = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,11 +86,14 @@ const Home = () => {
   const [image, setImage] = useState(micaImg);
   const [active, setActive] = useState(false);
   const [showSignupDropdown, setShowSignupDropdown] = useState(false);
-  const [showMobileSignupDropdown, setShowMobileSignupDropdown] = useState(false);
+  const [showMobileSignupDropdown, setShowMobileSignupDropdown] =
+    useState(false);
   const [showSignupSection, setShowSignupSection] = useState(false);
   const dropdownRef = useRef(null);
   const mobileDropdownRef = useRef(null);
   const signupSectionRef = useRef(null);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
   const [steps, setSteps] = useState([
     {
       id: 1,
@@ -41,20 +107,24 @@ const Home = () => {
   ]);
   const [benefits, setBenefits] = useState([
     <p className="flex items-start gap-3 mb-1.5" key="1">
-      <span>{GreenCheckIcon}</span>Access to verified Builders - Vetted, certified construction
-      professionals only.
+      <span>{GreenCheckIcon}</span>Access to verified Builders - Vetted,
+      certified construction professionals only.
     </p>,
     <p className="flex items-start gap-3 mb-1.5" key="2">
-      <span>{GreenCheckIcon}</span>All-in-one platform - 1500+ services in one place.
+      <span>{GreenCheckIcon}</span>All-in-one platform - 1500+ services in one
+      place.
     </p>,
     <p className="flex items-start gap-3 mb-1.5" key="3">
-      <span>{GreenCheckIcon}</span>Secure Escrow Payments - Pay by milestone, funds safely held.
+      <span>{GreenCheckIcon}</span>Secure Escrow Payments - Pay by milestone,
+      funds safely held.
     </p>,
     <p className="flex items-start gap-3 mb-1.5" key="4">
-      <span>{GreenCheckIcon}</span>Quality Assurance - Reviewed and approved by expert peers.
+      <span>{GreenCheckIcon}</span>Quality Assurance - Reviewed and approved by
+      expert peers.
     </p>,
     <p className="flex items-start gap-3 mb-1.5" key="5">
-      <span>{GreenCheckIcon}</span>Project Tracking Tools - Monitor progress and collaborate easily.
+      <span>{GreenCheckIcon}</span>Project Tracking Tools - Monitor progress and
+      collaborate easily.
     </p>,
   ]);
 
@@ -74,20 +144,24 @@ const Home = () => {
     {
       name: "Customer",
       img: [image],
-      steps: "1. Sign up as a customer.\n2. Browse available services.\n3. Request a service.",
-      benefits: "✔ Access trusted builders\n✔ Convenient service booking\n✔ Secure payments",
+      steps:
+        "1. Sign up as a customer.\n2. Browse available services.\n3. Request a service.",
+      benefits:
+        "✔ Access trusted builders\n✔ Convenient service booking\n✔ Secure payments",
     },
     {
       name: "Builder",
       img: JamesImg,
-      steps: "1. Create a fundi account.\n2. Showcase your skills.\n3. Receive job requests.",
-      benefits: "✔ Get hired easily\n✔ Showcase your skills\n✔ Increase your earnings",
+      steps:
+        "1. Create a fundi account.\n2. Showcase your skills.\n3. Receive job requests.",
+      benefits:
+        "✔ Get hired easily\n✔ Showcase your skills\n✔ Increase your earnings",
     },
   ];
 
   const handleCategory = (category) => {
     setSelectedCategory(category.name);
-    // const GreenCheckIcon = <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />;  
+    // const GreenCheckIcon = <CheckCircleIcon className="text-green-500 inline-flex align-top w-5 h-5" />;
 
     switch (category.name) {
       case "Customer":
@@ -106,22 +180,24 @@ const Home = () => {
         ]);
         setBenefits([
           <p className="flex items-start gap-3 mb-1.5" key="1">
-            <span>{GreenCheckIcon}</span>Access to verified Builders - Vetted, certified
-            construction professionals only.
+            <span>{GreenCheckIcon}</span>Access to verified Builders - Vetted,
+            certified construction professionals only.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="2">
-            <span>{GreenCheckIcon}</span>All-in-one platform - 1500+ services in one place.
+            <span>{GreenCheckIcon}</span>All-in-one platform - 1500+ services in
+            one place.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="3">
-            <span>{GreenCheckIcon}</span>Secure Escrow Payments - Pay by milestone, funds safely
-            held.
+            <span>{GreenCheckIcon}</span>Secure Escrow Payments - Pay by
+            milestone, funds safely held.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="4">
-            <span>{GreenCheckIcon}</span>Quality Assurance - Reviewed and approved by expert peers.
+            <span>{GreenCheckIcon}</span>Quality Assurance - Reviewed and
+            approved by expert peers.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="5">
-            <span>{GreenCheckIcon}</span>Project Tracking Tools - Monitor progress and collaborate
-            easily.
+            <span>{GreenCheckIcon}</span>Project Tracking Tools - Monitor
+            progress and collaborate easily.
           </p>,
         ]);
         scrollToSection(section2Ref);
@@ -140,22 +216,24 @@ const Home = () => {
         ]);
         setBenefits([
           <p className="flex items-start gap-3 mb-1.5" key="1">
-            <span>{GreenCheckIcon}</span>More jobs - Direct Access to construction projects.
+            <span>{GreenCheckIcon}</span>More jobs - Direct Access to
+            construction projects.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="2">
-            <span>{GreenCheckIcon}</span>Fair Pay - Transparent and timely structured payments.
+            <span>{GreenCheckIcon}</span>Fair Pay - Transparent and timely
+            structured payments.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="3">
-            <span>{GreenCheckIcon}</span>Skill Growth - In-app apprenticeships and upskilling
-            program.
+            <span>{GreenCheckIcon}</span>Skill Growth - In-app apprenticeships
+            and upskilling program.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="4">
-            <span>{GreenCheckIcon}</span>Team collaboration - Seamless teamwork and communication
-            tools.
+            <span>{GreenCheckIcon}</span>Team collaboration - Seamless teamwork
+            and communication tools.
           </p>,
           <p className="flex items-start gap-3 mb-1.5" key="5">
-            <span>{GreenCheckIcon}</span>Secure payments - Guaranteed milestone-based payment
-            system.
+            <span>{GreenCheckIcon}</span>Secure payments - Guaranteed
+            milestone-based payment system.
           </p>,
         ]);
         scrollToSection(section2Ref);
@@ -166,7 +244,16 @@ const Home = () => {
         setBenefits("");
     }
   };
+  const handleProductsClick = () => {
+    navigate("/products");
+  };
 
+  const handleHelpClick = () => {
+    window.open(
+      "https://jagedoplatform.zohodesk.com/portal/en/newticket",
+      "_blank",
+    );
+  };
   const handleClick = () => {
     setIsOpen(!isOpen);
   };
@@ -190,7 +277,7 @@ const Home = () => {
     setShowSignupSection(!showSignupSection);
     if (!showSignupSection) {
       setTimeout(() => {
-        signupSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+        signupSectionRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
   };
@@ -201,16 +288,24 @@ const Home = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowSignupDropdown(false);
       }
-      if (mobileDropdownRef.current && !mobileDropdownRef.current.contains(event.target)) {
+      if (
+        mobileDropdownRef.current &&
+        !mobileDropdownRef.current.contains(event.target)
+      ) {
         setShowMobileSignupDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const sliderRef = useRef(null);
+
+ 
+
 
   const scrollToSection = (ref) => {
     if (ref.current) {
@@ -240,10 +335,26 @@ const Home = () => {
     }
   };
 
-  const menuButtons = ["Login", "Sign Up", "About us ", "Events"];
+  const menuButtons = [
+    "Products",
+    "About us ",
+    "Events",
+    "Login",
+    "Sign Up",
+    "Help",
+  ];
 
   const handleMenuButtonClick = (index) => {
     switch (menuButtons[index]) {
+      case "Products":
+        navigate("/products");
+        break;
+      case "Help":
+        window.open(
+          "https://jagedoplatform.zohodesk.com/portal/en/newticket",
+          "_blank",
+        );
+        break;
       case "Login":
         navigate("/login");
         break;
@@ -251,7 +362,7 @@ const Home = () => {
         handleMobileSignupClick();
         break;
       case "About Us ":
-        navigate("/about-us")
+        navigate("/about-us");
         break;
       case "Events":
         window.open("https://jbis.vercel.app/", "_blank");
@@ -266,67 +377,149 @@ const Home = () => {
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 1 }}
-      className="bg-white text-black min-h-screen flex flex-col">
+      className="bg-white text-black min-h-screen flex flex-col"
+    >
       <ChatWidgetWrapper />
       {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
-        className="flex justify-between items-center py-1 px-6 md:px-8">
+        className="flex justify-between items-center py-1 px-6 md:px-8"
+      >
         <Link to="/">
           <img
-            src="/logo.png"
+            src="/JaGedo logo.webp"
             alt="Logo"
             className="w-30 md:w-50 lg:w-50 h-auto"
           />
-        </Link >
-        <div id="div1" className="hidden space-x-4 sm:flex md:space-x-8">
+        </Link>
+        {/* <div
+          id="div1"
+          className="hidden sm:flex items-center space-x-4 md:space-x-9 -ml-4"
+        >
           <button
             type="button"
-            className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer flex items-center justify-center sm:w-36 md:w-32"
-            onClick={() => navigate("/login")}>
+            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+               hover:scale-105 transition duration-300 ease-in-out
+               hover:bg-[#3AB33A] flex items-center justify-center
+               sm:w-32 md:w-28"
+            onClick={handleProductsClick}
+          >
+            Products
+          </button>
+
+          <button
+            type="button"
+            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+               hover:scale-105 transition duration-300 ease-in-out
+               hover:bg-[#3AB33A] flex items-center justify-center
+               sm:w-32 md:w-28"
+            onClick={() => navigate("/about-us")}
+          >
+            About Us
+          </button>
+
+          <button
+            type="button"
+            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+               hover:scale-105 transition duration-300 ease-in-out
+               hover:bg-[#3AB33A] flex items-center justify-center
+               sm:w-32 md:w-28"
+            onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+          >
+            Events
+          </button>
+        </div> */}
+<div
+  id="div1"
+  className="hidden sm:flex items-center space-x-6 md:space-x-10 -ml-4"
+>
+  <span
+    onClick={handleProductsClick}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    Products
+  </span>
+
+  <span
+    onClick={() => navigate("/about-us")}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    About Us
+  </span>
+
+  <span
+    onClick={() => window.open("https://jbis.vercel.app/", "_blank")}
+    className="text-[rgb(0,0,122)] font-semibold cursor-pointer hover:underline hover:text-[#3AB33A] transition"
+  >
+    Events
+  </span>
+</div>
+
+        <div
+          id="div2"
+          className="flex items-center space-x-4 md:space-x-9 ml-4"
+        >
+          <button
+            type="button"
+            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+               hover:scale-105 transition duration-300 ease-in-out
+               hover:bg-[#3AB33A] flex items-center justify-center
+               sm:w-32 md:w-28"
+            onClick={() => navigate("/login")}
+          >
             Login
           </button>
+
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={handleClickSignUp}
-              className="bg-[rgb(0,0,122)] text-white py-3 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer sm:w-36 md:w-32 flex items-center justify-center gap-2">
+              className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+                 hover:scale-105 transition duration-300 ease-in-out
+                 hover:bg-[#3AB33A] flex items-center justify-center gap-2
+                 sm:w-32 md:w-28"
+            >
               Sign Up
             </button>
+
             {showSignupDropdown && (
               <div className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 w-48 z-50">
                 <button
-                  onClick={() => handleSignupOptionClick('customer')}
+                  onClick={() => handleSignupOptionClick("customer")}
                   className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                 >
                   <User size={20} color="#3AB33A" />
                   Customer
                 </button>
+
                 <button
-                  onClick={() => handleSignupOptionClick('fundi')}
+                  onClick={() => handleSignupOptionClick("fundi")}
                   className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                 >
                   <PencilRuler size={20} color="#3AB33A" />
                   Fundi
                 </button>
+
                 <button
-                  onClick={() => handleSignupOptionClick('professional')}
+                  onClick={() => handleSignupOptionClick("professional")}
                   className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                 >
                   <SquareUser size={20} color="#3AB33A" />
                   Professional
                 </button>
+
                 <button
-                  onClick={() => handleSignupOptionClick('contractor')}
-                  className=" flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
+                  onClick={() => handleSignupOptionClick("contractor")}
+                  className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                 >
                   <HardHat size={20} color="#3AB33A" />
                   Contractor
                 </button>
+
                 <button
-                  onClick={() => handleSignupOptionClick('hardware')}
+                  onClick={() => handleSignupOptionClick("hardware")}
                   className="flex items-center gap-2 w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                 >
                   <Store size={20} color="#3AB33A" />
@@ -335,21 +528,25 @@ const Home = () => {
               </div>
             )}
           </div>
+
           <button
             type="button"
-            className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer flex items-center justify-center sm:w-36 md:w-32"
-            onClick={() => navigate("/about-us")}>
-            About Us
-          </button>
-          <button
-            type="button"
-            className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer flex items-center justify-center sm:w-36 md:w-32"
-            onClick={() => window.open("https://jbis.vercel.app/", "_blank")}>
-            Events
+            onClick={handleHelpClick}
+            className="bg-[rgb(0,0,122)] text-white h-10 px-4 text-sm rounded-full shadow-md
+               hover:scale-105 transition duration-300 ease-in-out
+               hover:bg-[#3AB33A] flex items-center justify-center gap-2
+               sm:w-32 md:w-28"
+          >
+            Help
           </button>
         </div>
+
         <div className="sm:hidden">
-          <button className="hover:cursor-pointer" type="button" onClick={handleClick}>
+          <button
+            className="hover:cursor-pointer"
+            type="button"
+            onClick={handleClick}
+          >
             {isOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
@@ -359,42 +556,52 @@ const Home = () => {
             {menuButtons.map((text, index) => {
               if (text === "Sign Up") {
                 return (
-                  <div key={index} className="relative w-full" ref={mobileDropdownRef}>
+                  <div
+                    key={index}
+                    className="relative w-full"
+                    ref={mobileDropdownRef}
+                  >
                     <button
                       type="button"
                       className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#FFD700] hover:text-black hover:cursor-pointer flex items-center justify-center w-full gap-2"
-                      onClick={handleMobileSignupClick}>
+                      onClick={handleMobileSignupClick}
+                    >
                       {text}
-                      <ChevronDown size={16} className={`transition-transform duration-200 ${showMobileSignupDropdown ? 'rotate-180' : ''}`} />
+                      <ChevronDown
+                        size={16}
+                        className={`transition-transform duration-200 ${showMobileSignupDropdown ? "rotate-180" : ""}`}
+                      />
                     </button>
                     {showMobileSignupDropdown && (
                       <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                         <button
-                          onClick={() => handleSignupOptionClick('customer')}
+                          onClick={() => handleSignupOptionClick("customer")}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                         >
                           Customer
                         </button>
                         <button
-                          onClick={() => handleSignupOptionClick('fundi')}
+                          onClick={() => handleSignupOptionClick("fundi")}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                         >
                           Fundi
                         </button>
                         <button
-                          onClick={() => handleSignupOptionClick('professional')}
+                          onClick={() =>
+                            handleSignupOptionClick("professional")
+                          }
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                         >
                           Professional
                         </button>
                         <button
-                          onClick={() => handleSignupOptionClick('contractor')}
+                          onClick={() => handleSignupOptionClick("contractor")}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                         >
                           Contractor
                         </button>
                         <button
-                          onClick={() => handleSignupOptionClick('hardware')}
+                          onClick={() => handleSignupOptionClick("hardware")}
                           className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-[rgb(0,0,122)] transition-colors duration-200"
                         >
                           Hardware
@@ -409,7 +616,8 @@ const Home = () => {
                   type="button"
                   key={index}
                   className="bg-[rgb(0,0,122)] text-white min-h-[48px] py-2 px-6 rounded-full shadow-md hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#FFD700] hover:text-black hover:cursor-pointer flex items-center justify-center w-full"
-                  onClick={handleMenuButtonClick.bind(null, index)}>
+                  onClick={handleMenuButtonClick.bind(null, index)}
+                >
                   {text}
                 </button>
               );
@@ -418,28 +626,32 @@ const Home = () => {
         )}
       </motion.div>
 
+
+
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
-        className="flex-grow py-8 px-6 flex flex-col items-center justify-center text-center bg-gray-100">
+        className="flex-grow py-8 px-6 flex flex-col items-center justify-center text-center bg-gray-100"
+      >
         <div className="max-w-4xl">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-gray-900 leading-tight mb-6">
             A One-Stop Construction Platform
           </h1>
-          <p className="text-lg sm:text-xl text-gray-700 mb-6">
-            JaGedo seamlessly connects customers and builders to other builders: fundis,
-            professionals, contractors, and hardware suppliers in your locality.
+          <p className="text-lg sm:text-xl text-gray-700 mb-28">
+            JaGedo seamlessly connects customers and builders to other builders:
+            fundis, professionals, contractors, and hardware suppliers in your
+            locality.
           </p>
         </div>
       </motion.div>
-
       <motion.div ref={section1Ref} className="py-10 text-center">
         <button
           type="button"
           onClick={handleSignupForFreeClick}
-          className="bg-[rgb(0,0,122)] text-white py-3 px-8 rounded-md shadow-lg hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer text-lg font-medium transition-all">
+          className="bg-[rgb(0,0,122)] text-white py-3 px-8 rounded-md shadow-lg hover:scale-110 hover:transition duration-900 ease-in-out hover:bg-[#3AB33A] hover:cursor-pointer text-lg font-medium transition-all"
+        >
           Sign Up For Free
         </button>
       </motion.div>
@@ -449,7 +661,7 @@ const Home = () => {
         <motion.div
           ref={signupSectionRef}
           initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
+          animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.5 }}
           className="bg-gray-50 py-12 px-6"
@@ -457,48 +669,59 @@ const Home = () => {
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <button
-                onClick={() => handleSignupOptionClick('customer')}
+                onClick={() => handleSignupOptionClick("customer")}
                 className="flex items-center gap-2 px-6 py-4 bg-white rounded-lg shadow-md hover:shadow-lg hover:bg-gray-50 hover:scale-105 transition-all duration-300 border-2 border-blue-700"
               >
                 <User size={30} color="#3AB33A" />
-                <span className="text-lg font-semibold text-gray-700">Customer</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  Customer
+                </span>
               </button>
 
               <button
-                onClick={() => handleSignupOptionClick('fundi')}
+                onClick={() => handleSignupOptionClick("fundi")}
                 className="flex items-center gap-2 px-6 py-4 bg-white rounded-lg shadow-md hover:shadow-md hover:bg-gray-50 hover:scale-105 transition-all duration-300 border-2 border-blue-700"
               >
                 <PencilRuler size={30} color="#3AB33A" />
-                <span className="text-lg font-semibold text-gray-700">Fundi</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  Fundi
+                </span>
               </button>
 
               <button
-                onClick={() => handleSignupOptionClick('professional')}
+                onClick={() => handleSignupOptionClick("professional")}
                 className="flex items-center gap-2 px-6 py-4 bg-white rounded-lg shadow-md hover:shadow-md hover:scale-105 transition-all duration-300 border-2 border-blue-700"
               >
                 <SquareUser size={30} color="#3AB33A" />
-                <span className="text-lg font-semibold text-gray-700">Professional</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  Professional
+                </span>
               </button>
 
               <button
-                onClick={() => handleSignupOptionClick('contractor')}
+                onClick={() => handleSignupOptionClick("contractor")}
                 className="flex items-center gap-2 px-6 py-4 bg-white rounded-lg shadow-md hover:shadow-md hover:scale-105 transition-all duration-300 border-2 border-blue-700"
               >
                 <HardHat size={30} color="#3AB33A" />
-                <span className="text-lg font-semibold text-gray-700">Contractor</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  Contractor
+                </span>
               </button>
 
               <button
-                onClick={() => handleSignupOptionClick('hardware')}
+                onClick={() => handleSignupOptionClick("hardware")}
                 className="flex items-center gap-2 px-6 py-4 bg-white rounded-lg hover:shadow-md hover:scale-105 transition-all duration-300 border-2 border-blue-700"
               >
                 <Store size={30} color="#3AB33A" />
-                <span className="text-lg font-semibold text-gray-700">Hardware</span>
+                <span className="text-lg font-semibold text-gray-700">
+                  Hardware
+                </span>
               </button>
             </div>
           </div>
         </motion.div>
       )}
+<br></br>
 
       {/* How It Works Section */}
       <motion.div
@@ -507,9 +730,23 @@ const Home = () => {
         transition={{ duration: 1 }}
         className="bg-white text-black py-2 flex flex-col"
       >
-        <h2 className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4">How It Works</h2>
+        {/* <h2 className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4">
+          How It Works
+        </h2> */}
+        <h2
+  onClick={() => setShowHowItWorks((prev) => !prev)}
+  className="text-2xl text-center px-6 sm:text-3xl font-bold mb-4 
+             text-black-800 cursor-pointer hover:underline hover:text-green-600 transition"
+>
+  How It Works
+</h2>
+
+
+
+
         <p className="text-gray-700 mt-2 text-center text-base sm:text-lg px-2 sm:px-12 mb-2">
-          Seamlessly connect with fundis, professionals, contractors, and hardware in just a few steps.
+          Seamlessly connect with fundis, professionals, contractors, and
+          hardware in just a few steps.
         </p>
         <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-center gap-4 md:gap-10 px-10 mt-5 w-auto">
           {categories.map((category) => (
@@ -517,8 +754,11 @@ const Home = () => {
               type="button"
               key={category.name}
               onClick={() => handleCategory(category)}
-              className={`bg-[rgb(0,0,122)] w-72 sm:w-40 px-6 py-2 rounded-full my-1.5 justify-center text-white shadow-md hover:cursor-pointer hover:scale-105 hover:transition duration-700 ease-in-out transition  ${selectedCategory === category.name ? "bg-green-600 text-white" : " hover:bg-gray-400"
-                }`}
+              className={`bg-[rgb(0,0,122)] w-72 sm:w-40 px-6 py-2 rounded-full my-1.5 justify-center text-white shadow-md hover:cursor-pointer hover:scale-105 hover:transition duration-700 ease-in-out transition  ${
+                selectedCategory === category.name
+                  ? "bg-green-600 text-white"
+                  : " hover:bg-gray-400"
+              }`}
             >
               {category.name}
             </button>
@@ -528,7 +768,10 @@ const Home = () => {
         <div className="bg-[rgb(255, 255, 255)] p-4 hover:transition duration-700 ease-in-out md:px-4 w-4/5 sm:w-full mt-2 mx-auto">
           <div className="flex flex-col items-center justify-center text-gray-100 md:flex-row 2xl:pl-24">
             {steps.map((step) => (
-              <div key={step.id} className="flex items-center w-full justify-between p-3">
+              <div
+                key={step.id}
+                className="flex items-center w-full justify-between p-3"
+              >
                 <div className="flex flex-col md:flex-row w-72 md:w-48 px-4 py-2 bg-white text-black rounded-lg justify-start items-start shadow-md relative">
                   <div className="flex absolute -top-4 -left-4 items-center justify-center w-8 h-8 bg-gray-300 border-2 border-gray-300 rounded-full text-black font-bold">
                     {step.id}
@@ -538,19 +781,21 @@ const Home = () => {
                   </div>
                 </div>
                 {step.id !== steps.length && (
-                  <span className="hidden md:inline md:gap-4 text-5xl text-gray-400">→</span>
+                  <span className="hidden md:inline md:gap-4 text-5xl text-gray-400">
+                    →
+                  </span>
                 )}
               </div>
             ))}
           </div>
         </div>
-
         <div className="flex flex-col md:flex-row gap-6 items-center px-8">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="flex flex-col gap-10 w-full px-4 sm:px-6 lg:px-8 md:flex-row md:gap-1.5 xl:gap-10 xl:max-w-7xl xl:mx-auto">
+            className="flex flex-col gap-10 w-full px-4 sm:px-6 lg:px-8 md:flex-row md:gap-1.5 xl:gap-10 xl:max-w-7xl xl:mx-auto"
+          >
             <div className="flex-shrink-0 w-full md:flex-1">
               <img
                 src={image}
@@ -569,21 +814,90 @@ const Home = () => {
         </div>
       </motion.div>
 
+
+<motion.section
+  initial={{ opacity: 0, y: 50 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ duration: 1 }}
+  className="bg-gray-50 py-16 overflow-hidden"
+>
+  <div className="max-w-7xl mx-auto px-6">
+    <h2 className="text-3xl font-bold text-center mb-3">
+      What Our Users Say
+    </h2>
+    <p className="text-center text-gray-600 mb-12">
+      Join thousands of satisfied homeowners, builders, and suppliers building with Jagedo.
+    </p>
+
+    {/* CAROUSEL */}
+    <div className="relative w-full overflow-hidden">
+      <div className="flex w-max animate-marquee gap-6">
+        {[...testimonials, ...testimonials].map((item, index) => (
+          <div
+            key={index}
+            className="min-w-[300px] bg-white p-6 rounded-2xl shadow-lg relative"
+          >
+            <div className="absolute top-4 right-4 text-gray-200 text-6xl font-serif">
+              “
+            </div>
+
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-12 h-12 rounded-full object-cover"
+              />
+              <div>
+                <h4 className="font-bold text-sm">{item.name}</h4>
+                <p className="text-[rgb(0,0,122)] text-sm">{item.role}</p>
+              </div>
+            </div>
+
+            <p className="text-gray-600 text-sm leading-relaxed mb-4">
+              "{item.text}"
+            </p>
+
+            <div className="flex gap-1 text-orange-400">
+              {Array(5).fill(0).map((_, i) => (
+                <span key={i}>★</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</motion.section>
+
+
+
+
+
       <motion.footer
         className="mt-16 bg-[rgb(0,0,122)] text-white py-12 px-6"
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1 }}>
+        transition={{ duration: 1 }}
+      >
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center sm:text-left">
           <div className="space-y-3">
             <h3 className="font-bold text-xl mb-3">About Us</h3>
             <Link to="/about-us">
-              <p className="hover:text-[#FFD700] cursor-pointer transition duration-300">JaGedo</p>
+              <p className="hover:text-[#FFD700] cursor-pointer transition duration-300">
+                JaGedo
+              </p>
             </Link>
             <p
               className="hover:text-[#FFD700] cursor-pointer transition duration-300"
-              onClick={() => window.open("https://jagedoplatform.zohodesk.com/portal/en/newticket", "_blank")}
-            >Helpdesk</p>
+              onClick={() =>
+                window.open(
+                  "https://jagedoplatform.zohodesk.com/portal/en/newticket",
+                  "_blank",
+                )
+              }
+            >
+              Helpdesk
+            </p>
           </div>
 
           {/* Quick Links Section */}
@@ -591,13 +905,23 @@ const Home = () => {
             <h3 className="font-bold text-xl mb-3">Quick Links</h3>
             <p
               className="hover:text-[#FFD700] cursor-pointer transition duration-300"
-              onClick={() => window.open("https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Terms%20of%20Service.pdf", "_blank")}
+              onClick={() =>
+                window.open(
+                  "https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Terms%20of%20Service.pdf",
+                  "_blank",
+                )
+              }
             >
               Terms Of Service
             </p>
             <p
               className="hover:text-[#FFD700] cursor-pointer transition duration-300"
-              onClick={() => window.open(" https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Data%20Protection%20Policy.pdf", "_blank")}
+              onClick={() =>
+                window.open(
+                  " https://jagedo.s3.us-east-1.amazonaws.com/legal/Jagedo%20Data%20Protection%20Policy.pdf",
+                  "_blank",
+                )
+              }
             >
               Privacy and Data Protection Policy
             </p>
@@ -617,7 +941,8 @@ const Home = () => {
             <p>
               <a
                 href="mailto:info@jagedo.co.ke"
-                className="text-[#FFD700] hover:underline transition duration-300">
+                className="text-[#FFD700] hover:underline transition duration-300"
+              >
                 info@jagedo.co.ke
               </a>
             </p>
@@ -628,16 +953,39 @@ const Home = () => {
             <h3 className="font-bold text-xl mb-3">Follow Us</h3>
             <div className="flex justify-center sm:justify-start space-x-5 mt-4">
               {[
-                { icon: FaFacebookF, color: "blue-900", url: "https://www.facebook.com/people/Jagedo/100093668226700/" },
-                { icon: FaXTwitter, color: "blue-900", url: "https://x.com/jaGedo_?t=ZO64afvms6OMvL0d1GTMkQ&amp;s=09" },
-                { icon: FaLinkedinIn, color: "blue-900", url: "https://www.linkedin.com/company/jagedo/" },
-                { icon: FaInstagram, color: "pink-900", url: "https://www.instagram.com/jagedo._/#" },
-                { icon: FaTiktok, color: "gray-900", url: "https://www.tiktok.com/@_jagedo" },
+                {
+                  icon: FaFacebookF,
+                  color: "blue-900",
+                  url: "https://www.facebook.com/people/Jagedo/100093668226700/",
+                },
+                {
+                  icon: FaXTwitter,
+                  color: "blue-900",
+                  url: "https://x.com/jaGedo_?t=ZO64afvms6OMvL0d1GTMkQ&amp;s=09",
+                },
+                {
+                  icon: FaLinkedinIn,
+                  color: "blue-900",
+                  url: "https://www.linkedin.com/company/jagedo/",
+                },
+                {
+                  icon: FaInstagram,
+                  color: "pink-900",
+                  url: "https://www.instagram.com/jagedo._/#",
+                },
+                {
+                  icon: FaTiktok,
+                  color: "gray-900",
+                  url: "https://www.tiktok.com/@_jagedo",
+                },
               ].map(({ icon: Icon, color, url }, index) => (
                 <a
                   key={index}
-                  href={url} target="_blank" rel="noopener noreferrer"
-                  className={`text-xl p-3 bg-[rgb(0,0,122)] text-white rounded-full hover:bg-[#FFD700] hover:text-${color} transition duration-300 transform hover:scale-110 shadow-md`}>
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-xl p-3 bg-[rgb(0,0,122)] text-white rounded-full hover:bg-[#FFD700] hover:text-${color} transition duration-300 transform hover:scale-110 shadow-md`}
+                >
                   <Icon />
                 </a>
               ))}
