@@ -3,7 +3,7 @@
 //@ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Mail, Phone, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Phone, Loader2, Check } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ export function ProviderSignupForm({
     const [otpTimer, setOtpTimer] = useState(0); // seconds remaining
     const [timerActive, setTimerActive] = useState(false);
     const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
+    const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const [countryCode, setCountryCode] = useState("+254");
     const COUNTRY_CODES = [
         { code: "+254", flag: "🇰🇪", country: "Kenya" },
@@ -63,6 +64,21 @@ export function ProviderSignupForm({
     // const countyList = Object.keys(counties);
 
     // const subCountyList = counties[formData.county as keyof typeof counties]
+
+    // Check email availability (debounced)
+    useEffect(() => {
+        if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+            setEmailStatus('idle');
+            return;
+        }
+        setEmailStatus('checking');
+        const timer = setTimeout(() => {
+            const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+            const emailExists = existingUsers.some((u: any) => u.email === formData.email);
+            setEmailStatus(emailExists ? 'taken' : 'available');
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [formData.email]);
 
     const validateStep = () => {
         switch (currentStep) {
@@ -191,8 +207,23 @@ export function ProviderSignupForm({
         return true;
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (validateStep()) {
+            // Auto-send OTP when moving from step 4 to step 5
+            // TODO: Replace placeholder with actual handleInitiateRegistration() call when backend OTP service is ready
+            if (currentStep === 4) {
+                toast.success("OTP sent successfully (placeholder)");
+                setOtpTimer(120);
+                setTimerActive(true);
+                setHasInitialOtpBeenSent(true);
+                nextStep();
+                return;
+            }
+            // Block advancing from step 2 if email is already taken
+            if (currentStep === 2 && emailStatus === 'taken') {
+                toast.error("This email is already registered");
+                return;
+            }
             nextStep();
         }
     };
@@ -296,6 +327,7 @@ export function ProviderSignupForm({
         setIsOtpVerified(true);
         toast.success("Bypassed verification for testing!");
         setIsSubmitting(false);
+        nextStep(); // Auto-advance to next step after verification
     }
 
     // OTP timer countdown effect
@@ -720,7 +752,21 @@ export function ProviderSignupForm({
                                         }
                                     />
                                 </div>
-
+                                {emailStatus === 'checking' && (
+                                    <p className="text-gray-500 text-sm flex items-center gap-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Checking email...
+                                    </p>
+                                )}
+                                {emailStatus === 'available' && (
+                                    <p className="text-green-600 text-sm flex items-center gap-1">
+                                        <Check className="h-3 w-3" /> Email is available
+                                    </p>
+                                )}
+                                {emailStatus === 'taken' && (
+                                    <p className="text-red-500 text-sm flex items-center gap-1">
+                                        Email already registered
+                                    </p>
+                                )}
                             </div>
                             <div className="relative flex items-center my-8">
                                 <div className="flex-grow border-t border-gray-300"></div>
@@ -1060,20 +1106,7 @@ export function ProviderSignupForm({
                                     </p>
                                 )}
 
-                                {!timerActive && !hasInitialOtpBeenSent && (
-                                    <Button
-                                        type="button"
-                                        className="w-full bg-[#00007a] hover:bg-[#00007a]/90 text-white"
-                                        onClick={handleSendOTP}
-                                        disabled={
-                                            !formData.otpMethod || isSubmitting
-                                        }
-                                    >
-                                        {isSubmitting
-                                            ? "Sending..."
-                                            : "Send verification code"}
-                                    </Button>
-                                )}
+                                {/* Send verification code button removed - OTP is auto-sent when entering this step */}
                             </div>
                         </div>
                     </div>
@@ -1432,29 +1465,21 @@ export function ProviderSignupForm({
                                     </button>
                                 </div>
                             </div>
-                            {formData.password && (
-                                <div className="mt-2 flex gap-1 h-1 w-full">
-                                    {(() => {
-                                        const { score, label } = getPasswordStrength(formData.password);
-                                        // Define the color based on the CURRENT score
-                                        let colorClass = "bg-red-500";
-                                        if (label === "Medium") colorClass = "bg-yellow-500";
-                                        if (label === "Strong") colorClass = "bg-green-500";
-
-                                        return [0, 1, 2, 3, 4].map((index) => (
-                                        <div
-                                            key={index}
-                                            className={`h-full flex-1 rounded-full transition-colors duration-300 ${
-                                            index < score ? colorClass : "bg-gray-200"
-                                            }`}
-                                        />
-                                        ));
-                                    })()}
-                                    <span className="ml-2 text-xs font-medium text-gray-600">
-                                        {getPasswordStrength(formData.password).label}
-                                    </span>
-                                </div>
-                            )}
+                            {/* Password Requirements Checklist */}
+                            <div className="mt-2 space-y-1.5">
+                                <p className={`text-sm flex items-center gap-2 transition-colors ${formData.password && formData.password.length >= 8 ? 'text-green-600' : 'text-red-500'}`}>
+                                    {formData.password && formData.password.length >= 8 ? <Check className="h-4 w-4 flex-shrink-0" /> : <span className="h-4 w-4 flex-shrink-0 text-center">&#x2022;</span>} At least 8 characters
+                                </p>
+                                <p className={`text-sm flex items-center gap-2 transition-colors ${formData.password && /[A-Z]/.test(formData.password) ? 'text-green-600' : 'text-red-500'}`}>
+                                    {formData.password && /[A-Z]/.test(formData.password) ? <Check className="h-4 w-4 flex-shrink-0" /> : <span className="h-4 w-4 flex-shrink-0 text-center">&#x2022;</span>} One uppercase letter
+                                </p>
+                                <p className={`text-sm flex items-center gap-2 transition-colors ${formData.password && /[a-z]/.test(formData.password) ? 'text-green-600' : 'text-red-500'}`}>
+                                    {formData.password && /[a-z]/.test(formData.password) ? <Check className="h-4 w-4 flex-shrink-0" /> : <span className="h-4 w-4 flex-shrink-0 text-center">&#x2022;</span>} One lowercase letter
+                                </p>
+                                <p className={`text-sm flex items-center gap-2 transition-colors ${formData.password && /[^A-Za-z0-9]/.test(formData.password) ? 'text-green-600' : 'text-red-500'}`}>
+                                    {formData.password && /[^A-Za-z0-9]/.test(formData.password) ? <Check className="h-4 w-4 flex-shrink-0" /> : <span className="h-4 w-4 flex-shrink-0 text-center">&#x2022;</span>} One special character
+                                </p>
+                            </div>
 
                             {/* Confirm Password Input */}
                             <div className="space-y-1">
@@ -1577,31 +1602,29 @@ export function ProviderSignupForm({
                     <div></div>
                 )}
 
-                <Button
-                    type="submit"
-                    className={`${isLastStep ? "bg-[#00a63e]" : "bg-[#00007a]"
-                        } hover:bg-opacity-90 min-w-[120px] text-white`}
-                    // disabled={
-                    //     isSubmitting ||
-                    //     (currentStep === 5 && !isOtpVerified) ||
-                    //     (isLastStep && !formData.agreeToTerms)
-                    // }
-                    disabled={isSubmitting || 
-                        //(currentStep === 5 && !isOtpVerified) || 
-                        (currentStep === 3 && (!formData.phone)) || 
-                        (isLastStep && (!formData.password || !formData.agreeToTerms))}
-                >
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                            Creating account...
-                        </>
-                    ) : isLastStep ? (
-                        "Create account"
-                    ) : (
-                        "Continue"
-                    )}
-                </Button>
+                {/* Hide Next/Continue button on step 5 - Verify button handles advancement */}
+                {currentStep !== 5 && (
+                    <Button
+                        type="submit"
+                        className={`${isLastStep ? "bg-[#00a63e]" : "bg-[#00007a]"
+                            } hover:bg-opacity-90 min-w-[120px] text-white`}
+                        disabled={isSubmitting ||
+                            (currentStep === 2 && emailStatus === 'taken') ||
+                            (currentStep === 3 && (!formData.phone)) ||
+                            (isLastStep && (!formData.password || !formData.agreeToTerms))}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                                {isLastStep ? "Creating account..." : "Processing..."}
+                            </>
+                        ) : isLastStep ? (
+                            "Create account"
+                        ) : (
+                            "Continue"
+                        )}
+                    </Button>
+                )}
             </div>
         </form>
     );

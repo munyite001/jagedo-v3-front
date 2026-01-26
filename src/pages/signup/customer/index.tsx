@@ -6,9 +6,9 @@ import { useGlobalContext } from "@/context/GlobalProvider";
 import GenericFooter from "@/components/generic-footer";
 
 import { CustomerSignupForm } from "@/components/customer-signup-form";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
 import {
     initiateRegistraion,
-    handleCompleteRegistration,
     resendOtp
 } from "@/api/auth.api";
 import { toast, Toaster } from "sonner";
@@ -17,6 +17,11 @@ export default function CustomerSignup() {
     const navigate = useNavigate();
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
+    
+    // New States for Profile Completion
+    const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+    const [registeredUser, setRegisteredUser] = useState<any>(null);
+
     const [formData, setFormData] = useState({
         accountType: "",
         email: "",
@@ -110,53 +115,6 @@ export default function CustomerSignup() {
         }
     };
 
-    // const handleSubmit = async () => {
-        // const data = {
-        //     email: formData.email,
-            // firstName: formData.firstName,
-            // lastName: formData.lastName,
-            // organizationName: formData.organizationName,
-            // contactFirstName: formData.contactFirstName,
-            // contactLastName: formData.contactLastName,
-            // contactPhone: formData.contactPhone,
-            // contactEmail: formData.contactEmail,
-            // country: formData.country,
-            // county: formData.county,
-            // subCounty: formData.subCounty,
-            // estate: formData.estate,
-        //     password: formData.password
-        // };
-
-        // try {
-            // commented out the API call for now to allow testing without backend
-            //const response = await handleCompleteRegistration(data);
-        //     const response = {
-        //         data: {
-        //             success: true,
-        //             message: "Mock account created successfully",
-        //             user: { email: formData.email, role: "CUSTOMER" },
-        //             accessToken: "fake_token_for_testing"
-        //         }
-        //     };
-
-        //     if (response.data.success) {
-        //         toast.success("Account Created Successfully. Redirecting to login...");
-
-        //         localStorage.setItem("user", JSON.stringify(response.data.user));
-        //         localStorage.setItem("token", response.data.accessToken);
-        //         setUser(response.data.user);
-        //         setIsLoggedIn(true);
-
-        //         setTimeout(() => {
-        //             navigate("/login");
-        //         }, 2000);
-        //     } else {
-        //         toast.error(`Failed To Create Account: ${response.data.message}`);
-        //     }
-        // } catch (error: any) {
-        //     toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
-        // }
-    // };
     const handleSubmit = async () => {
         // 1. Prepare the user object
         const newUser = {
@@ -191,27 +149,48 @@ export default function CustomerSignup() {
                 }
             };
 
-            // 4. Login the user automatically
+            // 4. Show Profile Completion Modal instead of immediate redirect
              if (response.data.success) {
-                toast.success("Account created successfully. Redirecting...");
-
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.accessToken);
-
-                setUser(response.data.user);
-                setIsLoggedIn(true);
-
-                setTimeout(() => {
-                    navigate("/dashboard/customer");
-                }, 2000);
+                toast.success("Account created successfully. Please complete your profile.");
+                setRegisteredUser(newUser);
+                setShowProfileCompletionModal(true);
              }
            
-
-           
-
         } catch (error: any) {
             toast.error("An error occurred during mock registration");
         }
+    };
+
+    const handleProfileComplete = (profileData: any) => {
+        // Here we would normally save the profile data to the backend
+        // For now, we update the mock user and local storage
+
+        const updatedUser = {
+            ...registeredUser,
+            ...profileData,
+            profileCompleted: true
+        };
+
+        // Update in mock DB
+        const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = exisitingUsers.findIndex((u: any) => u.email === updatedUser.email);
+        if (userIndex !== -1) {
+            exisitingUsers[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
+        }
+
+        // Login
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("token", "mock_access_token" + updatedUser.id);
+        setUser(updatedUser);
+        setIsLoggedIn(true);
+
+        toast.success("Profile completed! Redirecting to dashboard...");
+        setShowProfileCompletionModal(false);
+        
+        setTimeout(() => {
+            navigate("/profile");
+        }, 1500);
     };
 
 
@@ -251,6 +230,14 @@ export default function CustomerSignup() {
 
                 </div>
             </main>
+
+            <ProfileCompletionModal 
+                isOpen={showProfileCompletionModal}
+                user={registeredUser}
+                accountType={formData.accountType as any}
+                onComplete={handleProfileComplete}
+                onClose={() => setShowProfileCompletionModal(false)}
+            />
 
             <GenericFooter />
         </div>

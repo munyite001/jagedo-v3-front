@@ -11,13 +11,15 @@ import {
 import { toast, Toaster } from "sonner";
 import { ProviderSignupForm } from "@/components/provider-signup-form";
 import GenericFooter from "@/components/generic-footer";
-import { ProfileCompletion } from "@/components/profile 2.0/ProfileCompletion";
+import { ProfileCompletionModal } from "@/components/profile 2.0/ProfileCompletionModal";
 
 
 export default function FundiSignup() {
-    const navigate = useNavigate();   
+    const navigate = useNavigate();
     const { setUser, setIsLoggedIn } = useGlobalContext();
     const [currentStep, setCurrentStep] = useState(1);
+    const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
+    const [registeredUser, setRegisteredUser] = useState<any>(null);
     const [formData, setFormData] = useState({
         accountType: "INDIVIDUAL",
         skills: "",
@@ -144,21 +146,39 @@ export default function FundiSignup() {
             // Save OTP method for the profile completion step
             localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
-            // 3. Auto-login the user
-            toast.success("Account created successfully. Redirecting...");
-            localStorage.setItem("user", JSON.stringify(newUser));
-            localStorage.setItem("token", "mock_access_token_" + newUser.id);
-            setUser(newUser);
-            setIsLoggedIn(true);
-
-            // 4. Redirect to the specific dashboard
-            setTimeout(() => {
-                navigate("/profile");
-            }, 1500);
+            // 3. Show Profile Completion Modal
+            if (true) {
+                toast.success("Account created successfully. Please complete your profile.");
+                setRegisteredUser(newUser);
+                setShowProfileCompletionModal(true);
+            }
 
         } catch (error: any) {
             toast.error("An error occurred during mock registration");
         }
+    };
+
+    const handleProfileComplete = (profileData: any) => {
+        const updatedUser = {
+            ...registeredUser,
+            ...profileData,
+            profileCompleted: true
+        };
+        const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+        const userIndex = existingUsers.findIndex((u: any) => u.email === updatedUser.email);
+        if (userIndex !== -1) {
+            existingUsers[userIndex] = updatedUser;
+            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+        }
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        localStorage.setItem("token", "mock_access_token_" + updatedUser.id);
+        setUser(updatedUser);
+        setIsLoggedIn(true);
+        toast.success("Profile completed! Redirecting to dashboard...");
+        setShowProfileCompletionModal(false);
+        setTimeout(() => {
+            navigate("/profile");
+        }, 1500);
     };
 
     return (
@@ -195,6 +215,14 @@ export default function FundiSignup() {
                     </div>
                 </div>
             </main>
+
+            <ProfileCompletionModal
+                isOpen={showProfileCompletionModal}
+                user={registeredUser}
+                accountType={formData.accountType as any}
+                onComplete={handleProfileComplete}
+                onClose={() => setShowProfileCompletionModal(false)}
+            />
 
             <GenericFooter />
         </div>
