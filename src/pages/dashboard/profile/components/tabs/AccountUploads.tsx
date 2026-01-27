@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { FiDownload, FiUpload, FiTrash2 } from "react-icons/fi";
 import { UploadCloud } from "lucide-react";
-
 import { toast, Toaster } from "sonner";
 
 const STORAGE_KEY = "uploads_demo";
@@ -12,6 +11,9 @@ const Uploads2 = ({ userData }: { userData: any }) => {
 
   const [documents, setDocuments] = useState<any>({});
   const [uploadingFiles, setUploadingFiles] = useState<any>({});
+
+  const userType = userData?.userType?.toLowerCase() || "";
+  const isContractor = userType === "contractor";
 
   /* -------------------- Load from localStorage -------------------- */
   useEffect(() => {
@@ -31,7 +33,6 @@ const Uploads2 = ({ userData }: { userData: any }) => {
 
   /* -------------------- Required docs -------------------- */
   const getRequiredDocuments = () => {
-    const userType = userData?.userType?.toLowerCase() || "";
     const accountType = userData?.accountType?.toLowerCase() || "";
 
     if (accountType === "individual" && userType === "customer") {
@@ -80,7 +81,18 @@ const Uploads2 = ({ userData }: { userData: any }) => {
   };
 
   const requiredDocuments = getRequiredDocuments();
+
+  /* Contractor extra docs */
+  const contractorProfessionalDocs = [
+    { key: "contractorPracticeLicense", name: "Practice License" },
+    { key: "contractorCertificate", name: "Professional Certificate" },
+  ];
+
   const missingDocuments = requiredDocuments.filter(
+    (doc) => !documents[doc.key]
+  );
+
+  const missingContractorDocs = contractorProfessionalDocs.filter(
     (doc) => !documents[doc.key]
   );
 
@@ -122,6 +134,41 @@ const Uploads2 = ({ userData }: { userData: any }) => {
     toast.success("Document deleted");
   };
 
+  /* -------------------- Reusable Upload UI -------------------- */
+  const UploadSection = ({ title, missingDocs }: any) => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+
+      {missingDocs.map((doc: any) => (
+        <div
+          key={doc.key}
+          className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50 flex justify-between items-center"
+        >
+          <div>
+            <p className="font-semibold text-blue-800">{doc.name}</p>
+            <p className="text-sm text-gray-600">Not uploaded yet</p>
+          </div>
+
+          {uploadingFiles[doc.key] ? (
+            <span className="text-blue-600">Uploading...</span>
+          ) : (
+            <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+              <UploadCloud className="w-4 h-4" />
+              Upload
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) =>
+                  handleUpload(e.target.files![0], doc.key)
+                }
+              />
+            </label>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   /* -------------------- UI -------------------- */
   return (
     <div className="flex min-h-screen bg-white">
@@ -142,7 +189,9 @@ const Uploads2 = ({ userData }: { userData: any }) => {
                   className="flex justify-between items-center bg-gray-100 px-6 py-4 rounded-lg border"
                 >
                   <div>
-                    <p className="font-semibold text-blue-800">{doc.type}</p>
+                    <p className="font-semibold text-blue-800">
+                      {doc.type}
+                    </p>
                     <p className="text-sm text-gray-500">{doc.name}</p>
                   </div>
 
@@ -169,42 +218,21 @@ const Uploads2 = ({ userData }: { userData: any }) => {
             </div>
           )}
 
-          {/* Missing */}
+          {/* Main Required Docs */}
           {missingDocuments.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Required Documents
-              </h3>
+            <UploadSection
+              title="Required Documents"
+              missingDocs={missingDocuments}
+            />
+          )}
 
-              {missingDocuments.map((doc: any) => (
-                <div
-                  key={doc.key}
-                  className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-blue-800">{doc.name}</p>
-                    <p className="text-sm text-gray-600">
-                      Not uploaded yet
-                    </p>
-                  </div>
-
-                  {uploadingFiles[doc.key] ? (
-                    <span className="text-blue-600">Uploading...</span>
-                  ) : (
-                    <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                      <UploadCloud className="w-4 h-4" />
-                      Upload
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) =>
-                          handleUpload(e.target.files![0], doc.key)
-                        }
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
+          {/* Contractor Only Section */}
+          {isContractor && missingContractorDocs.length > 0 && (
+            <div className="mt-10">
+              <UploadSection
+                title="Contractor Professional Documents"
+                missingDocs={missingContractorDocs}
+              />
             </div>
           )}
         </div>
