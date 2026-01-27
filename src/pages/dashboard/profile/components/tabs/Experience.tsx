@@ -11,40 +11,36 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { UploadCloud, FileText } from "lucide-react";
-// import { handleVerifyUser, submitEvaluation, updateBuilderLevel } from "@/api/provider.api"
-// import useAxiosWithAuth from "@/utils/axiosInterceptor";
-// import { uploadAudioToCloudinary, uploadFile } from "@/utils/fileUpload";
+
 import { SquarePen } from "lucide-react";
 import { toast, Toaster } from "sonner";
-// import {
-//   updateFundiExperience,
-//   updateContractorExperience,
-//   updateProfessionalExperience,
-//   adminUpdateFundiExperience,
-//   adminUpdateContractorExperience,
-//   adminUpdateProfessionalExperience
-// } from "@/api/experience.api";
 
 // --- Helper: update a user in localStorage "users" array ---
-const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+const updateUserInLocalStorage = (
+  userId: string,
+  updates: Record<string, any>,
+) => {
   try {
-    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
     const idx = storedUsers.findIndex((u: any) => u.id === userId);
     if (idx !== -1) {
       storedUsers[idx] = { ...storedUsers[idx], ...updates };
-      localStorage.setItem('users', JSON.stringify(storedUsers));
+      localStorage.setItem("users", JSON.stringify(storedUsers));
     }
-    const singleUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
     if (singleUser && singleUser.id === userId) {
-      localStorage.setItem('user', JSON.stringify({ ...singleUser, ...updates }));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ ...singleUser, ...updates }),
+      );
     }
   } catch (err) {
-    console.error('Failed to update user in localStorage:', err);
+    console.error("Failed to update user in localStorage:", err);
   }
 };
 
 const Experience = ({ userData }) => {
-  console.log("User Data: ", userData)
+  console.log("User Data: ", userData);
   // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
@@ -54,25 +50,24 @@ const Experience = ({ userData }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [fileActionLoading, setFileActionLoading] = useState({});
 
-
   // Get user type from userData
-  const userType = userData?.userType || 'FUNDI';
+  const userType = userData?.userType || "FUNDI";
 
   // Initialize attachments based on user type
   const getInitialAttachments = () => {
     let projectData = [];
 
     switch (userType) {
-      case 'FUNDI':
+      case "FUNDI":
         projectData = userData?.userProfile?.previousJobPhotoUrls || [];
         break;
-      case 'PROFESSIONAL':
+      case "PROFESSIONAL":
         projectData = userData?.userProfile?.professionalProjects || [];
         break;
-      case 'CONTRACTOR':
+      case "CONTRACTOR":
         projectData = userData?.userProfile?.contractorProjects || [];
         break;
-      case 'HARDWARE':
+      case "HARDWARE":
         projectData = userData?.userProfile?.hardwareProjects || [];
         break;
       default:
@@ -90,21 +85,30 @@ const Experience = ({ userData }) => {
         {
           name: `${project.projectName || `${userType} Project ${index + 1}`}.jpg`,
           url: project.fileUrl || project?.projectFile,
-        }
+        },
       ],
     }));
   };
 
   const profileUploaded = (userData) => {
     switch (userData?.userType) {
-      case 'FUNDI':
-        return userData?.userProfile?.previousJobPhotoUrls && userData?.userProfile?.previousJobPhotoUrls.length > 0;
-      case 'PROFESSIONAL':
+      case "FUNDI":
+        return (
+          userData?.userProfile?.previousJobPhotoUrls &&
+          userData?.userProfile?.previousJobPhotoUrls.length > 0
+        );
+      case "PROFESSIONAL":
         return userData?.userProfile?.professionalLevel;
-      case 'CONTRACTOR':
-        return userData?.userProfile?.contractorProjects && userData?.userProfile?.contractorProjects.length > 0;
-      case 'HARDWARE':
-        return userData?.userProfile?.hardwareProjects && userData?.userProfile?.hardwareProjects.length > 0;
+      case "CONTRACTOR":
+        return (
+          userData?.userProfile?.contractorProjects &&
+          userData?.userProfile?.contractorProjects.length > 0
+        );
+      case "HARDWARE":
+        return (
+          userData?.userProfile?.hardwareProjects &&
+          userData?.userProfile?.hardwareProjects.length > 0
+        );
       default:
         return false;
     }
@@ -113,22 +117,62 @@ const Experience = ({ userData }) => {
   // Get project field name based on user type
   const getProjectFieldName = () => {
     switch (userType) {
-      case 'FUNDI':
-        return 'Previous Job Photos';
-      case 'PROFESSIONAL':
-        return 'Professional Projects';
-      case 'CONTRACTOR':
-        return 'Contractor Projects';
-      case 'HARDWARE':
-        return 'Hardware Projects';
+      case "FUNDI":
+        return "Previous Job Photos";
+      case "PROFESSIONAL":
+        return "Professional Projects";
+      case "CONTRACTOR":
+        return "Contractor Projects";
+      case "HARDWARE":
+        return "Hardware Projects";
       default:
-        return 'Projects';
+        return "Projects";
     }
   };
+  type ContractorCategory = {
+  category: string;
+  specialization: string;
+  class: string;
+  years: string;
+  projectFile?: File;
+  referenceFile?: File;
+};
+
+const CATEGORY_OPTIONS = [
+  "Building Works",
+  "Water Works",
+  "Electrical Works",
+  "Mechanical Works",
+];
 
   const [attachments, setAttachments] = useState(getInitialAttachments());
-  const [uploadingProjects, setUploadingProjects] = useState<{ [key: string]: boolean }>({});
+  const [uploadingProjects, setUploadingProjects] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
+const [categories, setCategories] = useState<ContractorCategory[]>([
+  {
+    category: "",
+    specialization: "",
+    class: "",
+    years: "",
+  },
+]);
+const addCategory = () => {
+  setCategories([
+    ...categories,
+    {
+      category: "",
+      specialization: "",
+      class: "",
+      years: "",
+    },
+  ]);
+};
+
+const removeCategory = (index: number) => {
+  setCategories(categories.filter((_, i) => i !== index));
+};
 
   // Initialize info from userData.userProfile based on user type
   const getInitialInfo = () => {
@@ -137,30 +181,45 @@ const Experience = ({ userData }) => {
     }
 
     switch (userType) {
-      case 'FUNDI':
+      case "FUNDI":
         return {
-          skill: userData.userProfile.skill || userData.skills || "Not Provided",
+          skill:
+            userData.userProfile.skill || userData.skills || "Not Provided",
           grade: userData.userProfile.grade || "Not Provided",
           experience: userData.userProfile.experience || "Not Provided",
         };
 
-      case 'PROFESSIONAL':
+      case "PROFESSIONAL":
         return {
-          profession: userData.userProfile.profession || userData.profession || "Not Provided",
-          professionalLevel: userData.userProfile.professionalLevel || "Not Provided",
-          yearsOfExperience: userData.userProfile.yearsOfExperience || "Not Provided",
+          profession:
+            userData.userProfile.profession ||
+            userData.profession ||
+            "Not Provided",
+          professionalLevel:
+            userData.userProfile.professionalLevel || "Not Provided",
+          yearsOfExperience:
+            userData.userProfile.yearsOfExperience || "Not Provided",
         };
 
-      case 'CONTRACTOR':
+      case "CONTRACTOR":
         return {
-          contractorType: userData.userProfile.contractorType || userData.contractorTypes || "Not Provided",
+          contractorType:
+            userData.userProfile.contractorType ||
+            userData.contractorTypes ||
+            "Not Provided",
           licenseLevel: userData.userProfile.licenseLevel || "Not Provided",
-          experience: userData.userProfile.contractorExperiences || userData?.contractorExperiences || "Not Provided",
+          experience:
+            userData.userProfile.contractorExperiences ||
+            userData?.contractorExperiences ||
+            "Not Provided",
         };
 
-      case 'HARDWARE':
+      case "HARDWARE":
         return {
-          hardwareType: userData.userProfile.hardwareType || userData.hardwareTypes || "Not Provided",
+          hardwareType:
+            userData.userProfile.hardwareType ||
+            userData.hardwareTypes ||
+            "Not Provided",
           businessType: userData.userProfile.businessType || "Not Provided",
           experience: userData.userProfile.experience || "Not Provided",
         };
@@ -183,17 +242,28 @@ const Experience = ({ userData }) => {
   // Dynamic field configurations based on user type
   const getFieldsConfig = () => {
     switch (userType) {
-      case 'FUNDI':
+      case "FUNDI":
         return [
           {
             name: "skill",
             label: "Skill",
-            options: ["Mason", "Electrician", "Plumber", "Carpenter", "Painter"],
+            options: [
+              "Mason",
+              "Electrician",
+              "Plumber",
+              "Carpenter",
+              "Painter",
+            ],
           },
           {
             name: "grade",
             label: "Grade",
-            options: ["G1: Master Fundi", "G2: Skilled", "G3: Semi-skilled", "G4: Unskilled"],
+            options: [
+              "G1: Master Fundi",
+              "G2: Skilled",
+              "G3: Semi-skilled",
+              "G4: Unskilled",
+            ],
           },
           {
             name: "experience",
@@ -202,59 +272,78 @@ const Experience = ({ userData }) => {
           },
         ];
 
-      case 'PROFESSIONAL':
+      case "PROFESSIONAL":
         return [
           {
             name: "profession",
             label: "Profession",
             options: [
               "Project Manager",
-              "Construction Manager",
               "Architect",
               "Water Engineer",
               "Roads Engineer",
               "Structural Engineer",
               "Mechanical Engineer",
-              "Electrical Engineer",
-              "Geotechnical Engineer",
-              "Quantity Surveyor",
-              "Safety Officer",
-              "Land Surveyor",
-              "Topo Surveyor",
-              "Interior Designer",
-              "Landscape Architect",
-              "Hydrologist",
-              "Geologist",
-              "Environment Officer"
             ],
+            
           },
+            {
+            name: "Specialization",
+            label: "Specialization",
+            options: [
+              "Architect",
+              "Residential",
+              "Commercial",
+              "Industrial",
+            ],
+            },
           {
             name: "professionalLevel",
             label: "Professional Level",
-            options: [
-              "Graduate",
-              "Student",
-              "Senior",
-              "Professional",
-            ],
+            options: ["Graduate", "Student", "Senior", "Professional"],
           },
           {
             name: "yearsOfExperience",
             label: "Years of Experience",
-            options: ["5+ years", "3-5 years", "1-3 years"]
+            options: ["5+ years", "3-5 years", "1-3 years"],
           },
         ];
 
-      case 'CONTRACTOR':
+      case "CONTRACTOR":
         return [
           {
-            name: "experience",
-            label: "Experience",
-            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years"],
+            name: "category",
+            label: "category",
+            options: [
+              "Building Works",
+              "Water Engineer",
+              "Roads Engineer",
+              "Mechanical Engineer",
+            ],
+            
+          },
+            {
+            name: "Specialization",
+            label: "Specialization",
+            options: [
+              "Sanitation",
+              "drainage",
+              "hydrological",
+            ],
+            },
+          {
+            name: "class",
+            label: "class",
+            options: ["NCA1", "NCA2", "NCA3", "NCA4"],
+          },
+          {
+            name: "yearsOfExperience",
+            label: "Years of Experience",
+            options: ["10+ years", "5+ years", "3-5 years", "1-3 years"],
           },
         ];
 
-      case 'HARDWARE':
+      case "HARDWARE":
         return [
           {
             name: "hardwareType",
@@ -263,20 +352,12 @@ const Experience = ({ userData }) => {
               "Building Materials",
               "Tools & Equipment",
               "Electrical Supplies",
-              "Plumbing Supplies",
-              "Paint & Finishes",
-              "Safety Equipment"
             ],
           },
           {
             name: "businessType",
             label: "Business Type",
-            options: [
-              "Retail Store",
-              "Wholesale Supplier",
-              "Distributor",
-              "Manufacturer"
-            ],
+            options: ["Retail Store", "Wholesale Supplier"],
           },
           {
             name: "experience",
@@ -290,12 +371,23 @@ const Experience = ({ userData }) => {
           {
             name: "skill",
             label: "Skill",
-            options: ["Mason", "Electrician", "Plumber", "Carpenter", "Painter"],
+            options: [
+              "Mason",
+              "Electrician",
+              "Plumber",
+              "Carpenter",
+              "Painter",
+            ],
           },
           {
             name: "grade",
             label: "Grade",
-            options: ["G1: Master Fundi", "G2: Skilled", "G3: Semi-skilled", "G4: Unskilled"],
+            options: [
+              "G1: Master Fundi",
+              "G2: Skilled",
+              "G3: Semi-skilled",
+              "G4: Unskilled",
+            ],
           },
           {
             name: "experience",
@@ -308,42 +400,6 @@ const Experience = ({ userData }) => {
 
   const fields = getFieldsConfig();
 
-  // --- ORIGINAL API-based file upload (commented out) ---
-  // const handleFileUpload = async (e, rowIndex) => {
-  //   const uploadedFiles = Array.from(e.target.files);
-  //   if (uploadedFiles.length === 0) return;
-  //
-  //   const loadingKey = `add-${rowIndex}`;
-  //   setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
-  //
-  //   try {
-  //     const toastId = toast.loading("Uploading files...");
-  //
-  //     const uploadPromises = uploadedFiles.map(file => uploadFile(file));
-  //     const uploadedFileUrls = await Promise.all(uploadPromises);
-  //
-  //     let updatedAttachments;
-  //     setAttachments((prev) => {
-  //       const newAttachments = [...prev];
-  //       newAttachments[rowIndex].files.push(
-  //         ...uploadedFileUrls.map((uploaded, index) => ({
-  //           name: uploadedFiles[index].name,
-  //           url: uploaded.url,
-  //         }))
-  //       );
-  //       updatedAttachments = newAttachments;
-  //       return newAttachments;
-  //     });
-  //
-  //     await updateUserProjects(updatedAttachments);
-  //     toast.success("Files uploaded and saved successfully!", { id: toastId });
-  //   } catch (error: any) {
-  //     console.error('File upload error:', error);
-  //     toast.error(`Failed to upload files: ${error.message || 'Unknown error'}`);
-  //   } finally {
-  //     setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
-  //   }
-  // };
   // --- END ORIGINAL ---
 
   // --- localStorage-based file upload (using local object URLs) ---
@@ -352,7 +408,7 @@ const Experience = ({ userData }) => {
     if (selectedFiles.length === 0) return;
 
     const loadingKey = `add-${rowIndex}`;
-    setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
     const toastId = toast.loading("Processing files...");
 
@@ -363,7 +419,7 @@ const Experience = ({ userData }) => {
         ...selectedFiles.map((file) => ({
           name: file.name,
           url: URL.createObjectURL(file),
-        }))
+        })),
       );
       updatedAttachments = newAttachments;
       return newAttachments;
@@ -372,29 +428,32 @@ const Experience = ({ userData }) => {
     // Persist to localStorage
     updateUserProjects(updatedAttachments);
     toast.success("Files added successfully!", { id: toastId });
-    setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
   // Get required project count based on user type and level
   const getRequiredProjectCount = () => {
     switch (userType) {
-      case 'FUNDI':
-        const grade = userData?.userProfile?.grade || '';
-        if (grade === 'G1: Master Fundi') return 3;
-        if (grade === 'G2: Skilled') return 2;
-        if (grade === 'G3: Semi-skilled') return 1;
-        if (grade === 'G4: Unskilled') return 0;
+      case "FUNDI":
+        const grade = userData?.userProfile?.grade || "";
+        if (grade === "G1: Master Fundi") return 3;
+        if (grade === "G2: Skilled") return 2;
+        if (grade === "G3: Semi-skilled") return 1;
+        if (grade === "G4: Unskilled") return 0;
         return 0; // default for unknown grades
-      case 'PROFESSIONAL':
-        const level = userData?.userProfile?.professionalLevel || userData?.userProfile?.level || '';
-        if (level === 'Senior') return 3;
-        if (level === 'Professional') return 2;
-        if (level === 'Graduate') return 1;
-        if (level === 'Student') return 0;
+      case "PROFESSIONAL":
+        const level =
+          userData?.userProfile?.professionalLevel ||
+          userData?.userProfile?.level ||
+          "";
+        if (level === "Senior") return 3;
+        if (level === "Professional") return 2;
+        if (level === "Graduate") return 1;
+        if (level === "Student") return 0;
         return 0; // default for unknown levels
-      case 'CONTRACTOR':
-        return 3; // Standard for contractors
-      case 'HARDWARE':
+      case "CONTRACTOR":
+        return 1; // Standard for contractors
+      case "HARDWARE":
         return 2; // Standard for hardware
       default:
         return 0;
@@ -402,150 +461,47 @@ const Experience = ({ userData }) => {
   };
 
   const requiredProjectCount = getRequiredProjectCount();
-  const missingProjectCount = Math.max(0, requiredProjectCount - attachments.length);
-
-  // --- ORIGINAL API-based add new project (commented out) ---
-  // const handleAddNewProject = async (projectId: string, projectName: string, files: File[]) => {
-  //   if (!projectName.trim()) {
-  //     toast.error('Please enter a project name');
-  //     return;
-  //   }
-  //   if (files.length === 0) {
-  //     toast.error('Please select at least one file');
-  //     return;
-  //   }
-  //
-  //   setUploadingProjects(prev => ({ ...prev, [projectId]: true }));
-  //
-  //   try {
-  //     const uploadPromises = files.map(file => uploadFile(file));
-  //     const uploadedFiles = await Promise.all(uploadPromises);
-  //
-  //     const newProject = {
-  //       id: attachments.length + 1,
-  //       projectName: projectName.trim(),
-  //       files: uploadedFiles.map(uploaded => ({
-  //         name: uploaded.originalName || uploaded.url.split('/').pop(),
-  //         url: uploaded.url
-  //       }))
-  //     };
-  //
-  //     setAttachments(prev => [...prev, newProject]);
-  //     await updateUserProjects([...attachments, newProject]);
-  //     toast.success(`${projectName} added successfully!`);
-  //     setNewProjects(prev => ({ ...prev, [projectId]: { name: '', files: [] } }));
-  //   } catch (error: any) {
-  //     console.error('Add project error:', error);
-  //     toast.error(`Failed to add ${projectName}`);
-  //   } finally {
-  //     setUploadingProjects(prev => ({ ...prev, [projectId]: false }));
-  //   }
-  // };
-  // --- END ORIGINAL ---
+  const missingProjectCount = Math.max(
+    0,
+    requiredProjectCount - attachments.length,
+  );
 
   // --- localStorage-based add new project ---
-  const handleAddNewProject = (projectId: string, projectName: string, files: File[]) => {
+  const handleAddNewProject = (
+    projectId: string,
+    projectName: string,
+    files: File[],
+  ) => {
     if (!projectName.trim()) {
-      toast.error('Please enter a project name');
+      toast.error("Please enter a project name");
       return;
     }
     if (files.length === 0) {
-      toast.error('Please select at least one file');
+      toast.error("Please select at least one file");
       return;
     }
 
-    setUploadingProjects(prev => ({ ...prev, [projectId]: true }));
+    setUploadingProjects((prev) => ({ ...prev, [projectId]: true }));
 
     const newProject = {
       id: attachments.length + 1,
       projectName: projectName.trim(),
-      files: files.map(file => ({
+      files: files.map((file) => ({
         name: file.name,
-        url: URL.createObjectURL(file)
-      }))
+        url: URL.createObjectURL(file),
+      })),
     };
 
-    setAttachments(prev => [...prev, newProject]);
+    setAttachments((prev) => [...prev, newProject]);
     updateUserProjects([...attachments, newProject]);
     toast.success(`${projectName} added successfully!`);
-    setNewProjects(prev => ({ ...prev, [projectId]: { name: '', files: [] } }));
-    setUploadingProjects(prev => ({ ...prev, [projectId]: false }));
+    setNewProjects((prev) => ({
+      ...prev,
+      [projectId]: { name: "", files: [] },
+    }));
+    setUploadingProjects((prev) => ({ ...prev, [projectId]: false }));
   };
 
-  // --- ORIGINAL API-based updateUserProjects (commented out) ---
-  // const updateUserProjects = async (updatedAttachments) => {
-  //   try {
-  //     const profile = userData?.userProfile || {};
-  //     const cleanAttachments = updatedAttachments
-  //       .filter(project => project && project.projectName)
-  //       .map(project => ({
-  //         id: project.id,
-  //         projectName: project.projectName.trim(),
-  //         files: project.files.filter(file => file && file.url && file.url.trim())
-  //       }))
-  //       .filter(project => project.files.length > 0);
-  //
-  //     console.log('Sending clean attachments:', cleanAttachments);
-  //
-  //     switch (userType) {
-  //       case 'FUNDI':
-  //         const fundiPayload = {
-  //           skill: profile.skill || userData?.skills || '',
-  //           grade: profile.grade || '',
-  //           experience: profile.experience || '',
-  //           previousJobPhotoUrls: cleanAttachments.flatMap(project =>
-  //             project.files.map((file) => ({
-  //               projectName: project.projectName,
-  //               fileUrl: file.url
-  //             }))
-  //           )
-  //         };
-  //         await adminUpdateFundiExperience(axiosInstance, userData.id, fundiPayload);
-  //         break;
-  //       case 'PROFESSIONAL':
-  //         const professionalPayload = {
-  //           professionalProjects: cleanAttachments.flatMap(project =>
-  //             project.files.map((file) => ({
-  //               projectName: project.projectName,
-  //               fileUrl: file.url
-  //             }))
-  //           ),
-  //           level: profile.professionalLevel || profile.level || '',
-  //           yearsOfExperience: profile.yearsOfExperience || ''
-  //         };
-  //         await adminUpdateProfessionalExperience(axiosInstance, userData.id, professionalPayload);
-  //         break;
-  //       case 'CONTRACTOR':
-  //         const contractorPayload = {
-  //           categories: profile.contractorExperiences || profile.categories || [],
-  //           projects: cleanAttachments.map(project => ({
-  //             projectName: project.projectName,
-  //             projectFile: project.files[0]?.url || '',
-  //             referenceLetterUrl: project.files[1]?.url || ''
-  //           }))
-  //         };
-  //         await adminUpdateContractorExperience(axiosInstance, userData.id, contractorPayload);
-  //         break;
-  //       case 'HARDWARE':
-  //         const hardwarePayload = {
-  //           ...profile,
-  //           hardwareProjects: cleanAttachments.flatMap(project =>
-  //             project.files.map((file) => ({
-  //               projectName: project.projectName,
-  //               fileUrl: file.url
-  //             }))
-  //           )
-  //         };
-  //         await updateBuilderLevel(axiosInstance, userData.id, userType, {}, hardwarePayload);
-  //         break;
-  //       default:
-  //         throw new Error(`Unsupported user type: ${userType}`);
-  //     }
-  //   } catch (error) {
-  //     console.error('Update projects error:', error);
-  //     throw error;
-  //   }
-  // };
   // --- END ORIGINAL ---
 
   // --- localStorage-based updateUserProjects ---
@@ -553,70 +509,46 @@ const Experience = ({ userData }) => {
     try {
       const profile = userData?.userProfile || {};
       const cleanAttachments = updatedAttachments
-        .filter(project => project && project.projectName)
-        .map(project => ({
+        .filter((project) => project && project.projectName)
+        .map((project) => ({
           id: project.id,
           projectName: project.projectName.trim(),
-          files: project.files.filter(file => file && file.url && file.url.trim())
+          files: project.files.filter(
+            (file) => file && file.url && file.url.trim(),
+          ),
         }))
-        .filter(project => project.files.length > 0);
+        .filter((project) => project.files.length > 0);
 
-      console.log('Saving clean attachments to localStorage:', cleanAttachments);
+      console.log(
+        "Saving clean attachments to localStorage:",
+        cleanAttachments,
+      );
 
-      const projectData = cleanAttachments.flatMap(project =>
+      const projectData = cleanAttachments.flatMap((project) =>
         project.files.map((file) => ({
           projectName: project.projectName,
           fileUrl: file.url,
           projectFile: file.url,
-        }))
+        })),
       );
 
-      const profileKey = userType === 'FUNDI' ? 'previousJobPhotoUrls'
-        : userType === 'PROFESSIONAL' ? 'professionalProjects'
-        : userType === 'CONTRACTOR' ? 'contractorProjects'
-        : 'hardwareProjects';
+      const profileKey =
+        userType === "FUNDI"
+          ? "previousJobPhotoUrls"
+          : userType === "PROFESSIONAL"
+            ? "professionalProjects"
+            : userType === "CONTRACTOR"
+              ? "contractorProjects"
+              : "hardwareProjects";
 
       const updatedProfile = { ...profile, [profileKey]: projectData };
       userData.userProfile = updatedProfile;
       updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
     } catch (error) {
-      console.error('Update projects error:', error);
+      console.error("Update projects error:", error);
       throw error;
     }
   };
-
-  // --- ORIGINAL API-based replace file (commented out) ---
-  // const handleReplaceFile = async (e, rowIndex, fileIndex) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-  //
-  //   try {
-  //     const toastId = toast.loading("Replacing file...");
-  //     const uploadedFile = await uploadFile(file);
-  //
-  //     let updatedAttachments;
-  //     setAttachments((prev) => {
-  //       const newAttachments = [...prev];
-  //       if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
-  //         newAttachments[rowIndex].files[fileIndex] = {
-  //           name: file.name,
-  //           url: uploadedFile.url,
-  //         };
-  //       }
-  //       updatedAttachments = newAttachments;
-  //       return newAttachments;
-  //     });
-  //
-  //     e.target.value = '';
-  //     await updateUserProjects(updatedAttachments);
-  //     toast.success("File replaced successfully!", { id: toastId });
-  //   } catch (error) {
-  //     console.error('Replace file error:', error);
-  //     toast.error(`Failed to replace file: ${error.message || 'Unknown error'}`);
-  //     e.target.value = '';
-  //   }
-  // };
-  // --- END ORIGINAL ---
 
   // --- localStorage-based replace file ---
   const handleReplaceFile = (e, rowIndex, fileIndex) => {
@@ -628,7 +560,11 @@ const Experience = ({ userData }) => {
     let updatedAttachments;
     setAttachments((prev) => {
       const newAttachments = [...prev];
-      if (newAttachments[rowIndex] && newAttachments[rowIndex].files && newAttachments[rowIndex].files[fileIndex]) {
+      if (
+        newAttachments[rowIndex] &&
+        newAttachments[rowIndex].files &&
+        newAttachments[rowIndex].files[fileIndex]
+      ) {
         newAttachments[rowIndex].files[fileIndex] = {
           name: file.name,
           url: URL.createObjectURL(file),
@@ -638,45 +574,15 @@ const Experience = ({ userData }) => {
       return newAttachments;
     });
 
-    e.target.value = '';
+    e.target.value = "";
     updateUserProjects(updatedAttachments);
     toast.success("File replaced successfully!", { id: toastId });
   };
 
-  // --- ORIGINAL API-based remove file (commented out) ---
-  // const handleRemoveFile = async (rowIndex, fileIndex) => {
-  //   const loadingKey = `remove-${rowIndex}-${fileIndex}`;
-  //   setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
-  //   try {
-  //     const toastId = toast.loading("Removing file...");
-  //     let updatedAttachments;
-  //     setAttachments((prev) => {
-  //       const newAttachments = [...prev];
-  //       if (newAttachments[rowIndex] && newAttachments[rowIndex].files) {
-  //         newAttachments[rowIndex].files.splice(fileIndex, 1);
-  //         if (newAttachments[rowIndex].files.length === 0) {
-  //           newAttachments.splice(rowIndex, 1);
-  //         }
-  //       }
-  //       updatedAttachments = newAttachments;
-  //       return newAttachments;
-  //     });
-  //     await updateUserProjects(updatedAttachments);
-  //     toast.success("File removed successfully!", { id: toastId });
-  //   } catch (error) {
-  //     console.error("Remove file error:", error);
-  //     toast.error(`Failed to remove file: ${error.message || 'Unknown error'}`);
-  //     setAttachments(prev => getInitialAttachments());
-  //   } finally {
-  //     setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
-  //   }
-  // };
-  // --- END ORIGINAL ---
-
   // --- localStorage-based remove file ---
   const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
-    setFileActionLoading(prev => ({ ...prev, [loadingKey]: true }));
+    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
     const toastId = toast.loading("Removing file...");
 
     let updatedAttachments;
@@ -694,7 +600,7 @@ const Experience = ({ userData }) => {
 
     updateUserProjects(updatedAttachments);
     toast.success("File removed successfully!", { id: toastId });
-    setFileActionLoading(prev => ({ ...prev, [loadingKey]: false }));
+    setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
   // Same evaluation questions for all user types
@@ -790,14 +696,14 @@ const Experience = ({ userData }) => {
   useEffect(() => {
     const initialNewProjects: { [key: string]: any } = {};
     for (let i = 0; i < Math.min(missingProjectCount, 3); i++) {
-      initialNewProjects[`new_${i}`] = { name: '', files: [] };
+      initialNewProjects[`new_${i}`] = { name: "", files: [] };
     }
     setNewProjects(initialNewProjects);
   }, [missingProjectCount]);
 
   const handleTextChange = (id, value) => {
     setQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, answer: value } : q))
+      prev.map((q) => (q.id === id ? { ...q, answer: value } : q)),
     );
   };
 
@@ -805,25 +711,28 @@ const Experience = ({ userData }) => {
     const num = parseFloat(value) || 0;
     if (num > 100) return;
     setQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, score: num } : q))
+      prev.map((q) => (q.id === id ? { ...q, score: num } : q)),
     );
   };
 
   const handleEditToggle = (id) => {
     setQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, isEditing: !q.isEditing } : q))
+      prev.map((q) => (q.id === id ? { ...q, isEditing: !q.isEditing } : q)),
     );
   };
 
   const handleQuestionEdit = (id, newText) => {
     setQuestions((prev) =>
       prev.map((q) =>
-        q.id === id ? { ...q, text: newText, isEditing: false } : q
-      )
+        q.id === id ? { ...q, text: newText, isEditing: false } : q,
+      ),
     );
   };
 
-  const totalScore = questions.length > 0 ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length : 0;
+  const totalScore =
+    questions.length > 0
+      ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
+      : 0;
 
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
@@ -847,34 +756,15 @@ const Experience = ({ userData }) => {
     }
 
     // Set audio URL if it exists in evaluation data (same source for all user types)
-    const audioUrlFromData = userData?.userProfile?.fundiEvaluation?.audioUrl || userData?.userProfile?.audioUploadUrl;
+    const audioUrlFromData =
+      userData?.userProfile?.fundiEvaluation?.audioUrl ||
+      userData?.userProfile?.audioUploadUrl;
 
     if (audioUrlFromData) {
       setAudioUrl(audioUrlFromData);
       console.log("Existing audio file found:", audioUrlFromData);
     }
   }, [userData]);
-
-  // --- ORIGINAL API-based verify (commented out) ---
-  // const handleVerify = async () => {
-  //   setIsVerifying(true);
-  //   try {
-  //     const userId = userData.id;
-  //     if (!userId) {
-  //       alert("User ID not found.");
-  //       return;
-  //     }
-  //     const response = await handleVerifyUser(axiosInstance, userId);
-  //     console.log("Response: ", response)
-  //     setShowVerificationMessage(true);
-  //   } catch (error) {
-  //     alert("Verification failed. Please try again.");
-  //     console.error(error);
-  //   } finally {
-  //     setIsVerifying(false);
-  //   }
-  // };
-  // --- END ORIGINAL ---
 
   // --- localStorage-based verify ---
   const handleVerify = () => {
@@ -898,35 +788,12 @@ const Experience = ({ userData }) => {
     setShowVerificationMessage(false);
   };
 
-  // --- ORIGINAL API-based audio upload to Cloudinary (commented out) ---
-  // const handleAudioUpload = async (event) => {
-  //   const file = event.target.files[0];
-  //   if (!file) return;
-  //   if (!file.type.startsWith('audio/')) {
-  //     alert('Please upload an audio file');
-  //     return;
-  //   }
-  //   setIsUploadingAudio(true);
-  //   try {
-  //     const CLOUD_NAME = 'munyite';
-  //     const url = await uploadAudioToCloudinary(file, CLOUD_NAME);
-  //     setAudioUrl(url);
-  //     console.log("Audio uploaded successfully:", url);
-  //   } catch (err) {
-  //     console.error("Error uploading audio:", err);
-  //     alert(err.message || 'Failed to upload audio');
-  //   } finally {
-  //     setIsUploadingAudio(false);
-  //   }
-  // };
-  // --- END ORIGINAL ---
-
   // --- localStorage-based audio upload (using local object URL) ---
   const handleAudioUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('audio/')) {
-      alert('Please upload an audio file');
+    if (!file.type.startsWith("audio/")) {
+      alert("Please upload an audio file");
       return;
     }
     setIsUploadingAudio(true);
@@ -935,45 +802,6 @@ const Experience = ({ userData }) => {
     console.log("Audio stored locally:", localUrl);
     setIsUploadingAudio(false);
   };
-
-  // --- ORIGINAL API-based evaluation submit (commented out) ---
-  // const handleEvaluationSubmit = async (e) => {
-  //   console.log("handleEvaluationSubmit");
-  //   e.preventDefault();
-  //   setIsSubmitting(true);
-  //   setSubmitMessage("");
-  //   try {
-  //     const profileId = userData?.id;
-  //     if (!profileId) {
-  //       setSubmitMessage("Profile ID not found.");
-  //       setIsSubmitting(false);
-  //       return;
-  //     }
-  //     const body = {
-  //       hasMajorWorks: questions[0]?.answer || "Yes",
-  //       materialsUsed: questions[1]?.answer || "",
-  //       essentialEquipment: questions[2]?.answer || "",
-  //       quotationFormulation: questions[3]?.answer || "",
-  //       majorWorksScore: questions[0]?.score || 0,
-  //       materialsUsedScore: questions[1]?.score || 0,
-  //       essentialEquipmentScore: questions[2]?.score || 0,
-  //       quotationFormulaScore: questions[3]?.score || 0,
-  //       totalScore: totalScore,
-  //       audioUrl: null,
-  //     };
-  //     if (audioUrl) {
-  //       body.audioUrl = audioUrl;
-  //     }
-  //     await submitEvaluation(axiosInstance, profileId, body);
-  //     setSubmitMessage("Evaluation submitted successfully!");
-  //   } catch (err) {
-  //     setSubmitMessage("Failed to submit evaluation. Please try again.");
-  //     console.error(err);
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-  // --- END ORIGINAL ---
 
   // --- localStorage-based evaluation submit ---
   const handleEvaluationSubmit = (e) => {
@@ -1004,33 +832,16 @@ const Experience = ({ userData }) => {
 
     // Persist evaluation to localStorage
     const profile = userData?.userProfile || {};
-    const updatedProfile = { ...profile, fundiEvaluation: { ...body, isVerified: true } };
+    const updatedProfile = {
+      ...profile,
+      fundiEvaluation: { ...body, isVerified: true },
+    };
     userData.userProfile = updatedProfile;
     updateUserInLocalStorage(profileId, { userProfile: updatedProfile });
 
     setSubmitMessage("Evaluation submitted successfully!");
     setIsSubmitting(false);
   };
-
-  // --- ORIGINAL API-based edit skill (commented out) ---
-  // const handleEditSkill = async (updatedFields) => {
-  //   setIsSavingInfo(true);
-  //   try {
-  //     const response = await updateBuilderLevel(axiosInstance, userData.id, userData?.userType, updatedFields, userData);
-  //     toast.success("Information updated successfully");
-  //     setInfo((prevInfo) => ({
-  //       ...prevInfo,
-  //       ...updatedFields,
-  //     }));
-  //     setIsEditingFields(false);
-  //   } catch (error) {
-  //     toast.error("Failed to update information");
-  //     console.error(error);
-  //   } finally {
-  //     setIsSavingInfo(false);
-  //   }
-  // };
-  // --- END ORIGINAL ---
 
   // --- localStorage-based edit skill ---
   const handleEditSkill = (updatedFields) => {
@@ -1052,7 +863,7 @@ const Experience = ({ userData }) => {
     } finally {
       setIsSavingInfo(false);
     }
-  }
+  };
 
   return (
     <div className="flex">
@@ -1086,33 +897,46 @@ const Experience = ({ userData }) => {
                       {field.label}
                     </label>
                     <div className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-                      {userType.toLowerCase() === "contractor" && field.name == "experience"
-                        ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full table-auto border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
-                                  <th className="px-2 py-2 border">Category</th>
-                                  <th className="px-2 py-2 border">Class</th>
-                                  <th className="px-2 py-2 border">Years</th>
-                                  <th className="px-2 py-2 border">Certificate</th>
-                                  <th className="px-2 py-2 border">License</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {userData?.userProfile?.contractorExperiences?.map((exp, idx) => (
-                                  <tr key={idx} className="border-b hover:bg-gray-50">
+                      {userType.toLowerCase() === "contractor" &&
+                      field.name == "experience" ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full table-auto border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-gray-100 text-left text-xs font-semibold text-gray-600">
+                                <th className="px-2 py-2 border">Category</th>
+                                <th className="px-2 py-2 border">Class</th>
+                                <th className="px-2 py-2 border">Years</th>
+                                <th className="px-2 py-2 border">
+                                  Certificate
+                                </th>
+                                <th className="px-2 py-2 border">License</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {userData?.userProfile?.contractorExperiences?.map(
+                                (exp, idx) => (
+                                  <tr
+                                    key={idx}
+                                    className="border-b hover:bg-gray-50"
+                                  >
                                     <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" ? exp.category : exp}
+                                      {typeof exp === "object"
+                                        ? exp.category
+                                        : exp}
                                     </td>
                                     <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" ? exp.categoryClass : "N/A"}
+                                      {typeof exp === "object"
+                                        ? exp.categoryClass
+                                        : "N/A"}
                                     </td>
                                     <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" ? exp.yearsOfExperience : "N/A"}
+                                      {typeof exp === "object"
+                                        ? exp.yearsOfExperience
+                                        : "N/A"}
                                     </td>
                                     <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" && exp.certificate ? (
+                                      {typeof exp === "object" &&
+                                      exp.certificate ? (
                                         <a
                                           href={exp.certificate}
                                           target="_blank"
@@ -1126,7 +950,8 @@ const Experience = ({ userData }) => {
                                       )}
                                     </td>
                                     <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" && exp.license ? (
+                                      {typeof exp === "object" &&
+                                      exp.license ? (
                                         <a
                                           href={exp.license}
                                           target="_blank"
@@ -1140,32 +965,31 @@ const Experience = ({ userData }) => {
                                       )}
                                     </td>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )
-                        : isEditingFields ? (
-                          <select
-                            value={editingFields[field.name] || info[field.name]}
-                            onChange={(e) => {
-                              setEditingFields((prev) => ({
-                                ...prev,
-                                [field.name]: e.target.value,
-                              }));
-                            }}
-                            className="w-full p-2 border border-blue-300 rounded-md text-sm"
-                          >
-                            {field.options.map((opt, i) => (
-                              <option key={i} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          info[field.name]
-                        )
-                      }
+                                ),
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : isEditingFields ? (
+                        <select
+                          value={editingFields[field.name] || info[field.name]}
+                          onChange={(e) => {
+                            setEditingFields((prev) => ({
+                              ...prev,
+                              [field.name]: e.target.value,
+                            }));
+                          }}
+                          className="w-full p-2 border border-blue-300 rounded-md text-sm"
+                        >
+                          {field.options.map((opt, i) => (
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        info[field.name]
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1180,7 +1004,7 @@ const Experience = ({ userData }) => {
                     }}
                     disabled={isSavingInfo}
                   >
-                    {isSavingInfo ? 'Saving...' : 'Save'}
+                    {isSavingInfo ? "Saving..." : "Save"}
                   </button>
                   <button
                     type="button"
@@ -1198,10 +1022,13 @@ const Experience = ({ userData }) => {
             <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">{getProjectFieldName()}</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {getProjectFieldName()}
+                  </h3>
                   {requiredProjectCount > 0 && (
                     <span className="text-sm text-gray-600">
-                      {attachments.length} of {requiredProjectCount} required projects
+                      {attachments.length} of {requiredProjectCount} required
+                      projects
                     </span>
                   )}
                 </div>
@@ -1213,86 +1040,105 @@ const Experience = ({ userData }) => {
                     <tr>
                       <th className="px-6 py-4 font-semibold">No.</th>
                       <th className="px-6 py-4 font-semibold">Project Name</th>
-                      <th className="px-6 py-4 font-semibold">Uploaded Files</th>
+                      <th className="px-6 py-4 font-semibold">
+                        Uploaded Files
+                      </th>
                       <th className="px-6 py-4 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {/* Existing Projects */}
-                    {attachments.length > 0 ? (attachments.map((row, index) => (
-                      <tr key={row.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4 text-gray-500">{index + 1}</td>
-                        <td className="px-6 py-4 font-medium">
-                          {row.projectName || `Unnamed ${userType} Project`}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-2">
-                            {row.files.length > 0 ? (
-                              row.files.map((file, fileIndex) => {
-                                const isRemoving = fileActionLoading[`remove-${index}-${fileIndex}`];
-                                return (
-                                  <div
-                                    key={fileIndex}
-                                    className="flex items-center justify-between bg-gray-100 p-2 rounded-md shadow-sm"
-                                  >
-                                    <span className="truncate text-sm">
-                                      {file.name}
-                                    </span>
-                                    <div className="flex space-x-2 items-center">
-                                      <a
-                                        href={file.url}
-                                        download={file.name}
-                                        className="text-blue-600 hover:text-blue-800"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                      >
-                                        <ArrowDownTrayIcon className="h-5 w-5" />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveFile(index, fileIndex)}
-                                        className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                                        disabled={isRemoving}
-                                      >
-                                        {isRemoving ? (
-                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
-                                        ) : (
-                                          <XMarkIcon className="h-5 w-5" />
-                                        )}
-                                      </button>
+                    {attachments.length > 0 ? (
+                      attachments.map((row, index) => (
+                        <tr
+                          key={row.id}
+                          className="hover:bg-gray-50 transition"
+                        >
+                          <td className="px-6 py-4 text-gray-500">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4 font-medium">
+                            {row.projectName || `Unnamed ${userType} Project`}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-2">
+                              {row.files.length > 0 ? (
+                                row.files.map((file, fileIndex) => {
+                                  const isRemoving =
+                                    fileActionLoading[
+                                      `remove-${index}-${fileIndex}`
+                                    ];
+                                  return (
+                                    <div
+                                      key={fileIndex}
+                                      className="flex items-center justify-between bg-gray-100 p-2 rounded-md shadow-sm"
+                                    >
+                                      <span className="truncate text-sm">
+                                        {file.name}
+                                      </span>
+                                      <div className="flex space-x-2 items-center">
+                                        <a
+                                          href={file.url}
+                                          download={file.name}
+                                          className="text-blue-600 hover:text-blue-800"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          <ArrowDownTrayIcon className="h-5 w-5" />
+                                        </a>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleRemoveFile(index, fileIndex)
+                                          }
+                                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                                          disabled={isRemoving}
+                                        >
+                                          {isRemoving ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>
+                                          ) : (
+                                            <XMarkIcon className="h-5 w-5" />
+                                          )}
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                )
-                              })
-                            ) : (
-                              <span className="text-gray-400 text-sm">
-                                No files uploaded
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="file"
-                            multiple
-                            onChange={(e) => handleFileUpload(e, index)}
-                            className="block w-full text-sm text-gray-500
+                                  );
+                                })
+                              ) : (
+                                <span className="text-gray-400 text-sm">
+                                  No files uploaded
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <input
+                              type="file"
+                              multiple
+                              onChange={(e) => handleFileUpload(e, index)}
+                              className="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-3
                             file:rounded-md file:border-0
                             file:bg-blue-600 file:text-white
                             hover:file:bg-blue-700
                             cursor-pointer disabled:opacity-50"
-                            disabled={fileActionLoading[`add-${index}`]}
-                          />
-                        </td>
-                      </tr>
-                    ))) : (
+                              disabled={fileActionLoading[`add-${index}`]}
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
                       <tr>
                         <td colSpan={4} className="px-6 py-8 text-center">
                           <div className="text-gray-500">
                             <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                            <p className="text-lg font-medium">No projects added yet</p>
-                            <p className="text-sm">Add projects below to showcase the user's experience</p>
+                            <p className="text-lg font-medium">
+                              No projects added yet
+                            </p>
+                            <p className="text-sm">
+                              Add projects below to showcase the user's
+                              experience
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -1309,261 +1155,339 @@ const Experience = ({ userData }) => {
                       Add Missing Projects ({missingProjectCount} remaining)
                     </h4>
                     <p className="text-sm text-blue-700 mb-4">
-                      Add projects on behalf of the user to complete their experience profile:
+                      Add projects on behalf of the user to complete their
+                      experience profile:
                     </p>
 
-                    {Array.from({ length: Math.min(missingProjectCount, 3) }, (_, index) => {
-                      const projectId = `new_${index}`;
-                      const project = newProjects[projectId] || { name: '', files: [] };
-                      const isLoading = uploadingProjects[projectId];
+                    {Array.from(
+                      { length: Math.min(missingProjectCount, 3) },
+                      (_, index) => {
+                        const projectId = `new_${index}`;
+                        const project = newProjects[projectId] || {
+                          name: "",
+                          files: [],
+                        };
+                        const isLoading = uploadingProjects[projectId];
 
-                      return (
-                        <div key={projectId} className="mb-6 p-4 bg-white rounded-lg border border-blue-200">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Project Name
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="Enter project name"
-                                value={project.name}
-                                onChange={(e) => setNewProjects(prev => ({
-                                  ...prev,
-                                  [projectId]: { ...project, name: e.target.value }
-                                }))}
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Project Files
-                              </label>
-                              <div className="space-y-2">
-                                {project.files.map((file: File, fileIndex: number) => (
-                                  <div key={fileIndex} className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-                                    <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const updatedFiles = [...project.files];
-                                        updatedFiles.splice(fileIndex, 1);
-                                        setNewProjects(prev => ({
-                                          ...prev,
-                                          [projectId]: { ...project, files: updatedFiles }
-                                        }));
-                                      }}
-                                      className="text-red-500 hover:text-red-700"
-                                    >
-                                      <XMarkIcon className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                ))}
+                        return (
+                          <div
+                            key={projectId}
+                            className="mb-6 p-4 bg-white rounded-lg border border-blue-200"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Project Name
+                                </label>
                                 <input
-                                  type="file"
-                                  multiple
-                                  onChange={(e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    setNewProjects(prev => ({
+                                  type="text"
+                                  placeholder="Enter project name"
+                                  value={project.name}
+                                  onChange={(e) =>
+                                    setNewProjects((prev) => ({
                                       ...prev,
-                                      [projectId]: { ...project, files: [...project.files, ...files] }
-                                    }));
-                                  }}
-                                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                                      [projectId]: {
+                                        ...project,
+                                        name: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                               </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Project Files
+                                </label>
+                                <div className="space-y-2">
+                                  {project.files.map(
+                                    (file: File, fileIndex: number) => (
+                                      <div
+                                        key={fileIndex}
+                                        className="flex items-center justify-between bg-gray-100 p-2 rounded-md"
+                                      >
+                                        <span className="text-sm text-gray-700 truncate">
+                                          {file.name}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updatedFiles = [
+                                              ...project.files,
+                                            ];
+                                            updatedFiles.splice(fileIndex, 1);
+                                            setNewProjects((prev) => ({
+                                              ...prev,
+                                              [projectId]: {
+                                                ...project,
+                                                files: updatedFiles,
+                                              },
+                                            }));
+                                          }}
+                                          className="text-red-500 hover:text-red-700"
+                                        >
+                                          <XMarkIcon className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    ),
+                                  )}
+                                  <input
+                                    type="file"
+                                    multiple
+                                    onChange={(e) => {
+                                      const files = Array.from(
+                                        e.target.files || [],
+                                      );
+                                      setNewProjects((prev) => ({
+                                        ...prev,
+                                        [projectId]: {
+                                          ...project,
+                                          files: [...project.files, ...files],
+                                        },
+                                      }));
+                                    }}
+                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                              {isLoading ? (
+                                <div className="flex items-center gap-2 text-blue-600">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                  <span className="text-sm">
+                                    Adding project...
+                                  </span>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleAddNewProject(
+                                      projectId,
+                                      project.name,
+                                      project.files,
+                                    )
+                                  }
+                                  disabled={
+                                    !project.name.trim() ||
+                                    project.files.length === 0 ||
+                                    isLoading
+                                  }
+                                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <PlusIcon className="w-4 h-4" />
+                                  <span className="text-sm font-medium">
+                                    Add Project
+                                  </span>
+                                </button>
+                              )}
                             </div>
                           </div>
-                          <div className="mt-4 flex justify-end">
-                            {isLoading ? (
-                              <div className="flex items-center gap-2 text-blue-600">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                <span className="text-sm">Adding project...</span>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleAddNewProject(projectId, project.name, project.files)}
-                                disabled={!project.name.trim() || project.files.length === 0 || isLoading}
-                                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <PlusIcon className="w-4 h-4" />
-                                <span className="text-sm font-medium">Add Project</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      },
+                    )}
                   </div>
                 </div>
               )}
             </div>
             {/* Evaluation Criteria Instructions */}
-            {userType.toLowerCase() === "fundi" && !userData?.userProfile?.fundiEvaluation && (<h2 className="text-xl font-semibold mb-4 text-gray-800">
-              {userType} Evaluation Guidelines
-            </h2>)}
+            {userType.toLowerCase() === "fundi" &&
+              !userData?.userProfile?.fundiEvaluation && (
+                <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                  {userType} Evaluation Guidelines
+                </h2>
+              )}
 
             {/* Scoring Criteria Description */}
-            {userType.toLowerCase() === "fundi" && !userData?.userProfile?.fundiEvaluation && (<div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-              <h3 className="font-semibold text-blue-900 text-sm mb-2">
-                Scoring Criteria:
-              </h3>
-              <ul className="text-sm text-blue-800 list-disc list-inside space-y-1">
-                <li>
-                  <strong>90–100%:</strong> Expert Level
-                </li>
-                <li>
-                  <strong>80–89%:</strong> Advanced Level
-                </li>
-                <li>
-                  <strong>70–79%:</strong> Intermediate Level
-                </li>
-                <li>
-                  <strong>Below 70%:</strong> Beginner Level
-                </li>
-              </ul>
-            </div>)}
+            {userType.toLowerCase() === "fundi" &&
+              !userData?.userProfile?.fundiEvaluation && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+                  <h3 className="font-semibold text-blue-900 text-sm mb-2">
+                    Scoring Criteria:
+                  </h3>
+                  <ul className="text-sm text-blue-800 list-disc list-inside space-y-1">
+                    <li>
+                      <strong>90–100%:</strong> Expert Level
+                    </li>
+                    <li>
+                      <strong>80–89%:</strong> Advanced Level
+                    </li>
+                    <li>
+                      <strong>70–79%:</strong> Intermediate Level
+                    </li>
+                    <li>
+                      <strong>Below 70%:</strong> Beginner Level
+                    </li>
+                  </ul>
+                </div>
+              )}
 
             {/* Evaluation Criteria Instructions */}
-            {userType.toLowerCase() === "fundi" && !userData?.userProfile?.fundiEvaluation && (<div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-semibold mb-6 text-gray-800">
-                Evaluation Form
-              </h2>
-
-              {/* Replacing inner <form> with <div> */}
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {questions.map((q) => (
-                    <div key={q.id} className="space-y-2 relative">
-                      {q.isEditing ? (
-                        <input
-                          value={q.text}
-                          onChange={(e) =>
-                            handleQuestionEdit(q.id, e.target.value)
-                          }
-                          onBlur={(e) => handleQuestionEdit(q.id, e.target.value)}
-                          className="w-full text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
-                        />
-                      ) : (
-                        <>
-                          <label className="block text-sm font-medium text-gray-700 pr-8">
-                            {q.text}
-                          </label>
-                          <button
-                            type="button"
-                            className="absolute top-1 right-1 text-gray-400 hover:text-gray-600"
-                            onClick={() => handleEditToggle(q.id)}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-
-                      {q.type === "select" ? (
-                        <select
-                          value={q.answer}
-                          onChange={(e) => handleTextChange(q.id, e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        >
-                          {q.options.map((opt, i) => (
-                            <option key={i} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={q.answer}
-                          onChange={(e) => handleTextChange(q.id, e.target.value)}
-                          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                          placeholder="Enter your response..."
-                        />
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-600">Score:</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max={100}
-                          value={q.score}
-                          onChange={(e) =>
-                            handleScoreChange(q.id, e.target.value)
-                          }
-                          className="w-20 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Total Score Section */}
-                <div className="mt-8 border-t pt-4 text-right">
-                  <label className="text-lg font-semibold text-gray-700 mr-2">
-                    Total Score:
-                  </label>
-                  <input
-                    type="number"
-                    value={totalScore}
-                    onChange={(e) =>
-                      setQuestions((prev) => {
-                        const newTotal = parseFloat(e.target.value) || 0;
-                        const updated = [...prev];
-                        const diff =
-                          newTotal - prev.reduce((sum, q) => sum + q.score, 0);
-                        if (updated.length > 0) {
-                          // Distribute difference to the last question (or first if you prefer)
-                          updated[updated.length - 1].score += diff;
-                        }
-                        return [...updated];
-                      })
-                    }
-                    className="w-24 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-blue-700"
-                  />
-                </div>
-
-                {/* Audio Upload Section */}
-                <div className="bg-gray-50 mt-6 p-6 rounded-xl border border-gray-200">
-                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                    Audio Upload
+            {userType.toLowerCase() === "fundi" &&
+              !userData?.userProfile?.fundiEvaluation && (
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h2 className="text-xl font-semibold mb-6 text-gray-800">
+                    Evaluation Form
                   </h2>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload your audio response or reference (optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
-                    onChange={handleAudioUpload}
-                    disabled={isUploadingAudio}
-                  />
-                  {isUploadingAudio && (
-                    <p className="mt-2 text-blue-600 text-sm">Uploading audio...</p>
-                  )}
-                  {audioUrl && (
-                    <div className="mt-4">
-                      <p className="text-green-600 text-sm mb-2">Audio uploaded successfully!</p>
-                      <audio controls src={audioUrl} className="w-full" />
-                    </div>
-                  )}
-                </div>
 
-                <div className="mt-6 text-right flex flex-col items-end gap-2">
-                  {(<button
-                    type="submit"
-                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition disabled:opacity-60"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Submitting..." : "Submit Evaluation"}
-                  </button>)}
-                  {submitMessage && (
-                    <span className={submitMessage.includes("success") ? "text-green-600" : "text-red-600"}>{submitMessage}</span>
-                  )}
+                  {/* Replacing inner <form> with <div> */}
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {questions.map((q) => (
+                        <div key={q.id} className="space-y-2 relative">
+                          {q.isEditing ? (
+                            <input
+                              value={q.text}
+                              onChange={(e) =>
+                                handleQuestionEdit(q.id, e.target.value)
+                              }
+                              onBlur={(e) =>
+                                handleQuestionEdit(q.id, e.target.value)
+                              }
+                              className="w-full text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
+                            />
+                          ) : (
+                            <>
+                              <label className="block text-sm font-medium text-gray-700 pr-8">
+                                {q.text}
+                              </label>
+                              <button
+                                type="button"
+                                className="absolute top-1 right-1 text-gray-400 hover:text-gray-600"
+                                onClick={() => handleEditToggle(q.id)}
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+
+                          {q.type === "select" ? (
+                            <select
+                              value={q.answer}
+                              onChange={(e) =>
+                                handleTextChange(q.id, e.target.value)
+                              }
+                              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                            >
+                              {q.options.map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={q.answer}
+                              onChange={(e) =>
+                                handleTextChange(q.id, e.target.value)
+                              }
+                              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                              placeholder="Enter your response..."
+                            />
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-gray-600">
+                              Score:
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max={100}
+                              value={q.score}
+                              onChange={(e) =>
+                                handleScoreChange(q.id, e.target.value)
+                              }
+                              className="w-20 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Total Score Section */}
+                    <div className="mt-8 border-t pt-4 text-right">
+                      <label className="text-lg font-semibold text-gray-700 mr-2">
+                        Total Score:
+                      </label>
+                      <input
+                        type="number"
+                        value={totalScore}
+                        onChange={(e) =>
+                          setQuestions((prev) => {
+                            const newTotal = parseFloat(e.target.value) || 0;
+                            const updated = [...prev];
+                            const diff =
+                              newTotal -
+                              prev.reduce((sum, q) => sum + q.score, 0);
+                            if (updated.length > 0) {
+                              // Distribute difference to the last question (or first if you prefer)
+                              updated[updated.length - 1].score += diff;
+                            }
+                            return [...updated];
+                          })
+                        }
+                        className="w-24 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-blue-700"
+                      />
+                    </div>
+
+                    {/* Audio Upload Section */}
+                    <div className="bg-gray-50 mt-6 p-6 rounded-xl border border-gray-200">
+                      <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                        Audio Upload
+                      </h2>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Upload your audio response or reference (optional)
+                      </label>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
+                        onChange={handleAudioUpload}
+                        disabled={isUploadingAudio}
+                      />
+                      {isUploadingAudio && (
+                        <p className="mt-2 text-blue-600 text-sm">
+                          Uploading audio...
+                        </p>
+                      )}
+                      {audioUrl && (
+                        <div className="mt-4">
+                          <p className="text-green-600 text-sm mb-2">
+                            Audio uploaded successfully!
+                          </p>
+                          <audio controls src={audioUrl} className="w-full" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 text-right flex flex-col items-end gap-2">
+                      {
+                        <button
+                          type="submit"
+                          className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition disabled:opacity-60"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Submitting..." : "Submit Evaluation"}
+                        </button>
+                      }
+                      {submitMessage && (
+                        <span
+                          className={
+                            submitMessage.includes("success")
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }
+                        >
+                          {submitMessage}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>)}
+              )}
 
             {/* Evaluation Results Display */}
             {userData?.userProfile?.fundiEvaluation && (
@@ -1575,24 +1499,47 @@ const Experience = ({ userData }) => {
                 {/* Total Score Display */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">Overall Score</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Overall Score
+                    </h3>
                     <div className="flex items-center gap-3">
-                      <span className={`text-2xl font-bold ${userData.userProfile.fundiEvaluation.totalScore >= 90 ? 'text-green-600' :
-                        userData.userProfile.fundiEvaluation.totalScore >= 80 ? 'text-blue-600' :
-                          userData.userProfile.fundiEvaluation.totalScore >= 70 ? 'text-yellow-600' :
-                            'text-red-600'
-                        }`}>
+                      <span
+                        className={`text-2xl font-bold ${
+                          userData.userProfile.fundiEvaluation.totalScore >= 90
+                            ? "text-green-600"
+                            : userData.userProfile.fundiEvaluation.totalScore >=
+                                80
+                              ? "text-blue-600"
+                              : userData.userProfile.fundiEvaluation
+                                    .totalScore >= 70
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                        }`}
+                      >
                         {userData.userProfile.fundiEvaluation.totalScore}%
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${userData.userProfile.fundiEvaluation.totalScore >= 90 ? 'bg-green-100 text-green-800' :
-                        userData.userProfile.fundiEvaluation.totalScore >= 80 ? 'bg-blue-100 text-blue-800' :
-                          userData.userProfile.fundiEvaluation.totalScore >= 70 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                        }`}>
-                        {userData.userProfile.fundiEvaluation.totalScore >= 90 ? 'Expert Level' :
-                          userData.userProfile.fundiEvaluation.totalScore >= 80 ? 'Advanced Level' :
-                            userData.userProfile.fundiEvaluation.totalScore >= 70 ? 'Intermediate Level' :
-                              'Beginner Level'}
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          userData.userProfile.fundiEvaluation.totalScore >= 90
+                            ? "bg-green-100 text-green-800"
+                            : userData.userProfile.fundiEvaluation.totalScore >=
+                                80
+                              ? "bg-blue-100 text-blue-800"
+                              : userData.userProfile.fundiEvaluation
+                                    .totalScore >= 70
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {userData.userProfile.fundiEvaluation.totalScore >= 90
+                          ? "Expert Level"
+                          : userData.userProfile.fundiEvaluation.totalScore >=
+                              80
+                            ? "Advanced Level"
+                            : userData.userProfile.fundiEvaluation.totalScore >=
+                                70
+                              ? "Intermediate Level"
+                              : "Beginner Level"}
                       </span>
                     </div>
                   </div>
@@ -1601,12 +1548,20 @@ const Experience = ({ userData }) => {
                   <div className="mt-3">
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div
-                        className={`h-3 rounded-full transition-all duration-500 ${userData.userProfile.fundiEvaluation.totalScore >= 90 ? 'bg-green-500' :
-                          userData.userProfile.fundiEvaluation.totalScore >= 80 ? 'bg-blue-500' :
-                            userData.userProfile.fundiEvaluation.totalScore >= 70 ? 'bg-yellow-500' :
-                              'bg-red-500'
-                          }`}
-                        style={{ width: `${userData.userProfile.fundiEvaluation.totalScore}%` }}
+                        className={`h-3 rounded-full transition-all duration-500 ${
+                          userData.userProfile.fundiEvaluation.totalScore >= 90
+                            ? "bg-green-500"
+                            : userData.userProfile.fundiEvaluation.totalScore >=
+                                80
+                              ? "bg-blue-500"
+                              : userData.userProfile.fundiEvaluation
+                                    .totalScore >= 70
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                        }`}
+                        style={{
+                          width: `${userData.userProfile.fundiEvaluation.totalScore}%`,
+                        }}
                       ></div>
                     </div>
                   </div>
@@ -1616,18 +1571,29 @@ const Experience = ({ userData }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   {/* Question 1: Major Works */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">Major Works Experience</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Major Works Experience
+                    </h4>
                     <p className="text-sm text-gray-600 mb-2">
-                      "Have you done any major works in the construction industry?"
+                      "Have you done any major works in the construction
+                      industry?"
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-700">
-                        {userData.userProfile.fundiEvaluation.hasMajorWorks || 'Not provided'}
+                        {userData.userProfile.fundiEvaluation.hasMajorWorks ||
+                          "Not provided"}
                       </span>
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation.majorWorksScore >= 80 ? 'bg-green-100 text-green-800' :
-                        userData.userProfile.fundiEvaluation.majorWorksScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                      <span
+                        className={`px-2 py-1 rounded text-sm font-medium ${
+                          userData.userProfile.fundiEvaluation
+                            .majorWorksScore >= 80
+                            ? "bg-green-100 text-green-800"
+                            : userData.userProfile.fundiEvaluation
+                                  .majorWorksScore >= 60
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
                         {userData.userProfile.fundiEvaluation.majorWorksScore}%
                       </span>
                     </div>
@@ -1635,57 +1601,101 @@ const Experience = ({ userData }) => {
 
                   {/* Question 2: Materials Used */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">Materials Knowledge</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Materials Knowledge
+                    </h4>
                     <p className="text-sm text-gray-600 mb-2">
-                      "State the materials that you have been using mostly for your jobs"
+                      "State the materials that you have been using mostly for
+                      your jobs"
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation.materialsUsed || 'Not provided'}
+                        {userData.userProfile.fundiEvaluation.materialsUsed ||
+                          "Not provided"}
                       </span>
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation.materialsUsedScore >= 80 ? 'bg-green-100 text-green-800' :
-                        userData.userProfile.fundiEvaluation.materialsUsedScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                        {userData.userProfile.fundiEvaluation.materialsUsedScore}%
+                      <span
+                        className={`px-2 py-1 rounded text-sm font-medium ${
+                          userData.userProfile.fundiEvaluation
+                            .materialsUsedScore >= 80
+                            ? "bg-green-100 text-green-800"
+                            : userData.userProfile.fundiEvaluation
+                                  .materialsUsedScore >= 60
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {
+                          userData.userProfile.fundiEvaluation
+                            .materialsUsedScore
+                        }
+                        %
                       </span>
                     </div>
                   </div>
 
                   {/* Question 3: Essential Equipment */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">Equipment Knowledge</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Equipment Knowledge
+                    </h4>
                     <p className="text-sm text-gray-600 mb-2">
-                      "Name essential equipment that you have been using for your job"
+                      "Name essential equipment that you have been using for
+                      your job"
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation.essentialEquipment || 'Not provided'}
+                        {userData.userProfile.fundiEvaluation
+                          .essentialEquipment || "Not provided"}
                       </span>
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation.essentialEquipmentScore >= 80 ? 'bg-green-100 text-green-800' :
-                        userData.userProfile.fundiEvaluation.essentialEquipmentScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                        {userData.userProfile.fundiEvaluation.essentialEquipmentScore}%
+                      <span
+                        className={`px-2 py-1 rounded text-sm font-medium ${
+                          userData.userProfile.fundiEvaluation
+                            .essentialEquipmentScore >= 80
+                            ? "bg-green-100 text-green-800"
+                            : userData.userProfile.fundiEvaluation
+                                  .essentialEquipmentScore >= 60
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {
+                          userData.userProfile.fundiEvaluation
+                            .essentialEquipmentScore
+                        }
+                        %
                       </span>
                     </div>
                   </div>
 
                   {/* Question 4: Quotation Formulation */}
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">Quotation Skills</h4>
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Quotation Skills
+                    </h4>
                     <p className="text-sm text-gray-600 mb-2">
                       "How do you always formulate your quotations?"
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation.quotationFormulation || 'Not provided'}
+                        {userData.userProfile.fundiEvaluation
+                          .quotationFormulation || "Not provided"}
                       </span>
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation.quotationFormulaScore >= 80 ? 'bg-green-100 text-green-800' :
-                        userData.userProfile.fundiEvaluation.quotationFormulaScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                        {userData.userProfile.fundiEvaluation.quotationFormulaScore}%
+                      <span
+                        className={`px-2 py-1 rounded text-sm font-medium ${
+                          userData.userProfile.fundiEvaluation
+                            .quotationFormulaScore >= 80
+                            ? "bg-green-100 text-green-800"
+                            : userData.userProfile.fundiEvaluation
+                                  .quotationFormulaScore >= 60
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {
+                          userData.userProfile.fundiEvaluation
+                            .quotationFormulaScore
+                        }
+                        %
                       </span>
                     </div>
                   </div>
@@ -1694,7 +1704,9 @@ const Experience = ({ userData }) => {
                 {/* Audio Section */}
                 {userData.userProfile.fundiEvaluation.audioUrl && (
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h4 className="font-medium text-gray-800 mb-3">Audio Response</h4>
+                    <h4 className="font-medium text-gray-800 mb-3">
+                      Audio Response
+                    </h4>
                     <audio
                       controls
                       src={userData.userProfile.fundiEvaluation.audioUrl}
@@ -1708,14 +1720,18 @@ const Experience = ({ userData }) => {
                 {/* Evaluation Date/Status */}
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Evaluation Status:
+                    <span>
+                      Evaluation Status:
                       <span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                         Completed
                       </span>
                     </span>
                     {userData.userProfile.fundiEvaluation.evaluatedAt && (
                       <span>
-                        Evaluated on: {new Date(userData.userProfile.fundiEvaluation.evaluatedAt).toLocaleDateString('en-GB')}
+                        Evaluated on:{" "}
+                        {new Date(
+                          userData.userProfile.fundiEvaluation.evaluatedAt,
+                        ).toLocaleDateString("en-GB")}
                       </span>
                     )}
                   </div>
@@ -1725,18 +1741,19 @@ const Experience = ({ userData }) => {
 
             <div className="mt-6 text-right">
               <div className="relative inline-block">
-
                 {/* Show Verify Button only if not admin approved and profile is uploaded */}
-                {!userData?.adminApproved && !userData?.approved && userData?.userProfile?.complete && (
-                  <button
-                    type="button"
-                    onClick={handleVerify}
-                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isVerifying}
-                  >
-                    {isVerifying ? "Verifying..." : "Verify"}
-                  </button>
-                )}
+                {!userData?.adminApproved &&
+                  !userData?.approved &&
+                  userData?.userProfile?.complete && (
+                    <button
+                      type="button"
+                      onClick={handleVerify}
+                      className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isVerifying}
+                    >
+                      {isVerifying ? "Verifying..." : "Verify"}
+                    </button>
+                  )}
 
                 {/* Show Verified Badge if admin approved */}
                 {userData?.adminApproved && (
