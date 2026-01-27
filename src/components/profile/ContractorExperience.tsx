@@ -6,10 +6,10 @@ import {
   XMarkIcon,
   EyeIcon
 } from "@heroicons/react/24/outline";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { updateContractorExperience } from "@/api/experience.api";
-import { getProviderProfile } from "@/api/provider.api";
-import { uploadFile } from "@/utils/fileUpload";
+// import useAxiosWithAuth from "@/utils/axiosInterceptor";
+// import { updateContractorExperience } from "@/api/experience.api";
+// import { getProviderProfile } from "@/api/provider.api";
+// import { uploadFile } from "@/utils/fileUpload";
 import { useGlobalContext } from "@/context/GlobalProvider";
 
 type FileOrUrl = File | string | null;
@@ -24,6 +24,7 @@ interface ContractorCategory {
 
 interface ContractorProject {
   id: string;
+  categoryId?: string;
   projectName: string;
   projectFile: FileOrUrl;
   referenceLetterFile: FileOrUrl;
@@ -48,7 +49,7 @@ const BUILDING_WORKS_SPECIALIZATIONS = [
 
 const ContractorExperience = () => {
   const { user } = useGlobalContext();
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+  //const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
   const [categories, setCategories] = useState<ContractorCategory[]>([]);
   const [projects, setProjects] = useState<ContractorProject[]>([]);
@@ -73,6 +74,7 @@ const ContractorExperience = () => {
   const prefilledProjects: ContractorProject[] = [
     {
       id: "1",
+      categoryId: "1",
       projectName: "Central Mall Renovation",
       projectFile: "https://example.com/project_file_mall.pdf",
       referenceLetterFile: "https://example.com/reference_letter_mall.pdf",
@@ -83,81 +85,154 @@ const ContractorExperience = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      try {
-        const response = await getProviderProfile(axiosInstance, user.id);
-
-        if (response.success && response.data?.userProfile) {
-          const profile = response.data.userProfile;
-
-          if (profile.contractorExperiences && profile.contractorExperiences.length > 0) {
-            const populatedCategories = profile.contractorExperiences.map(exp => ({
-              id: Math.random().toString(),
-              category: exp.category,
-                specialization: exp.specialization,
-              categoryClass: exp.categoryClass,
-              yearsOfExperience: exp.yearsOfExperience,
-              
-              isEditing: false,
-            }));
-            setCategories(populatedCategories);
-          } else {
-            setCategories(prefilledCategories);
-          }
-
-          if (profile.contractorProjects && profile.contractorProjects.length > 0) {
-            const populatedProjects = profile.contractorProjects.map(proj => ({
-              id: Math.random().toString(),
-              projectName: proj.projectName,
-              projectFile: proj.projectFile,
-              referenceLetterFile: proj.referenceLetterUrl,
-            }));
-            setProjects(populatedProjects);
-          } else {
-            setProjects(prefilledProjects);
-          }
-        } else {
-          setCategories(prefilledCategories);
-          setProjects(prefilledProjects);
+      const storedData = localStorage.getItem(`contractorExperience_${user.id}`);
+      if (storedData) {
+        try {
+          const { categories: storedCategories, projects: storedProjects } = JSON.parse(storedData);
+          setCategories(storedCategories || []);
+          setProjects(storedProjects || []);
+          setIsLoadingProfile(false);
+          return;
+        } catch (error) {
+          console.error("Error parsing stored data:", error);
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast.error("Failed to load contractor data.");
-        setCategories(prefilledCategories);
-        setProjects(prefilledProjects);
-      } finally {
-        setIsLoadingProfile(false);
       }
+      setCategories(prefilledCategories);
+      setProjects(prefilledProjects);
+      setIsLoadingProfile(false);
+      // try {
+      //   const response = await getProviderProfile(axiosInstance, user.id);
+
+      //   if (response.success && response.data?.userProfile) {
+      //     const profile = response.data.userProfile;
+
+      //     if (profile.contractorExperiences && profile.contractorExperiences.length > 0) {
+      //       const populatedCategories = profile.contractorExperiences.map(exp => ({
+      //         id: Math.random().toString(),
+      //         category: exp.category,
+      //           specialization: exp.specialization,
+      //         categoryClass: exp.categoryClass,
+      //         yearsOfExperience: exp.yearsOfExperience,
+              
+      //         isEditing: false,
+      //       }));
+      //       setCategories(populatedCategories);
+      //     } else {
+      //       setCategories(prefilledCategories);
+      //     }
+
+      //     if (profile.contractorProjects && profile.contractorProjects.length > 0) {
+      //       const populatedProjects = profile.contractorProjects.map(proj => ({
+      //         id: Math.random().toString(),
+      //         projectName: proj.projectName,
+      //         projectFile: proj.projectFile,
+      //         referenceLetterFile: proj.referenceLetterUrl,
+      //       }));
+      //       setProjects(populatedProjects);
+      //     } else {
+      //       setProjects(prefilledProjects);
+      //     }
+      //   } else {
+      //     setCategories(prefilledCategories);
+      //     setProjects(prefilledProjects);
+      //   }
+      // } catch (error) {
+      //   console.error("Error fetching profile:", error);
+      //   toast.error("Failed to load contractor data.");
+      //   setCategories(prefilledCategories);
+      //   setProjects(prefilledProjects);
+      // } finally {
+      //   setIsLoadingProfile(false);
+      // }
     };
     fetchProfile();
   }, [user.id]);
+
+  // const updateExperienceOnServer = async (
+  //   currentCategories: ContractorCategory[],
+  //   currentProjects: ContractorProject[]
+  // ) => {
+  //   const contractorCategories = await Promise.all(
+  //     currentCategories.map(async cat => ({
+  //       category: cat.category,
+  //     specialization: cat.specialization,
+
+  //       categoryClass: cat.categoryClass,
+  //       yearsOfExperience: cat.yearsOfExperience,
+        
+  //     }))
+  //   );
+
+  //   const contractorProjects = await Promise.all(
+  //     currentProjects.map(async proj => ({
+  //       projectName: proj.projectName,
+  //       projectFile: proj.projectFile instanceof File ? (await uploadFile(proj.projectFile)).url : proj.projectFile || "",
+  //       referenceLetterUrl: proj.referenceLetterFile instanceof File ? (await uploadFile(proj.referenceLetterFile)).url : proj.referenceLetterFile || "",
+  //     }))
+  //   );
+
+  //   await updateContractorExperience(axiosInstance, {
+  //     categories: contractorCategories,
+  //     projects: contractorProjects,
+  //   });
+  // };
+  const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
   const updateExperienceOnServer = async (
     currentCategories: ContractorCategory[],
     currentProjects: ContractorProject[]
   ) => {
-    const contractorCategories = await Promise.all(
-      currentCategories.map(async cat => ({
-        category: cat.category,
+    const contractorCategories = await Promise.all(currentCategories.map(async cat => ({
+      id: cat.id,
+      category: cat.category,
       specialization: cat.specialization,
+      categoryClass: cat.categoryClass,
+      yearsOfExperience: cat.yearsOfExperience,
+      certificateFile: cat.certificateFile ? {
+        name: cat.certificateFile.name,
+        size: cat.certificateFile.size,
+        type: cat.certificateFile.type,
+        content: await fileToBase64(cat.certificateFile),
+      } : null,
+      licenseFile: cat.licenseFile ? {
+        name: cat.licenseFile.name,
+        size: cat.licenseFile.size,
+        type: cat.licenseFile.type,
+      } : null,
+    })));
 
-        categoryClass: cat.categoryClass,
-        yearsOfExperience: cat.yearsOfExperience,
-        
-      }))
-    );
+    const contractorProjects = currentProjects.map(proj => ({
+      id: proj.id,
+      categoryId: proj.categoryId,
+      projectName: proj.projectName,
+      projectFile: proj.projectFile instanceof File ? {
+        name: proj.projectFile.name,
+        size: proj.projectFile.size,
+        type: proj.projectFile.type,
+      } : proj.projectFile,
+      referenceLetterFile: proj.referenceLetterFile instanceof File ? {
+        name: proj.referenceLetterFile.name,
+        size: proj.referenceLetterFile.size,
+        type: proj.referenceLetterFile.type,
+      } : proj.referenceLetterFile,
+    }));
 
-    const contractorProjects = await Promise.all(
-      currentProjects.map(async proj => ({
-        projectName: proj.projectName,
-        projectFile: proj.projectFile instanceof File ? (await uploadFile(proj.projectFile)).url : proj.projectFile || "",
-        referenceLetterUrl: proj.referenceLetterFile instanceof File ? (await uploadFile(proj.referenceLetterFile)).url : proj.referenceLetterFile || "",
-      }))
-    );
-
-    await updateContractorExperience(axiosInstance, {
+    const experienceData = {
       categories: contractorCategories,
       projects: contractorProjects,
-    });
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem(`contractorExperience_${user.id}`, JSON.stringify(experienceData));
+
+    // simulate success (no API call)
+    return Promise.resolve();
   };
 
   // const handleCategoryChange = (id: string, field: keyof Omit<ContractorCategory, 'certificateFile' | 'licenseFile'>, value: any) => {
