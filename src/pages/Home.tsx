@@ -62,20 +62,21 @@ const testimonials = [
     text: "My hardware business has grown 30% since joining Jagedo. The platform connects me with serious customers I wouldn't have reached otherwise.",
   },
 ];
-const [slideIndex, setSlideIndex] = useState(0);
-
-useEffect(() => {
-  const timer = setInterval(() => {
-    setSlideIndex((prev) => {
-      const next = prev + VISIBLE;
-      return next >= testimonials.length ? 0 : next;
-    });
-  }, INTERVAL);
-
-  return () => clearInterval(timer);
-}, []);
 
 const Home = () => {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => {
+        const next = prev + VISIBLE;
+        return next >= testimonials.length ? 0 : next;
+      });
+    }, INTERVAL);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Customer");
   const [image, setImage] = useState(micaImg);
