@@ -40,6 +40,87 @@ export const mockBuilders = [
     ]
   },
 
+
+  {
+    id: 3,
+    userType: "FUNDI",
+    firstName: "fundi03",
+    // lastName: "Kamau",
+    email: "fundi03@jagedo.co.ke",
+    phoneNumber: "0712347777",
+    county: "Nairobi",
+    subCounty: "Westlands",
+    adminApproved: false,
+    skills: "Plumber",
+    specialization: "Gas Plumbing",
+    grade: "G1: Master Fundi",
+    experience: "5+ years",
+    createdAt: "2026-11-12",
+    previousJobPhotoUrls: [
+      { projectName: "Westlands Apartments", fileUrl: "https://picsum.photos/200/300" },
+      { projectName: "Kilimani Villas", fileUrl: "https://picsum.photos/200/301" }
+    ]
+  },
+  {
+    id: 4,
+    userType: "FUNDI",
+    firstName: "fundi04",
+    // lastName: "Otieno",
+    email: "fundi04@jagedo.co.ke",
+    phoneNumber: "0798999999",
+    county: "Kisumu",
+    subCounty: "Kisumu East",
+    adminApproved: true,
+    skills: "Electrician",
+    specialization: "Solar Systems",
+    grade: "G2: Skilled",
+    experience: "3-5 years",
+    createdAt: "2026-10-05",
+    previousJobPhotoUrls: [
+      { projectName: "Solar Install Kisumu", fileUrl: "https://picsum.photos/200/302" }
+    ]
+  },
+
+  {
+    id: 5,
+    userType: "FUNDI",
+    firstName: "fundi05",
+    // lastName: "Kamau",
+    email: "fundi05@jagedo.co.ke",
+    phoneNumber: "0716665553",
+    county: "Nairobi",
+    subCounty: "Westlands",
+    adminApproved: false,
+    skills: "Plumber",
+    specialization: "Gas Plumbing",
+    grade: "G1: Master Fundi",
+    experience: "5+ years",
+    createdAt: "2026-11-12",
+    previousJobPhotoUrls: [
+      { projectName: "Westlands Apartments", fileUrl: "https://picsum.photos/200/300" },
+      { projectName: "Kilimani Villas", fileUrl: "https://picsum.photos/200/301" }
+    ]
+  },
+  {
+    id: 6,
+    userType: "FUNDI",
+    firstName: "fundi06",
+    // lastName: "Otieno",
+    email: "fundi06@jagedo.co.ke",
+    phoneNumber: "0798765432",
+    county: "Kisumu",
+    subCounty: "Kisumu East",
+    adminApproved: true,
+    skills: "Electrician",
+    specialization: "Solar Systems",
+    grade: "G2: Skilled",
+    experience: "3-5 years",
+    createdAt: "2026-10-05",
+    previousJobPhotoUrls: [
+      { projectName: "Solar Install Kisumu", fileUrl: "https://picsum.photos/200/302" }
+    ]
+  },
+
   // ================= PROFESSIONAL =================
   {
     id: 3,
