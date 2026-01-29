@@ -61,7 +61,7 @@ export default function ProfessionalSignup() {
 
     const prevStep = () => {
         setCurrentStep((prev) => Math.max(prev - 1, 1));
-    };
+    }; 
 
     const handleInitiateRegistration = async () => {
         const data = {

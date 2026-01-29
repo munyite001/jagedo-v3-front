@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+ /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import { AiOutlinePaperClip } from "react-icons/ai";
 import { FaFileAlt } from "react-icons/fa";

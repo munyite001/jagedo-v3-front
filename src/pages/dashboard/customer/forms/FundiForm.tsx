@@ -16,7 +16,7 @@ import { TiTick } from "react-icons/ti";
 import { AttachmentsSection } from "@/components/Attachments";
 import type { UploadedFile } from "@/utils/fileUpload";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
-
+import { useState } from "react";
 interface FundiFormProps {
     formData: any;
     handleInputChange: (
@@ -83,6 +83,23 @@ export const FundiForm: React.FC<FundiFormProps> = ({
 
     const now = new Date();
     const earliest = getEarliestStartDate(now);
+    const fundiSkills = [
+  { value: "carpenter", label: "Carpenter" },
+  { value: "electrician", label: "Electrician" },
+  { value: "fitter", label: "Fitter" },
+  { value: "foreman", label: "Foreman" },
+  { value: "glass-aluminium-fitter", label: "Glass / Aluminium Fitter" },
+  { value: "interior-skimmer", label: "Interior Skimmer" },
+  { value: "mason", label: "Mason" },
+  { value: "painter", label: "Painter" },
+  { value: "plumber", label: "Plumber" },
+  { value: "roofer", label: "Roofer" },
+  { value: "steel-fixer", label: "Steel Fixer" },
+  { value: "tile-fixer", label: "Tile Fixer" },
+  { value: "welder", label: "Welder" }
+];
+
+const [skillSearch, setSkillSearch] = useState("");
 
     return (
         <form onSubmit={handleSubmit}>
@@ -103,35 +120,48 @@ export const FundiForm: React.FC<FundiFormProps> = ({
                                             value={formData.skill}
                                             onValueChange={(value) =>
                                                 handleInputChange({
-                                                    target: {
-                                                        name: "skill",
-                                                        value
-                                                    }
+                                                target: {
+                                                    name: "skill",
+                                                    value
+                                                }
                                                 } as any)
                                             }
-                                        >
-                                            <SelectTrigger
-                                                id="skill"
-                                                className="w-full border-1 border-gray-200"
                                             >
-                                                <SelectValue placeholder="Select a skill" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-white">
-                                                <SelectItem value="carpenter">Carpenter</SelectItem>
-                                                <SelectItem value="electrician">Electrician</SelectItem>
-                                                <SelectItem value="fitter">Fitter</SelectItem>
-                                                <SelectItem value="foreman">Foreman</SelectItem>
-                                                <SelectItem value="glass-aluminium-fitter">Glass/Aluminium Fitter</SelectItem>
-                                                <SelectItem value="interior-skimmer">Interior Skimmer</SelectItem>
-                                                <SelectItem value="mason">Mason</SelectItem>
-                                                <SelectItem value="painter">Painter</SelectItem>
-                                                <SelectItem value="plumber">Plumber</SelectItem>
-                                                <SelectItem value="roofer">Roofer</SelectItem>
-                                                <SelectItem value="steel-fixer">Steel Fixer</SelectItem>
-                                                <SelectItem value="tile-fixer">Tile Fixer</SelectItem>
-                                                <SelectItem value="welder">Welder</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                                <SelectTrigger
+                                                    id="skill"
+                                                    className="w-full border border-gray-200"
+                                                >
+                                                    <SelectValue placeholder="Select a skill" />
+                                                </SelectTrigger>
+
+                                                    <SelectContent className="bg-white max-h-60 overflow-y-auto">
+                                                        {/* Search input */}
+                                                        <div className="p-2 ">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search skill..."
+                                                            value={skillSearch}
+                                                            onChange={(e) => setSkillSearch(e.target.value)}
+                                                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                                        />
+                                                        </div>
+
+                                                        {/* Scrollable list */}
+                                                        <div className="max-h-60 overflow-y-auto">
+                                                        {fundiSkills
+                                                            .filter((skill) =>
+                                                            skill.label.toLowerCase().includes(skillSearch.toLowerCase())
+                                                            )
+                                                            .map((skill) => (
+                                                            <SelectItem key={skill.value} value={skill.value}>
+                                                                {skill.label}
+                                                            </SelectItem>
+                                                            ))}
+                                                        </div>
+                                                    </SelectContent>
+                                            </Select>
+
+                                        
                                     </div>
                                     <div>
                                         <label
