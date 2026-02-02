@@ -189,7 +189,7 @@ export const mockBuilders: Builder[] = [
       ],
     },
   },
-  // INCOMPLETE - Has account info & address, but NO uploads/experience
+  // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 3,
     userType: "FUNDI",
@@ -204,8 +204,16 @@ export const mockBuilders: Builder[] = [
     village: "Lavington",
     adminApproved: false,
     status: "INCOMPLETE",
-    // No skills, grade, experience - profile not completed
-    userProfile: null,
+    skills: "Mason",
+    specialization: "Block Work",
+    grade: "G2: Skilled",
+    experience: "3-5 years",
+    userProfile: {
+      skill: "Mason",
+      grade: "G2: Skilled",
+      experience: "3-5 years",
+      // No previousJobPhotoUrls - missing uploads
+    },
     createdAt: "2026-09-12",
   },
   // COMPLETED - Full profile, complete but not yet verified
@@ -405,7 +413,7 @@ export const mockBuilders: Builder[] = [
       ],
     },
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 9,
     userType: "PROFESSIONAL",
@@ -420,8 +428,16 @@ export const mockBuilders: Builder[] = [
     village: "Zimmerman",
     adminApproved: false,
     status: "INCOMPLETE",
-    // No profession/level - profile not completed
-    userProfile: null,
+    profession: "Civil Engineer",
+    level: "Junior",
+    userProfile: {
+      profession: "Civil Engineer",
+      professionalLevel: "Junior",
+      // No yearsOfExperience - missing experience
+      professionalProjects: [
+        { projectName: "Bridge Design Draft", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
+      ],
+    },
     createdAt: "2026-07-15",
   },
   // COMPLETED - Full profile
@@ -606,7 +622,7 @@ export const mockBuilders: Builder[] = [
       ],
     },
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 15,
     userType: "CONTRACTOR",
@@ -620,7 +636,13 @@ export const mockBuilders: Builder[] = [
     village: "Nyali Bridge",
     adminApproved: false,
     status: "INCOMPLETE",
-    userProfile: null,
+    contractorTypes: "Infrastructure",
+    userProfile: {
+      contractorType: "Infrastructure",
+      licenseLevel: "NCA4",
+      contractorExperiences: "1-3 years",
+      // No contractorProjects - missing uploads
+    },
     createdAt: "2026-05-15",
   },
   // COMPLETED - Full profile
@@ -789,7 +811,7 @@ export const mockBuilders: Builder[] = [
       ],
     },
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 21,
     userType: "HARDWARE",
@@ -803,7 +825,15 @@ export const mockBuilders: Builder[] = [
     village: "Links Road",
     adminApproved: false,
     status: "INCOMPLETE",
-    userProfile: null,
+    hardwareTypes: "Tools & Paints",
+    userProfile: {
+      hardwareType: "Tools & Paints",
+      businessType: "Retail Store",
+      // No experience - missing experience
+      hardwareProjects: [
+        { projectName: "Paint Products Display", fileUrl: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400" },
+      ],
+    },
     createdAt: "2026-03-20",
   },
   // COMPLETED - Full profile
