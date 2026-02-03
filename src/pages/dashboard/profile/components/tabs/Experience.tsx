@@ -15,305 +15,8 @@ import { UploadCloud, FileText } from "lucide-react";
 import { SquarePen } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
-// --- Helper: deep merge objects ---
-const deepMerge = (target: any, source: any): any => {
-  const result = { ...target };
-  for (const key in source) {
-    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
-      result[key] = deepMerge(result[key] || {}, source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-};
 
-// --- Helper: update a user in all localStorage arrays ---
-
-const resolveSpecialization = (user: any) => {
-  if (!user) return "";
-
-  // 1. New unified field
-  if (user.specialization) return user.specialization;
-
-  // 2. Backward compatibility
-  if (user.fundispecialization) return user.fundispecialization;
-  if (user.professionalSpecialization) return user.professionalSpecialization;
-  if (user.contractorSpecialization) return user.contractorSpecialization;
-
-  // 3. Nested fallback (if any older data)
-  if (user?.specialization?.fundiLevel) return user.specialization.fundiLevel;
-  if (user?.specialization?.contractorLevel)
-    return user.specialization.contractorLevel;
-  if (user?.specialization?.professionalLevel)
-    return user.specialization.professionalLevel;
-
-  return "";
-};
-
-const updateUserInLocalStorage = (
-  userId: string,
-  updates: Record<string, any>,
-) => {
-  try {
-    // Update "users" array
-    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
-    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
-    if (userIdx !== -1) {
-      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
-      localStorage.setItem("users", JSON.stringify(storedUsers));
-    }
-
-    // Update "builders" array
-    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
-    const builderIdx = storedBuilders.findIndex((u: any) => u.id === userId);
-    if (builderIdx !== -1) {
-      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
-      localStorage.setItem("builders", JSON.stringify(storedBuilders));
-    }
-
-    // Update "customers" array
-    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
-    const customerIdx = storedCustomers.findIndex((u: any) => u.id === userId);
-    if (customerIdx !== -1) {
-      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
-      localStorage.setItem("customers", JSON.stringify(storedCustomers));
-    }
-
-    // Update "user" single object
-    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
-    if (singleUser && singleUser.id === userId) {
-      const updatedUser = deepMerge(singleUser, updates);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-    }
-
-    // Update "profile" single object
-    const profileUser = JSON.parse(localStorage.getItem("profile") || "null");
-    if (profileUser && profileUser.id === userId) {
-      const updatedProfile = deepMerge(profileUser, updates);
-      localStorage.setItem("profile", JSON.stringify(updatedProfile));
-    }
-  } catch (err) {
-    console.error("Failed to update user in localStorage:", err);
-    throw err;
-  }
-};
-
-const Experience = ({ userData }) => {
-  console.log("User Data: ", userData);
-  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
-  const [isEditingFields, setIsEditingFields] = useState(false);
-  const [editingFields, setEditingFields] = useState({});
-
-  // Loading States
-  const [isSavingInfo, setIsSavingInfo] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [fileActionLoading, setFileActionLoading] = useState({});
-
-  // Get user type from userData
-  const userType = userData?.userType || "FUNDI";
-  const status = userData?.status;
-
-  // Statuses that should prefill/show existing data
-  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
-
-  // Initialize attachments based on user type
-  const getInitialAttachments = () => {
-    // For SIGNED_UP or INCOMPLETE, return empty attachments
-    if (!PREFILL_STATUSES.includes(status)) {
-      return [];
-    }
-
-    let projectData = [];
-
-    switch (userType) {
-      case "FUNDI":
-        projectData = userData?.userProfile?.previousJobPhotoUrls || [];
-        break;
-      case "PROFESSIONAL":
-        projectData = userData?.userProfile?.professionalProjects || [];
-        break;
-      case "CONTRACTOR":
-        projectData = userData?.userProfile?.contractorProjects || [];
-        break;
-      case "HARDWARE":
-        projectData = userData?.userProfile?.hardwareProjects || [];
-        break;
-      default:
-        projectData = userData?.userProfile?.previousJobPhotoUrls || [];
-    }
-
-    if (!projectData || projectData.length === 0) {
-      return [];
-    }
-
-    return projectData.map((project, index) => ({
-      id: index + 1,
-      projectName: project.projectName || `${userType} Project ${index + 1}`,
-      files: [
-        {
-          name: `${project.projectName || `${userType} Project ${index + 1}`}.jpg`,
-          url: project.fileUrl || project?.projectFile,
-        },
-      ],
-    }));
-  };
-
-  const profileUploaded = (userData) => {
-    switch (userData?.userType) {
-      case "FUNDI":
-        return (
-          userData?.userProfile?.previousJobPhotoUrls &&
-          userData?.userProfile?.previousJobPhotoUrls.length > 0
-        );
-      case "PROFESSIONAL":
-        return userData?.userProfile?.specialization.professionalLevel;
-      case "CONTRACTOR":
-        return (
-          userData?.userProfile?.contractorProjects &&
-          userData?.userProfile?.contractorProjects.length > 0
-        );
-      case "HARDWARE":
-        return (
-          userData?.userProfile?.hardwareProjects &&
-          userData?.userProfile?.hardwareProjects.length > 0
-        );
-      default:
-        return false;
-    }
-  };
-
-  // Get project field name based on user type
-  const getProjectFieldName = () => {
-    switch (userType) {
-      case "FUNDI":
-        return "Previous Job Photos";
-      case "PROFESSIONAL":
-        return "Professional Projects";
-      case "CONTRACTOR":
-        return "Contractor Projects";
-      case "HARDWARE":
-        return "Hardware Projects";
-      default:
-        return "Projects";
-    }
-  };
-  type ContractorCategory = {
-  category: string;
-  specialization: string;
-  class: string;
-  years: string;
-  projectFile?: File;
-  referenceFile?: File;
-};
-
-const CATEGORY_OPTIONS = [
-  "Building Works",
-  "Water Works",
-  "Electrical Works",
-  "Mechanical Works",
-];
-
-  const [attachments, setAttachments] = useState(getInitialAttachments());
-  const [uploadingProjects, setUploadingProjects] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
-const [categories, setCategories] = useState<ContractorCategory[]>([
-  {
-    category: "",
-    specialization: "",
-    class: "",
-    years: "",
-  },
-]);
-const addCategory = () => {
-  setCategories([
-    ...categories,
-    {
-      category: "",
-      specialization: "",
-      class: "",
-      years: "",
-    },
-  ]);
-};
-
-const removeCategory = (index: number) => {
-  setCategories(categories.filter((_, i) => i !== index));
-};
-
-  // Initialize info from userData.userProfile based on user type
-  const getInitialInfo = () => {
-    // For SIGNED_UP or INCOMPLETE, return default empty values
-    if (!PREFILL_STATUSES.includes(status)) {
-      return getDefaultInfo();
-    }
-
-    if (!userData?.userProfile) {
-      return getDefaultInfo();
-    }
-
-    switch (userType) {
-      case "FUNDI":
-        return {
-          skill:
-            userData.userProfile.skill || userData.skills || "",
-          grade: userData.userProfile.grade || "",
-          experience: userData.userProfile.experience || "",
-        };
-
-      case "PROFESSIONAL":
-        return {
-          profession:
-            userData.userProfile.profession ||
-            userData.profession ||
-            "",
-          professionalLevel:
-            userData.userProfile.professionalLevel || "",
-          yearsOfExperience:
-            userData.userProfile.yearsOfExperience || "",
-        };
-
-      case "CONTRACTOR":
-        return {
-          contractorType:
-            userData.userProfile.contractorType ||
-            userData.contractorTypes ||
-            "",
-          licenseLevel: userData.userProfile.licenseLevel || "",
-          experience:
-            userData.userProfile.contractorExperiences ||
-            userData?.contractorExperiences ||
-            "",
-        };
-
-      case "HARDWARE":
-        return {
-          hardwareType:
-            userData.userProfile.hardwareType ||
-            userData.hardwareTypes ||
-            "",
-          businessType: userData.userProfile.businessType || "",
-          experience: userData.userProfile.experience || "",
-        };
-
-      default:
-        return getDefaultInfo();
-    }
-  };
-
-  const getDefaultInfo = () => {
-    return {
-      skill: "",
-      grade: "",
-      experience: "",
-    };
-  };
-
-  const [info, setInfo] = useState(getInitialInfo());
-
-  // Specialization options by user type
+ // Specialization options by user type
   const FUNDI_SPECIALIZATIONS = {
     Mason: [
       "Block Work & Brick Laying",
@@ -599,6 +302,326 @@ const removeCategory = (index: number) => {
     ],
   };
 
+
+// --- Helper: deep merge objects ---
+const deepMerge = (target: any, source: any): any => {
+  const result = { ...target };
+  for (const key in source) {
+    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+};
+
+// --- Helper: update a user in all localStorage arrays ---
+
+const resolveSpecialization = (user: any) => {
+  if (!user) return "";
+
+  // 1. New unified field
+  if (user.specialization) return user.specialization;
+
+  // 2. Backward compatibility
+  if (user.fundispecialization) return user.fundispecialization;
+  if (user.professionalSpecialization) return user.professionalSpecialization;
+  if (user.contractorSpecialization) return user.contractorSpecialization;
+
+  // 3. Nested fallback (if any older data)
+  if (user?.specialization?.fundiLevel) return user.specialization.fundiLevel;
+  if (user?.specialization?.contractorLevel)
+    return user.specialization.contractorLevel;
+  if (user?.specialization?.professionalLevel)
+    return user.specialization.professionalLevel;
+
+  return "";
+};
+
+const updateUserInLocalStorage = (
+  userId: string,
+  updates: Record<string, any>,
+) => {
+  try {
+    // Update "users" array
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
+    const userIdx = storedUsers.findIndex((u: any) => u.id === userId);
+    if (userIdx !== -1) {
+      storedUsers[userIdx] = deepMerge(storedUsers[userIdx], updates);
+      localStorage.setItem("users", JSON.stringify(storedUsers));
+    }
+
+    // Update "builders" array
+    const storedBuilders = JSON.parse(localStorage.getItem("builders") || "[]");
+    const builderIdx = storedBuilders.findIndex((u: any) => u.id === userId);
+    if (builderIdx !== -1) {
+      storedBuilders[builderIdx] = deepMerge(storedBuilders[builderIdx], updates);
+      localStorage.setItem("builders", JSON.stringify(storedBuilders));
+    }
+
+    // Update "customers" array
+    const storedCustomers = JSON.parse(localStorage.getItem("customers") || "[]");
+    const customerIdx = storedCustomers.findIndex((u: any) => u.id === userId);
+    if (customerIdx !== -1) {
+      storedCustomers[customerIdx] = deepMerge(storedCustomers[customerIdx], updates);
+      localStorage.setItem("customers", JSON.stringify(storedCustomers));
+    }
+
+    // Update "user" single object
+    const singleUser = JSON.parse(localStorage.getItem("user") || "null");
+    if (singleUser && singleUser.id === userId) {
+      const updatedUser = deepMerge(singleUser, updates);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+
+    // Update "profile" single object
+    const profileUser = JSON.parse(localStorage.getItem("profile") || "null");
+    if (profileUser && profileUser.id === userId) {
+      const updatedProfile = deepMerge(profileUser, updates);
+      localStorage.setItem("profile", JSON.stringify(updatedProfile));
+    }
+  } catch (err) {
+    console.error("Failed to update user in localStorage:", err);
+    throw err;
+  }
+};
+
+const Experience = ({ userData }) => {
+  console.log("User Data: ", userData);
+  // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
+  const [isEditingFields, setIsEditingFields] = useState(false);
+  const [editingFields, setEditingFields] = useState({});
+
+  // Loading States
+  const [isSavingInfo, setIsSavingInfo] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [fileActionLoading, setFileActionLoading] = useState({});
+
+  // Get user type from userData
+  const userType = userData?.userType || "FUNDI";
+  const status = userData?.status;
+
+  // Statuses that should prefill/show existing data
+  const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
+
+  // Initialize attachments based on user type
+  const getInitialAttachments = () => {
+    // For SIGNED_UP or INCOMPLETE, return empty attachments
+    if (!PREFILL_STATUSES.includes(status)) {
+      return [];
+    }
+
+    let projectData = [];
+
+    switch (userType) {
+      case "FUNDI":
+        projectData = userData?.userProfile?.previousJobPhotoUrls || [];
+        break;
+      case "PROFESSIONAL":
+        projectData = userData?.userProfile?.professionalProjects || [];
+        break;
+      case "CONTRACTOR":
+        projectData = userData?.userProfile?.contractorProjects || [];
+        break;
+      case "HARDWARE":
+        projectData = userData?.userProfile?.hardwareProjects || [];
+        break;
+      default:
+        projectData = userData?.userProfile?.previousJobPhotoUrls || [];
+    }
+
+    if (!projectData || projectData.length === 0) {
+      return [];
+    }
+
+    return projectData.map((project, index) => ({
+      id: index + 1,
+      projectName: project.projectName || `${userType} Project ${index + 1}`,
+      files: [
+        {
+          name: `${project.projectName || `${userType} Project ${index + 1}`}.jpg`,
+          url: project.fileUrl || project?.projectFile,
+        },
+      ],
+    }));
+  };
+
+  const profileUploaded = (userData) => {
+    switch (userData?.userType) {
+      case "FUNDI":
+        return (
+          userData?.userProfile?.previousJobPhotoUrls &&
+          userData?.userProfile?.previousJobPhotoUrls.length > 0
+        );
+      case "PROFESSIONAL":
+        return userData?.userProfile?.specialization.professionalLevel;
+      case "CONTRACTOR":
+        return (
+          userData?.userProfile?.contractorProjects &&
+          userData?.userProfile?.contractorProjects.length > 0
+        );
+      case "HARDWARE":
+        return (
+          userData?.userProfile?.hardwareProjects &&
+          userData?.userProfile?.hardwareProjects.length > 0
+        );
+      default:
+        return false;
+    }
+  };
+
+  // Get project field name based on user type
+  const getProjectFieldName = () => {
+    switch (userType) {
+      case "FUNDI":
+        return "Previous Job Photos";
+      case "PROFESSIONAL":
+        return "Professional Projects";
+      case "CONTRACTOR":
+        return "Contractor Projects";
+      case "HARDWARE":
+        return "Hardware Projects";
+      default:
+        return "Projects";
+    }
+  };
+  type ContractorCategory = {
+  category: string;
+  specialization: string;
+  class: string;
+  years: string;
+  projectFile?: File;
+  referenceFile?: File;
+};
+
+const CATEGORY_OPTIONS = [
+  "Building Works",
+  "Water Works",
+  "Electrical Works",
+  "Mechanical Works",
+];
+
+  const [attachments, setAttachments] = useState(getInitialAttachments());
+  const [uploadingProjects, setUploadingProjects] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
+const [categories, setCategories] = useState<ContractorCategory[]>([
+  {
+    category: "",
+    specialization: "",
+    class: "",
+    years: "",
+  },
+]);
+const addCategory = () => {
+  setCategories([
+    ...categories,
+    {
+      category: "",
+      specialization: "",
+      class: "",
+      years: "",
+    },
+  ]);
+};
+
+const removeCategory = (index: number) => {
+  setCategories(categories.filter((_, i) => i !== index));
+};
+
+  // Initialize info from userData.userProfile based on user type
+  const getInitialInfo = () => {
+    // For SIGNED_UP or INCOMPLETE, return default empty values
+    if (!PREFILL_STATUSES.includes(status)) {
+      return getDefaultInfo();
+    }
+
+    if (!userData?.userProfile) {
+      return getDefaultInfo();
+    }
+
+    switch (userType) {
+      case "FUNDI":
+        const fundiSkill = userData.userProfile.skill || userData.skills || "";
+        const fundiSpecOptions = FUNDI_SPECIALIZATIONS[fundiSkill as keyof typeof FUNDI_SPECIALIZATIONS] || [];
+        const defaultFundiSpec = fundiSpecOptions.length > 0 ? fundiSpecOptions[0] : "";
+        return {
+          skill: fundiSkill,
+          specialization: 
+            userData.userProfile.specialization ||
+            userData.userProfile.fundispecialization ||
+            userData.specialization ||
+            defaultFundiSpec,
+          grade: userData.userProfile.grade || "",
+          experience: userData.userProfile.experience || "",
+        };
+
+      case "PROFESSIONAL":
+        const profession = userData.userProfile.profession || userData.profession || "";
+        const profSpecOptions = PROFESSIONAL_SPECIALIZATIONS[profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS] || [];
+        const defaultProfSpec = profSpecOptions.length > 0 ? profSpecOptions[0] : "";
+        return {
+          profession: profession,
+          specialization:
+            userData.userProfile.specialization ||
+            userData.userProfile.professionalSpecialization ||
+            userData.specialization ||
+            defaultProfSpec,
+          professionalLevel:
+            userData.userProfile.professionalLevel || "",
+          yearsOfExperience:
+            userData.userProfile.yearsOfExperience || "",
+        };
+
+      case "CONTRACTOR":
+        const category = userData.userProfile.contractorType || userData.contractorTypes || "";
+        const contSpecOptions = CONTRACTOR_SPECIALIZATIONS[category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || [];
+        const defaultContSpec = contSpecOptions.length > 0 ? contSpecOptions[0] : "";
+        return {
+          category: category,
+          specialization:
+            userData.userProfile.specialization ||
+            userData.userProfile.contractorSpecialization ||
+            userData.specialization ||
+            defaultContSpec,
+          class: userData.userProfile.licenseLevel || "",
+          yearsOfExperience:
+            userData.userProfile.contractorExperiences ||
+            userData?.contractorExperiences ||
+            "",
+        };
+
+      case "HARDWARE":
+        const hardwareType = userData.userProfile.hardwareType || userData.hardwareTypes || "";
+        return {
+          hardwareType: hardwareType,
+          specialization:
+            userData.userProfile.specialization ||
+            userData.specialization ||
+            "Cement & Concrete Products",
+          businessType: userData.userProfile.businessType || "",
+          experience: userData.userProfile.experience || "",
+        };
+
+      default:
+        return getDefaultInfo();
+    }
+  };
+
+  const getDefaultInfo = () => {
+    return {
+      skill: "",
+      specialization: "",
+      grade: "",
+      experience: "",
+    };
+  };
+
+  const [info, setInfo] = useState(getInitialInfo());
+
+ 
   // Dynamic field configurations based on user type
   const getFieldsConfig = () => {
     switch (userType) {
