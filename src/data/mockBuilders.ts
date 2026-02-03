@@ -127,10 +127,10 @@ export const PROFESSIONAL_SPECIALIZATIONS: Record<string, string[]> = {
 };
 
 export const CONTRACTOR_SPECIALIZATIONS: Record<string, string[]> = {
-  "Residential": ["Single Family Homes", "Apartments", "Townhouses", "Estate Development", "Renovations"],
-  "Commercial": ["Office Buildings", "Shopping Malls", "Hotels", "Restaurants", "Mixed-Use Developments"],
-  "Industrial": ["Factories", "Warehouses", "Processing Plants", "Storage Facilities", "Workshops"],
-  "Infrastructure": ["Roads", "Bridges", "Water Systems", "Sewerage", "Drainage"],
+  "Building Works": ["Single Family Homes", "Apartments", "Townhouses", "Estate Development", "Renovations"],
+  "Water Works": ["Office Buildings", "Shopping Malls", "Hotels", "Restaurants", "Mixed-Use Developments"],
+  "Energy": ["Factories", "Warehouses", "Processing Plants", "Storage Facilities", "Workshops"],
+  "Road Works": ["Roads", "Bridges", "Water Systems", "Sewerage", "Drainage"],
   "Institutional": ["Schools", "Hospitals", "Government Buildings", "Religious Buildings", "Sports Facilities"],
 };
 
@@ -527,7 +527,7 @@ export const mockBuilders: Builder[] = [
     village: "Pipeline",
     adminApproved: false,
     status: "PENDING",
-    contractorTypes: "Residential",
+    contractorTypes: "Water works",
     specialization: "Apartments",
     userProfile: {
       contractorType: "Residential",
@@ -562,7 +562,7 @@ export const mockBuilders: Builder[] = [
     village: "Karagita",
     adminApproved: true,
     status: "VERIFIED",
-    contractorTypes: "Commercial",
+    contractorTypes: "Building Works",
     specialization: "Office Buildings",
     userProfile: {
       contractorType: "Commercial",
@@ -606,7 +606,7 @@ export const mockBuilders: Builder[] = [
     village: "Nyali Bridge",
     adminApproved: false,
     status: "INCOMPLETE",
-    contractorTypes: "Infrastructure",
+    contractorTypes: "Road Works",
     userProfile: {
       contractorType: "Infrastructure",
       licenseLevel: "NCA4",
@@ -626,7 +626,7 @@ export const mockBuilders: Builder[] = [
     subCounty: "Kisumu West",
     adminApproved: false,
     status: "COMPLETED",
-    contractorTypes: "Residential",
+    contractorTypes: "Electrical works",
     specialization: "Townhouses",
     userProfile: {
       contractorType: "Residential",
@@ -660,7 +660,7 @@ export const mockBuilders: Builder[] = [
     village: "Makongeni",
     adminApproved: false,
     status: "RETURNED",
-    contractorTypes: "Industrial",
+    contractorTypes: "Mechanical Works",
     specialization: "Warehouses, Factories",
     userProfile: {
       contractorType: "Industrial",
@@ -708,9 +708,9 @@ export const mockBuilders: Builder[] = [
     village: "City Centre",
     adminApproved: false,
     status: "PENDING",
-    hardwareTypes: "Building Materials",
+    hardwareTypes: "General",
     userProfile: {
-      hardwareType: "Building Materials",
+      hardwareType: "General",
       businessType: "Wholesale Supplier",
       hardwareProjects: [
         { projectName: "Cement & Aggregates Catalogue", fileUrl: "/mock/hardware1-project1.jpg" },
@@ -733,9 +733,9 @@ export const mockBuilders: Builder[] = [
     village: "Elgon View",
     adminApproved: true,
     status: "VERIFIED",
-    hardwareTypes: "Plumbing & Electrical",
+    hardwareTypes: "Plumbing ",
     userProfile: {
-      hardwareType: "Plumbing & Electrical",
+      hardwareType: "Plumbing",
       businessType: "Retail Store",
       hardwareProjects: [
         { projectName: "Electrical Supplies Showroom", fileUrl: "/mock/hardware2-project1.jpg" },
@@ -760,9 +760,9 @@ export const mockBuilders: Builder[] = [
     village: "Links Road",
     adminApproved: false,
     status: "INCOMPLETE",
-    hardwareTypes: "Tools & Paints",
+    hardwareTypes: "Steel suplier",
     userProfile: {
-      hardwareType: "Tools & Paints",
+      hardwareType: "Steel suplier",
       businessType: "Retail Store",
       // No experience - missing experience
       hardwareProjects: [
@@ -807,9 +807,9 @@ export const mockBuilders: Builder[] = [
     village: "Kimbo",
     adminApproved: false,
     status: "RETURNED",
-    hardwareTypes: "Wood & Iron",
+    hardwareTypes: "Timber",
     userProfile: {
-      hardwareType: "Building Materials",
+      hardwareType: "Timber",
       businessType: "Retail Store",
       hardwareProjects: [
         { projectName: "Timber Products Range", fileUrl: "/mock/hardware5-project1.jpg" },
