@@ -1,28 +1,55 @@
 export type BuilderStatus = "VERIFIED" | "COMPLETED" | "SIGNED_UP" | "PENDING" | "INCOMPLETE" | "RETURNED";
 
+export interface FundiEvaluation {
+  hasMajorWorks: string;
+  majorWorksScore: number;
+  materialsUsed: string;
+  materialsUsedScore: number;
+  essentialEquipment: string;
+  essentialEquipmentScore: number;
+  quotationFormulation: string;
+  quotationFormulaScore: number;
+  totalScore: number;
+  isVerified: boolean;
+}
+
+export interface ContractorExperience {
+  category: string;
+  categoryClass: string;
+  yearsOfExperience: string;
+  certificate?: string;
+  license?: string;
+}
+
 export interface UserProfile {
   // FUNDI fields
   skill?: string;
+  specialization?: string;
   grade?: string;
   experience?: string;
   previousJobPhotoUrls?: Array<{ projectName: string; fileUrl: string }>;
+  fundiEvaluation?: FundiEvaluation;
   
   // PROFESSIONAL fields
   profession?: string;
+  professionalSpecialization?: string;
   professionalLevel?: string;
   yearsOfExperience?: string;
   professionalProjects?: Array<{ projectName: string; fileUrl: string }>;
   
   // CONTRACTOR fields
   contractorType?: string;
+  contractorSpecialization?: string;
   licenseLevel?: string;
-  contractorExperiences?: string;
+  contractorExperiences?: string | ContractorExperience[];
   contractorProjects?: Array<{ projectName: string; fileUrl: string }>;
   
   // HARDWARE fields
   hardwareType?: string;
   businessType?: string;
   hardwareProjects?: Array<{ projectName: string; fileUrl: string }>;
+  
+  complete?: boolean;
 }
 
 export interface Builder {
@@ -33,12 +60,10 @@ export interface Builder {
   organizationName?: string;
   email: string;
   phoneNumber: string;
-  // Address fields - empty for SIGNED_UP
   county?: string;
   subCounty?: string;
   ward?: string;
   village?: string;
-  // Account type
   accountType?: "individual" | "business";
   adminApproved: boolean;
   status: BuilderStatus;
@@ -51,10 +76,8 @@ export interface Builder {
   level?: string;
   contractorTypes?: string;
   hardwareTypes?: string;
-  // Nested profile - null for SIGNED_UP, empty for INCOMPLETE, full for others
-  userProfile?: UserProfile | null;
   createdAt: string;
-  userProfile?: UserProfile;
+  userProfile?: UserProfile | null;
 }
 
 export const STATUS_LABELS: Record<BuilderStatus, string> = {
@@ -82,9 +105,37 @@ export const resolveStatus = (builder: Builder): BuilderStatus => {
   return "INCOMPLETE";
 };
 
+// Specialization options by user type
+export const FUNDI_SPECIALIZATIONS: Record<string, string[]> = {
+  "Plumber": ["Gas Plumbing", "Water Systems", "Drainage", "Pipe Fitting", "Water Heating"],
+  "Electrician": ["Solar Systems", "House Wiring", "Industrial Wiring", "Appliance Repair", "Smart Home"],
+  "Painter": ["Interior Painting", "Exterior Painting", "Decorative Finishes", "Spray Painting", "Wallpapering"],
+  "Roofer": ["Tiles Roofing", "Iron Sheets", "Flat Roofing", "Waterproofing", "Gutters"],
+  "Mason": ["Block Work", "Stone Work", "Plastering", "Tiling", "Foundations"],
+  "Carpenter": ["Furniture", "Roofing", "Doors & Windows", "Cabinets", "Flooring"],
+  "Welder": ["Steel Fabrication", "Gates & Grills", "Structural Welding", "Aluminum Work", "Stainless Steel"],
+};
+
+export const PROFESSIONAL_SPECIALIZATIONS: Record<string, string[]> = {
+  "Architect": ["Residential Design", "Commercial Design", "Industrial Design", "Landscape Architecture", "Interior Design", "Urban Planning"],
+  "Quantity Surveyor": ["Cost Estimation", "Contract Management", "Project Valuation", "Tender Documentation", "Claims Management"],
+  "Electrical Engineer": ["Power Systems", "Building Services", "Renewable Energy", "Control Systems", "Telecommunications"],
+  "Civil Engineer": ["Structural Design", "Road Construction", "Water Engineering", "Geotechnical", "Environmental"],
+  "Surveyor": ["Land Surveying", "Cadastral Surveys", "Topographical Mapping", "Engineering Surveys", "GIS Mapping"],
+  "Mechanical Engineer": ["HVAC Systems", "Plumbing Design", "Fire Protection", "Lift Systems", "Industrial Machinery"],
+  "Environmental Consultant": ["EIA Reports", "Environmental Audits", "Waste Management", "Pollution Control", "Sustainability"],
+};
+
+export const CONTRACTOR_SPECIALIZATIONS: Record<string, string[]> = {
+  "Building Works": ["Single Family Homes", "Apartments", "Townhouses", "Estate Development", "Renovations"],
+  "Water Works": ["Office Buildings", "Shopping Malls", "Hotels", "Restaurants", "Mixed-Use Developments"],
+  "Energy": ["Factories", "Warehouses", "Processing Plants", "Storage Facilities", "Workshops"],
+  "Road Works": ["Roads", "Bridges", "Water Systems", "Sewerage", "Drainage"],
+  "Institutional": ["Schools", "Hospitals", "Government Buildings", "Religious Buildings", "Sports Facilities"],
+};
+
 export const mockBuilders: Builder[] = [
   // ================= FUNDI =================
-  // PENDING - Full profile, awaiting admin review
   {
     id: 1,
     userType: "FUNDI",
@@ -105,6 +156,7 @@ export const mockBuilders: Builder[] = [
     experience: "5+ years",
     userProfile: {
       skill: "Plumber",
+      specialization: "Gas Plumbing",
       grade: "G1: Master Fundi",
       experience: "5+ years",
       previousJobPhotoUrls: [
@@ -126,18 +178,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-11-01",
-    userProfile: {
-      skill: "Plumber",
-      grade: "G1: Master Fundi",
-      experience: "5+ years",
-      previousJobPhotoUrls: [
-        { projectName: "Kitchen Plumbing Installation", fileUrl: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400" },
-        { projectName: "Bathroom Renovation", fileUrl: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=400" },
-        { projectName: "Gas Line Installation", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
-      ],
-    },
   },
-  // VERIFIED - Full profile, admin approved
   {
     id: 2,
     userType: "FUNDI",
@@ -158,6 +199,7 @@ export const mockBuilders: Builder[] = [
     experience: "3-5 years",
     userProfile: {
       skill: "Electrician",
+      specialization: "Solar Systems",
       grade: "G2: Skilled",
       experience: "3-5 years",
       previousJobPhotoUrls: [
@@ -179,17 +221,9 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-10-05",
-    userProfile: {
-      skill: "Electrician",
-      grade: "G2: Skilled",
-      experience: "3-5 years",
-      previousJobPhotoUrls: [
-        { projectName: "Solar Panel Installation", fileUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400" },
-        { projectName: "Home Electrical Wiring", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
-      ],
-    },
+    
   },
-  // INCOMPLETE - Has account info & address, but NO uploads/experience
+  // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 3,
     userType: "FUNDI",
@@ -204,11 +238,18 @@ export const mockBuilders: Builder[] = [
     village: "Lavington",
     adminApproved: false,
     status: "INCOMPLETE",
-    // No skills, grade, experience - profile not completed
-    userProfile: null,
+    skills: "Mason",
+    specialization: "Block Work",
+    grade: "G2: Skilled",
+    experience: "3-5 years",
+    userProfile: {
+      skill: "Mason",
+      grade: "G2: Skilled",
+      experience: "3-5 years",
+      // No previousJobPhotoUrls - missing uploads
+    },
     createdAt: "2026-09-12",
   },
-  // COMPLETED - Full profile, complete but not yet verified
   {
     id: 4,
     userType: "FUNDI",
@@ -227,6 +268,7 @@ export const mockBuilders: Builder[] = [
     experience: "1-3 years",
     userProfile: {
       skill: "Painter",
+      specialization: "Interior Painting",
       grade: "G3: Semi-skilled",
       experience: "1-3 years",
       previousJobPhotoUrls: [
@@ -247,16 +289,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-08-20",
-    userProfile: {
-      skill: "Painter",
-      grade: "G3: Intermediate",
-      experience: "1-3 years",
-      previousJobPhotoUrls: [
-        { projectName: "Living Room Painting", fileUrl: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400" },
-      ],
-    },
   },
-  // RETURNED - Full profile, returned for corrections
   {
     id: 5,
     userType: "FUNDI",
@@ -277,6 +310,7 @@ export const mockBuilders: Builder[] = [
     experience: "5+ years",
     userProfile: {
       skill: "Roofer",
+      specialization: "Tiles Roofing",
       grade: "G1: Master Fundi",
       experience: "5+ years",
       previousJobPhotoUrls: [
@@ -299,18 +333,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-07-15",
-    userProfile: {
-      skill: "Roofer",
-      grade: "G1: Master Fundi",
-      experience: "5+ years",
-      previousJobPhotoUrls: [
-        { projectName: "Tile Roof Installation", fileUrl: "https://images.unsplash.com/photo-1632778149955-e80f8ceca2e8?w=400" },
-        { projectName: "Commercial Roofing Project", fileUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400" },
-        { projectName: "Residential Roof Repair", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
-      ],
-    },
   },
-  // SIGNED_UP - Just registered, no info filled
   {
     id: 6,
     userType: "FUNDI",
@@ -322,13 +345,11 @@ export const mockBuilders: Builder[] = [
     subCounty: "Thika",
     adminApproved: false,
     status: "SIGNED_UP",
-    // No userProfile at all
     userProfile: null,
     createdAt: "2026-06-10",
   },
 
   // ================= PROFESSIONAL =================
-  // PENDING - Full profile, awaiting admin review
   {
     id: 7,
     userType: "PROFESSIONAL",
@@ -344,30 +365,22 @@ export const mockBuilders: Builder[] = [
     adminApproved: false,
     status: "PENDING",
     profession: "Architect",
+    specialization: "Residential Design",
     level: "Senior",
     userProfile: {
       profession: "Architect",
+      specialization: "Residential Design",
       professionalLevel: "Senior",
       yearsOfExperience: "5+ years",
       professionalProjects: [
-        { projectName: "Residential Complex Design", fileUrl: "/mock/prof1-project1.jpg" },
-        { projectName: "Office Building Design", fileUrl: "/mock/prof1-project2.jpg" },
+        { projectName: "Modern Villa Design", fileUrl: "/mock/prof1-project1.jpg" },
+        { projectName: "Commercial Complex Blueprint", fileUrl: "/mock/prof1-project2.jpg" },
+        { projectName: "Residential Estate Planning", fileUrl: "/mock/prof1-project3.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-09-18",
-    userProfile: {
-      profession: "Architect",
-      professionalLevel: "Senior",
-      yearsOfExperience: "5+ years",
-      professionalProjects: [
-        { projectName: "Modern Villa Design", fileUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" },
-        { projectName: "Commercial Complex Blueprint", fileUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400" },
-        { projectName: "Residential Estate Planning", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
-      ],
-    },
   },
-  // VERIFIED - Full profile, admin approved
   {
     id: 8,
     userType: "PROFESSIONAL",
@@ -383,9 +396,11 @@ export const mockBuilders: Builder[] = [
     adminApproved: true,
     status: "VERIFIED",
     profession: "Quantity Surveyor",
+    specialization: "Cost Estimation",
     level: "Professional",
     userProfile: {
       profession: "Quantity Surveyor",
+      specialization: "Cost Estimation",
       professionalLevel: "Professional",
       yearsOfExperience: "3-5 years",
       professionalProjects: [
@@ -395,17 +410,9 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-08-21",
-    userProfile: {
-      profession: "Quantity Surveyor",
-      professionalLevel: "Professional",
-      yearsOfExperience: "3-5 years",
-      professionalProjects: [
-        { projectName: "Cost Estimation Report", fileUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400" },
-        { projectName: "Budget Analysis Document", fileUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400" },
-      ],
-    },
+   
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 9,
     userType: "PROFESSIONAL",
@@ -420,11 +427,18 @@ export const mockBuilders: Builder[] = [
     village: "Zimmerman",
     adminApproved: false,
     status: "INCOMPLETE",
-    // No profession/level - profile not completed
-    userProfile: null,
+    profession: "Civil Engineer",
+    level: "Junior",
+    userProfile: {
+      profession: "Civil Engineer",
+      professionalLevel: "Junior",
+      // No yearsOfExperience - missing experience
+      professionalProjects: [
+        { projectName: "Bridge Design Draft", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
+      ],
+    },
     createdAt: "2026-07-15",
   },
-  // COMPLETED - Full profile
   {
     id: 10,
     userType: "PROFESSIONAL",
@@ -438,30 +452,22 @@ export const mockBuilders: Builder[] = [
     adminApproved: false,
     status: "COMPLETED",
     profession: "Electrical Engineer",
+    specialization: "Power Systems, Building Services",
     level: "Senior",
     userProfile: {
       profession: "Electrical Engineer",
+      professionalSpecialization: "Power Systems, Building Services",
       professionalLevel: "Senior",
       yearsOfExperience: "5+ years",
       professionalProjects: [
-        { projectName: "Power Grid Design", fileUrl: "/mock/prof4-project1.jpg" },
-        { projectName: "Industrial Wiring Plan", fileUrl: "/mock/prof4-project2.jpg" },
+        { projectName: "Power Distribution System", fileUrl: "/mock/prof4-project1.jpg" },
+        { projectName: "Industrial Electrical Layout", fileUrl: "/mock/prof4-project2.jpg" },
+        { projectName: "Smart Building Wiring", fileUrl: "/mock/prof4-project3.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-06-12",
-    userProfile: {
-      profession: "Electrical Engineer",
-      professionalLevel: "Senior",
-      yearsOfExperience: "5+ years",
-      professionalProjects: [
-        { projectName: "Power Distribution System", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
-        { projectName: "Industrial Electrical Layout", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
-        { projectName: "Smart Building Wiring", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
-      ],
-    },
   },
-  // RETURNED - Full profile, returned for corrections
   {
     id: 11,
     userType: "PROFESSIONAL",
@@ -477,28 +483,21 @@ export const mockBuilders: Builder[] = [
     adminApproved: false,
     status: "RETURNED",
     profession: "Surveyor",
+    specialization: "Land Surveying",
     level: "Professional",
     userProfile: {
       profession: "Surveyor",
+      specialization: "Land Surveying",
       professionalLevel: "Professional",
       yearsOfExperience: "3-5 years",
       professionalProjects: [
         { projectName: "Land Survey Report", fileUrl: "/mock/prof5-project1.jpg" },
+        { projectName: "Topographical Mapping", fileUrl: "/mock/prof5-project2.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-05-18",
-    userProfile: {
-      profession: "Surveyor",
-      professionalLevel: "Professional",
-      yearsOfExperience: "3-5 years",
-      professionalProjects: [
-        { projectName: "Land Survey Report", fileUrl: "https://images.unsplash.com/photo-1416339698674-4f118dd3388b?w=400" },
-        { projectName: "Topographical Mapping", fileUrl: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400" },
-      ],
-    },
   },
-  // SIGNED_UP - Just registered, no info filled
   {
     id: 12,
     userType: "PROFESSIONAL",
@@ -515,7 +514,6 @@ export const mockBuilders: Builder[] = [
   },
 
   // ================= CONTRACTOR =================
-  // PENDING - Full profile, awaiting admin review
   {
     id: 13,
     userType: "CONTRACTOR",
@@ -529,9 +527,11 @@ export const mockBuilders: Builder[] = [
     village: "Pipeline",
     adminApproved: false,
     status: "PENDING",
-    contractorTypes: "Residential",
+    contractorTypes: "Water works",
+    specialization: "Apartments",
     userProfile: {
       contractorType: "Residential",
+      specialization: "Apartments",
       licenseLevel: "NCA1",
       contractorExperiences: [
         {
@@ -548,16 +548,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-07-10",
-    userProfile: {
-      contractorType: "Residential",
-      licenseLevel: "NCA2",
-      contractorExperiences: "5+ years",
-      contractorProjects: [
-        { projectName: "Residential Complex Phase 1", fileUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
-      ],
-    },
   },
-  // VERIFIED - Full profile, admin approved
   {
     id: 14,
     userType: "CONTRACTOR",
@@ -571,10 +562,12 @@ export const mockBuilders: Builder[] = [
     village: "Karagita",
     adminApproved: true,
     status: "VERIFIED",
-    contractorTypes: "Commercial",
+    contractorTypes: "Building Works",
+    specialization: "Office Buildings",
     userProfile: {
       contractorType: "Commercial",
-      licenseLevel: "NCA2",
+      specialization: "Office Buildings",
+      licenseLevel: "NCA1",
       contractorExperiences: [
         {
           category: "Building Works",
@@ -597,16 +590,9 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-06-02",
-    userProfile: {
-      contractorType: "Commercial",
-      licenseLevel: "NCA1",
-      contractorExperiences: "10+ years",
-      contractorProjects: [
-        { projectName: "Shopping Mall Construction", fileUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400" },
-      ],
-    },
+   
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has experience but NO uploads
   {
     id: 15,
     userType: "CONTRACTOR",
@@ -620,10 +606,15 @@ export const mockBuilders: Builder[] = [
     village: "Nyali Bridge",
     adminApproved: false,
     status: "INCOMPLETE",
-    userProfile: null,
+    contractorTypes: "Road Works",
+    userProfile: {
+      contractorType: "Infrastructure",
+      licenseLevel: "NCA4",
+      contractorExperiences: "1-3 years",
+      // No contractorProjects - missing uploads
+    },
     createdAt: "2026-05-15",
   },
-  // COMPLETED - Full profile
   {
     id: 16,
     userType: "CONTRACTOR",
@@ -635,9 +626,11 @@ export const mockBuilders: Builder[] = [
     subCounty: "Kisumu West",
     adminApproved: false,
     status: "COMPLETED",
-    contractorTypes: "Residential",
+    contractorTypes: "Electrical works",
+    specialization: "Townhouses",
     userProfile: {
       contractorType: "Residential",
+      specialization: "Single Family Homes, Townhouses",
       licenseLevel: "NCA3",
       contractorExperiences: [
         {
@@ -653,16 +646,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-04-12",
-    userProfile: {
-      contractorType: "Residential",
-      licenseLevel: "NCA3",
-      contractorExperiences: "3-5 years",
-      contractorProjects: [
-        { projectName: "Lakeside Apartments", fileUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400" },
-      ],
-    },
   },
-  // RETURNED - Full profile, returned for corrections
   {
     id: 17,
     userType: "CONTRACTOR",
@@ -676,9 +660,11 @@ export const mockBuilders: Builder[] = [
     village: "Makongeni",
     adminApproved: false,
     status: "RETURNED",
-    contractorTypes: "Commercial",
+    contractorTypes: "Mechanical Works",
+    specialization: "Warehouses, Factories",
     userProfile: {
-      contractorType: "Commercial",
+      contractorType: "Industrial",
+      specialization: "Warehouses, Factories",
       licenseLevel: "NCA2",
       contractorExperiences: [
         {
@@ -693,16 +679,7 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-03-08",
-    userProfile: {
-      contractorType: "Commercial",
-      licenseLevel: "NCA2",
-      contractorExperiences: "5+ years",
-      contractorProjects: [
-        { projectName: "Office Complex Development", fileUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400" },
-      ],
-    },
   },
-  // SIGNED_UP - Just registered, no info filled
   {
     id: 18,
     userType: "CONTRACTOR",
@@ -718,7 +695,6 @@ export const mockBuilders: Builder[] = [
   },
 
   // ================= HARDWARE =================
-  // PENDING - Full profile, awaiting admin review
   {
     id: 19,
     userType: "HARDWARE",
@@ -732,28 +708,18 @@ export const mockBuilders: Builder[] = [
     village: "City Centre",
     adminApproved: false,
     status: "PENDING",
-    hardwareTypes: "Building Materials",
+    hardwareTypes: "General",
     userProfile: {
-      hardwareType: "Building Materials",
+      hardwareType: "General",
       businessType: "Wholesale Supplier",
-      experience: "10+ years",
       hardwareProjects: [
-        { projectName: "Cement & Steel Stock", fileUrl: "/mock/hardware1-project1.jpg" },
+        { projectName: "Cement & Aggregates Catalogue", fileUrl: "/mock/hardware1-project1.jpg" },
+        { projectName: "Steel & Iron Products", fileUrl: "/mock/hardware1-project2.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-05-12",
-    userProfile: {
-      hardwareType: "Building Materials",
-      businessType: "Wholesale Supplier",
-      experience: "10+ years",
-      hardwareProjects: [
-        { projectName: "Cement & Aggregates Catalogue", fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400" },
-        { projectName: "Steel & Iron Products", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
-      ],
-    },
   },
-  // VERIFIED - Full profile, admin approved
   {
     id: 20,
     userType: "HARDWARE",
@@ -767,11 +733,10 @@ export const mockBuilders: Builder[] = [
     village: "Elgon View",
     adminApproved: true,
     status: "VERIFIED",
-    hardwareTypes: "Plumbing & Electrical",
+    hardwareTypes: "Plumbing ",
     userProfile: {
-      hardwareType: "Plumbing & Electrical",
+      hardwareType: "Plumbing",
       businessType: "Retail Store",
-      experience: "5-10 years",
       hardwareProjects: [
         { projectName: "Electrical Supplies Showroom", fileUrl: "/mock/hardware2-project1.jpg" },
         { projectName: "Plumbing Materials Display", fileUrl: "/mock/hardware2-project2.jpg" },
@@ -779,17 +744,9 @@ export const mockBuilders: Builder[] = [
       complete: true,
     },
     createdAt: "2026-04-28",
-    userProfile: {
-      hardwareType: "Electrical Supplies",
-      businessType: "Retail Store",
-      experience: "5-10 years",
-      hardwareProjects: [
-        { projectName: "Plumbing Equipment Range", fileUrl: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=400" },
-        { projectName: "Electrical Fittings Collection", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
-      ],
-    },
+   
   },
-  // INCOMPLETE - Has account info & address, but NO experience data
+  // INCOMPLETE - Has account info & address, has uploads but NO experience
   {
     id: 21,
     userType: "HARDWARE",
@@ -803,10 +760,17 @@ export const mockBuilders: Builder[] = [
     village: "Links Road",
     adminApproved: false,
     status: "INCOMPLETE",
-    userProfile: null,
+    hardwareTypes: "Steel suplier",
+    userProfile: {
+      hardwareType: "Steel suplier",
+      businessType: "Retail Store",
+      // No experience - missing experience
+      hardwareProjects: [
+        { projectName: "Paint Products Display", fileUrl: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400" },
+      ],
+    },
     createdAt: "2026-03-20",
   },
-  // COMPLETED - Full profile
   {
     id: 22,
     userType: "HARDWARE",
@@ -820,26 +784,16 @@ export const mockBuilders: Builder[] = [
     status: "COMPLETED",
     hardwareTypes: "Electricals",
     userProfile: {
-      hardwareType: "Electricals",
-      businessType: "Retail Store",
-      experience: "3-5 years",
+      hardwareType: "Electrical Supplies",
+      businessType: "Wholesale Supplier",
       hardwareProjects: [
-        { projectName: "Electrical Shop Setup", fileUrl: "/mock/hardware4-project1.jpg" },
+        { projectName: "Industrial Electrical Supplies", fileUrl: "/mock/hardware4-project1.jpg" },
+        { projectName: "Residential Wiring Products", fileUrl: "/mock/hardware4-project2.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-02-15",
-    userProfile: {
-      hardwareType: "Electrical Supplies",
-      businessType: "Wholesale Supplier",
-      experience: "10+ years",
-      hardwareProjects: [
-        { projectName: "Industrial Electrical Supplies", fileUrl: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400" },
-        { projectName: "Residential Wiring Products", fileUrl: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400" },
-      ],
-    },
   },
-  // RETURNED - Full profile, returned for corrections
   {
     id: 23,
     userType: "HARDWARE",
@@ -853,29 +807,18 @@ export const mockBuilders: Builder[] = [
     village: "Kimbo",
     adminApproved: false,
     status: "RETURNED",
-    hardwareTypes: "Wood & Iron",
+    hardwareTypes: "Timber",
     userProfile: {
-      hardwareType: "Wood & Iron",
-      businessType: "Wholesale Supplier",
-      experience: "5-10 years",
+      hardwareType: "Timber",
+      businessType: "Retail Store",
       hardwareProjects: [
-        { projectName: "Timber Yard", fileUrl: "/mock/hardware5-project1.jpg" },
-        { projectName: "Steel Section Display", fileUrl: "/mock/hardware5-project2.jpg" },
+        { projectName: "Timber Products Range", fileUrl: "/mock/hardware5-project1.jpg" },
+        { projectName: "Metal & Iron Works", fileUrl: "/mock/hardware5-project2.jpg" },
       ],
       complete: true,
     },
     createdAt: "2026-01-10",
-    userProfile: {
-      hardwareType: "Building Materials",
-      businessType: "Retail Store",
-      experience: "3-5 years",
-      hardwareProjects: [
-        { projectName: "Timber Products Range", fileUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400" },
-        { projectName: "Metal & Iron Works", fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400" },
-      ],
-    },
   },
-  // SIGNED_UP - Just registered, no info filled
   {
     id: 24,
     userType: "HARDWARE",
