@@ -145,7 +145,7 @@ const Experience = ({ userData }) => {
           userData?.userProfile?.previousJobPhotoUrls.length > 0
         );
       case "PROFESSIONAL":
-        return userData?.userProfile?.professionalLevel;
+        return userData?.userProfile?.specialization.professionalLevel;
       case "CONTRACTOR":
         return (
           userData?.userProfile?.contractorProjects &&
