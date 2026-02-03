@@ -86,24 +86,44 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     // ============================================
     // EXPERIENCE COMPLETION
     // ============================================
-    // Only check experience for non-customer users (FUNDI, PROFESSIONAL, CONTRACTOR)
+    // Check experience based on user type
     let experienceComplete = false;
+    const userTypeUpper = userType.toUpperCase();
 
-    if (userType !== 'CUSTOMER' && userType !== 'HARDWARE') {
-      // Experience is complete if ALL of these exist:
-      // 1. Grade selected (e.g., "G1: Master Fundi")
-      // 2. Experience level selected (e.g., "10+ years")
-      // 3. At least one project with photos uploaded
-      
+    if (userTypeUpper === 'CUSTOMER') {
+      // CUSTOMER doesn't have experience section
+      experienceComplete = true;
+    } else if (userTypeUpper === 'FUNDI') {
+      // FUNDI: needs grade, experience, and previousJobPhotoUrls
       const hasGrade = userData?.userProfile?.grade;
       const hasExperience = userData?.userProfile?.experience;
-      const hasProjects = userData?.userProfile?.previousJobPhotoUrls && 
+      const hasProjects = userData?.userProfile?.previousJobPhotoUrls &&
                           userData.userProfile.previousJobPhotoUrls.length > 0;
-      
-      experienceComplete = hasGrade && hasExperience && hasProjects;
-    } else {
-      // For CUSTOMER and HARDWARE, mark experience as complete (not applicable)
-      experienceComplete = true;
+      experienceComplete = !!(hasGrade && hasExperience && hasProjects);
+    } else if (userTypeUpper === 'PROFESSIONAL') {
+      // PROFESSIONAL: needs profession, professionalLevel, yearsOfExperience, and professionalProjects
+      const hasProfession = userData?.userProfile?.profession;
+      const hasLevel = userData?.userProfile?.professionalLevel;
+      const hasExperience = userData?.userProfile?.yearsOfExperience;
+      const hasProjects = userData?.userProfile?.professionalProjects &&
+                          userData.userProfile.professionalProjects.length > 0;
+      experienceComplete = !!(hasProfession && hasLevel && hasExperience && hasProjects);
+    } else if (userTypeUpper === 'CONTRACTOR') {
+      // CONTRACTOR: needs contractorType, licenseLevel, contractorExperiences, and contractorProjects
+      const hasType = userData?.userProfile?.contractorType;
+      const hasLevel = userData?.userProfile?.licenseLevel;
+      const hasExperience = userData?.userProfile?.contractorExperiences;
+      const hasProjects = userData?.userProfile?.contractorProjects &&
+                          userData.userProfile.contractorProjects.length > 0;
+      experienceComplete = !!(hasType && hasLevel && hasExperience && hasProjects);
+    } else if (userTypeUpper === 'HARDWARE') {
+      // HARDWARE: needs hardwareType, businessType, experience, and hardwareProjects
+      const hasType = userData?.userProfile?.hardwareType;
+      const hasBusinessType = userData?.userProfile?.businessType;
+      const hasExperience = userData?.userProfile?.experience;
+      const hasProjects = userData?.userProfile?.hardwareProjects &&
+                          userData.userProfile.hardwareProjects.length > 0;
+      experienceComplete = !!(hasType && hasBusinessType && hasExperience && hasProjects);
     }
 
     // ============================================
