@@ -236,9 +236,9 @@ const removeCategory = (index: number) => {
       case "FUNDI":
         return {
           skill:
-            userData.userProfile.skill || userData.skills || "Not Provided",
-          grade: userData.userProfile.grade || "Not Provided",
-          experience: userData.userProfile.experience || "Not Provided",
+            userData.userProfile.skill || userData.skills || "",
+          grade: userData.userProfile.grade || "",
+          experience: userData.userProfile.experience || "",
         };
 
       case "PROFESSIONAL":
@@ -246,11 +246,11 @@ const removeCategory = (index: number) => {
           profession:
             userData.userProfile.profession ||
             userData.profession ||
-            "Not Provided",
+            "",
           professionalLevel:
-            userData.userProfile.professionalLevel || "Not Provided",
+            userData.userProfile.professionalLevel || "",
           yearsOfExperience:
-            userData.userProfile.yearsOfExperience || "Not Provided",
+            userData.userProfile.yearsOfExperience || "",
         };
 
       case "CONTRACTOR":
@@ -258,12 +258,12 @@ const removeCategory = (index: number) => {
           contractorType:
             userData.userProfile.contractorType ||
             userData.contractorTypes ||
-            "Not Provided",
-          licenseLevel: userData.userProfile.licenseLevel || "Not Provided",
+            "",
+          licenseLevel: userData.userProfile.licenseLevel || "",
           experience:
             userData.userProfile.contractorExperiences ||
             userData?.contractorExperiences ||
-            "Not Provided",
+            "",
         };
 
       case "HARDWARE":
@@ -271,9 +271,9 @@ const removeCategory = (index: number) => {
           hardwareType:
             userData.userProfile.hardwareType ||
             userData.hardwareTypes ||
-            "Not Provided",
-          businessType: userData.userProfile.businessType || "Not Provided",
-          experience: userData.userProfile.experience || "Not Provided",
+            "",
+          businessType: userData.userProfile.businessType || "",
+          experience: userData.userProfile.experience || "",
         };
 
       default:
@@ -283,9 +283,9 @@ const removeCategory = (index: number) => {
 
   const getDefaultInfo = () => {
     return {
-      skill: "Not Provided",
-      grade: "Not Provided",
-      experience: "Not Provided",
+      skill: "",
+      grade: "",
+      experience: "",
     };
   };
 
@@ -1035,7 +1035,7 @@ const removeCategory = (index: number) => {
                         </div>
                       ) : isEditingFields ? (
                         <select
-                          value={editingFields[field.name] || info[field.name]}
+                          value={editingFields[field.name] ?? info[field.name] ?? ""}
                           onChange={(e) => {
                             setEditingFields((prev) => ({
                               ...prev,
@@ -1044,6 +1044,9 @@ const removeCategory = (index: number) => {
                           }}
                           className="w-full p-2 border border-blue-300 rounded-md text-sm"
                         >
+                          <option value="" disabled>
+                            Select {field.label.toLowerCase()}
+                          </option>
                           {field.options.map((opt, i) => (
                             <option key={i} value={opt}>
                               {opt}
@@ -1051,7 +1054,7 @@ const removeCategory = (index: number) => {
                           ))}
                         </select>
                       ) : (
-                        info[field.name]
+                        info[field.name] || "Not Provided"
                       )}
                     </div>
                   </div>

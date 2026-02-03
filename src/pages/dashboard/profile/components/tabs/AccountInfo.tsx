@@ -79,11 +79,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   );
 
   const [editingField, setEditingField] = useState<string | null>(null);
-  const name = `${userData.firstName ?? ""} ${userData.lastName ?? ""}`.trim();
+
+  // Handle display name - use organizationName for organizations, firstName + lastName for individuals
+  const isOrganization = userData?.accountType === "business" || userData?.accountType === "organization" ||
+                         userData?.userType === "CONTRACTOR" || userData?.userType === "HARDWARE";
+  const name = isOrganization && userData?.organizationName
+    ? userData.organizationName
+    : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
+
   const [editValues, setEditValues] = useState({
     name: name || "",
-    email: userData.email ?? "",
-    phoneNumber: userData.phoneNumber ?? "",
+    email: userData?.email ?? "",
+    phoneNumber: userData?.phoneNumber ?? "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -290,8 +297,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     setEditingField(field);
     setEditValues({
       name: name || "",
-      email: userData.email || "",
-      phoneNumber: userData.phoneNumber || "",
+      email: userData?.email || "",
+      phoneNumber: userData?.phoneNumber || "",
     });
   };
 
@@ -299,8 +306,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     setEditingField(null);
     setEditValues({
       name: name || "",
-      email: userData.email || "",
-      phoneNumber: userData.phoneNumber || "",
+      email: userData?.email || "",
+      phoneNumber: userData?.phoneNumber || "",
     });
   };
 
@@ -325,9 +332,14 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       const updates: Record<string, any> = {};
       switch (field) {
         case "name": {
-          const parts = editValues.name.trim().split(" ");
-          updates.firstName = parts[0] || "";
-          updates.lastName = parts.slice(1).join(" ") || "";
+          // For organizations, update organizationName; for individuals, update firstName/lastName
+          if (isOrganization) {
+            updates.organizationName = editValues.name.trim();
+          } else {
+            const parts = editValues.name.trim().split(" ");
+            updates.firstName = parts[0] || "";
+            updates.lastName = parts.slice(1).join(" ") || "";
+          }
           break;
         }
         case "email":
@@ -477,72 +489,180 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   Basic Info
                 </h2>
 
-                {/* HARDWARE SPECIFIC SECTION */}
-                {userData?.userType === "HARDWARE" && (
+                {/* ORGANIZATION SPECIFIC SECTION (CONTRACTOR & HARDWARE) */}
+                {(userData?.userType === "HARDWARE" || userData?.userType === "CONTRACTOR") && (
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg mb-6">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">
-                        Hardware Name
+                        {userData?.userType === "HARDWARE" ? "Hardware Name" : "Company Name"}
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        <input
-                          type="text"
-                          value={userData.organizationName || ""}
-                          className="w-full px-4 py-2 outline-none bg-transparent"
-                          readOnly
-                        />
+                        {editingField === "name" ? (
+                          <>
+                            <input
+                              type="text"
+                              value={editValues.name}
+                              onChange={(e) => handleEditChange("name", e.target.value)}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              disabled={isUpdating}
+                            />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditSave("name")}
+                                disabled={isUpdating}
+                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <FiCheck size={15} />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleEditCancel}
+                                disabled={isUpdating}
+                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                              >
+                                <FiX size={15} />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              value={userData?.organizationName || name || "N/A"}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              readOnly
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditStart("name")}
+                              className="text-blue-900 cursor-pointer hover:opacity-75"
+                            >
+                              <FiEdit size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <h3 className="text-lg font-semibold pt-4 border-t">
-                      Contact Person
-                    </h3>
-
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium">
-                        Full Name
-                      </label>
+                      <label className="block text-sm font-medium">Phone Number</label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        <input
-                          type="text"
-                          value={`${userData.contactFirstName || ""} ${userData.contactLastName || ""}`}
-                          className="w-full px-4 py-2 outline-none bg-transparent"
-                          readOnly
-                        />
+                        {editingField === "phoneNumber" ? (
+                          <>
+                            <input
+                              type="tel"
+                              value={editValues.phoneNumber}
+                              onChange={(e) => handleEditChange("phoneNumber", e.target.value)}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              disabled={isUpdating}
+                            />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditSave("phoneNumber")}
+                                disabled={isUpdating}
+                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <FiCheck size={15} />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleEditCancel}
+                                disabled={isUpdating}
+                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                              >
+                                <FiX size={15} />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="tel"
+                              value={userData?.phoneNumber || "N/A"}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              readOnly
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditStart("phoneNumber")}
+                              className="text-blue-900 cursor-pointer hover:opacity-75"
+                            >
+                              <FiEdit size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium">
-                        Contact Phone
-                      </label>
+                      <label className="block text-sm font-medium">Email</label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        <input
-                          type="text"
-                          value={userData.contactPhone || ""}
-                          className="w-full px-4 py-2 outline-none bg-transparent"
-                          readOnly
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">
-                        Contact Email
-                      </label>
-                      <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        <input
-                          type="text"
-                          value={userData.contactEmail || ""}
-                          className="w-full px-4 py-2 outline-none bg-transparent"
-                          readOnly
-                        />
+                        {editingField === "email" ? (
+                          <>
+                            <input
+                              type="email"
+                              value={editValues.email}
+                              onChange={(e) => handleEditChange("email", e.target.value)}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              disabled={isUpdating}
+                            />
+                            <div className="flex items-center space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditSave("email")}
+                                disabled={isUpdating}
+                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <FiCheck size={15} />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleEditCancel}
+                                disabled={isUpdating}
+                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                              >
+                                <FiX size={15} />
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="email"
+                              value={userData?.email || "N/A"}
+                              className="w-full px-4 py-2 outline-none bg-transparent"
+                              readOnly
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleEditStart("email")}
+                              className="text-blue-900 cursor-pointer hover:opacity-75"
+                            >
+                              <FiEdit size={15} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {userData?.userType !== "HARDWARE" && (
+                {/* INDIVIDUAL USERS (FUNDI, PROFESSIONAL, CUSTOMER) */}
+                {userData?.userType !== "HARDWARE" && userData?.userType !== "CONTRACTOR" && (
                   <form className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Name</label>
