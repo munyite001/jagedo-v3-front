@@ -15,6 +15,7 @@ import { counties } from "@/pages/data/counties";
 interface ProfileCompletionProps {
     user: any;
     accountType: "INDIVIDUAL" | "ORGANIZATION" | "CONTRACTOR" | "HARDWARE";
+    userType?: "CUSTOMER" | "CONTRACTOR" | "FUNDI" | "PROFESSIONAL" | "HARDWARE";
     onComplete: (profileData: any) => void;
     onCancel?: () => void;
     isModal?: boolean;
@@ -23,6 +24,7 @@ interface ProfileCompletionProps {
 export function ProfileCompletion({
     user,
     accountType,
+    userType,
     onComplete,
     onCancel,
     isModal = false,
@@ -113,7 +115,8 @@ export function ProfileCompletion({
     if (currentStep === 4 && !secondaryContact.isOtpSent) {
         handleSendOtp();
     }
-}, [currentStep]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [currentStep, secondaryContact.isOtpSent]);
 useEffect(() => {
     // Auto verify when OTP reaches 6 digits
     if (
@@ -124,7 +127,8 @@ useEffect(() => {
     ) {
         handleVerifyOtp();
     }
-}, [secondaryContact.otp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [secondaryContact.otp, currentStep, secondaryContact.isVerified, isVerifying]);
 
 useEffect(() => {
     if (!secondaryContact.isOtpSent || secondaryContact.canResend) return;
@@ -132,7 +136,6 @@ useEffect(() => {
     const timer = setInterval(() => {
         setSecondaryContact((prev) => {
             if (prev.resendTimer <= 1) {
-                clearInterval(timer);
                 return {
                     ...prev,
                     resendTimer: 0,
@@ -148,7 +151,7 @@ useEffect(() => {
     }, 1000);
 
     return () => clearInterval(timer);
-}, [secondaryContact.isOtpSent]);
+}, [secondaryContact.isOtpSent, secondaryContact.canResend]);
 
 
 
@@ -196,8 +199,11 @@ const validateStep3 = (): boolean => {
         if (reference.referralDetail.trim().length < 2) return false;
     }
 
-    // Only require services for INDIVIDUAL or ORGANIZATION (customers)
-    if (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION") {
+    // Only require services for CUSTOMER userType (not service providers like PROFESSIONAL, FUNDI, CONTRACTOR, HARDWARE)
+    const isCustomer = userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"));
+    const isServiceProvider = userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType);
+
+    if (isCustomer && !isServiceProvider) {
         if (reference.interestedServices.length === 0) return false;
 
         // If "Other" selected → require specification
@@ -271,10 +277,20 @@ const validateStep3 = (): boolean => {
         }
         setIsVerifying(true);
         try {
-            setTimeout(() => {
-                toast.success("Contact verified successfully!");
-                setSecondaryContact((prev) => ({ ...prev, isVerified: true, isLoading: false }));
-            }, 1000);
+            // Simulate API call with setTimeout wrapped in Promise
+            await new Promise<void>((resolve, reject) => {
+                setTimeout(() => {
+                    // Mock verification - in production, this would validate with backend
+                    const isValid = true; // Mock: always succeeds
+                    if (isValid) {
+                        toast.success("Contact verified successfully!");
+                        setSecondaryContact((prev) => ({ ...prev, isVerified: true, isLoading: false }));
+                        resolve();
+                    } else {
+                        reject(new Error("Invalid OTP"));
+                    }
+                }, 1000);
+            });
         } catch (error: any) {
             toast.error("OTP verification failed");
         } finally {
@@ -345,12 +361,12 @@ const validateStep3 = (): boolean => {
 
 
     return (
-        <div className={cn("w-full font-roboto", isModal ? "bg-gradient-to-br from-slate-50 via-white to-blue-50 p-0" : "min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8")}>
+        <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-50 py-8")}>
             <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <div>
-                        <h1 className={cn("font-bold bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 bg-clip-text text-transparent", isModal ? "text-2xl" : "text-3xl")}>
+                        <h1 className={cn("font-bold text-gray-800", isModal ? "text-2xl" : "text-3xl")}>
                             Complete Your Profile
                         </h1>
                         <p className="text-gray-500 mt-1 text-sm font-medium">
@@ -378,16 +394,16 @@ const validateStep3 = (): boolean => {
                             <div key={index} className="flex items-center flex-1">
                                 <div className="flex flex-col items-center">
                                     <div className={cn(
-                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
                                         isCompleted ? "bg-green-500 text-white" :
-                                            isCurrent ? "bg-[rgb(0,0,122)] text-white ring-4 ring-blue-100" :
+                                            isCurrent ? "bg-blue-600 text-white ring-4 ring-blue-100" :
                                                 "bg-gray-100 text-gray-400"
                                     )}>
                                         {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
                                     </div>
                                     <span className={cn(
                                         "text-xs mt-1.5 font-medium transition-colors",
-                                        isCurrent ? "text-[rgb(0,0,122)]" :
+                                        isCurrent ? "text-blue-600" :
                                             isCompleted ? "text-green-600" : "text-gray-400"
                                     )}>
                                         {step.label}
@@ -407,22 +423,22 @@ const validateStep3 = (): boolean => {
                 {/* Progress Bar */}
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
                     <div
-                        className="bg-gradient-to-r from-[rgb(0,0,122)] to-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
+                        className="bg-blue-600 h-1.5 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${(currentStep / 4) * 100}%` }}
                     />
                 </div>
 
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-100/50 border border-gray-100/80 p-8 mb-6">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8 mb-6">
                     {currentStep === 1 && (
                         <div className="space-y-5 animate-fade-in">
                             <div className="text-center mb-6">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 mb-4">
-                                    <User className="h-8 w-8 text-[rgb(0,0,122)]" />
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 mb-4">
+                                    <User className="h-8 w-8 text-blue-600" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-800">
-                                    Personal Details
+                                    {isOrganizationType ? "Organization Details" : "Personal Details"}
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1">Tell us about yourself</p>
+                                <p className="text-sm text-gray-500 mt-1">{isOrganizationType ? "Tell us about your organization" : "Tell us about yourself"}</p>
                             </div>
                             {!isOrganizationType ? (
                                 <>
@@ -475,7 +491,7 @@ const validateStep3 = (): boolean => {
                         <div className="space-y-5 animate-fade-in">
                             {/* ... Location step remains unchanged ... */}
                             <div className="text-center mb-6">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-100 mb-4">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-50 mb-4">
                                     <MapPin className="h-8 w-8 text-emerald-600" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-800">
@@ -559,7 +575,7 @@ const validateStep3 = (): boolean => {
   <div className="space-y-5 animate-fade-in">
     {/* Header */}
     <div className="text-center mb-6">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-100 mb-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-50 mb-4">
         <MessageSquare className="h-8 w-8 text-violet-600" />
       </div>
       <h3 className="text-xl font-bold text-gray-800">Reference Information</h3>
@@ -642,8 +658,9 @@ const validateStep3 = (): boolean => {
       </div>
     )}
 
-    {/* CUSTOMER ONLY: Interested Services */}
-{(accountType === "INDIVIDUAL" || accountType === "ORGANIZATION") && (
+    {/* CUSTOMER ONLY: Interested Services - hide for service providers */}
+{(userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
+ !(userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType)) && (
 
       <div className="space-y-2 mt-6 animate-fade-in">
         <Label>What services are you interested in? *</Label>
@@ -687,7 +704,7 @@ const validateStep3 = (): boolean => {
                         <div className="space-y-5 animate-fade-in">
                             {/* ... Verification step remains unchanged ... */}
                             <div className="text-center mb-6">
-                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 mb-4">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 mb-4">
                                     <ShieldCheck className="h-8 w-8 text-amber-600" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-800">
@@ -695,7 +712,7 @@ const validateStep3 = (): boolean => {
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1">One last step to secure your account</p>
                             </div>
-                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                                 <p className="text-sm text-blue-700 text-center">
                                     Verify your <strong className="font-semibold">{secondaryContact.contactType === "EMAIL" ? "email address" : "phone number"}</strong> to complete profile setup.
                                 </p>
@@ -715,7 +732,7 @@ const validateStep3 = (): boolean => {
                                 <Button
                                     onClick={handleSendOtp}
                                     disabled={secondaryContact.isLoading}
-                                    className="w-full h-12 rounded-xl bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 text-white font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200"
+                                    className="w-full h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
                                 >
                                     {secondaryContact.isLoading ? (
                                         <span className="flex items-center gap-2">
@@ -749,7 +766,7 @@ const validateStep3 = (): boolean => {
     <Button
         onClick={handleSendOtp}
         variant="outline"
-          className="w-full h-12 rounded-xl bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 text-white font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-200"
+          className="w-full h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
     >
         Resend Verification Code
     </Button>
@@ -797,7 +814,7 @@ const validateStep3 = (): boolean => {
                         onClick={handlePreviousStep}
                         disabled={currentStep === 1}
                         variant="outline"
-                        className="flex-1 h-12 rounded-xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-medium transition-all duration-200 disabled:opacity-40"
+                        className="flex-1 h-12 rounded-lg border border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-medium transition-all duration-200 disabled:opacity-40"
                     >
                         Back
                     </Button>
@@ -805,7 +822,7 @@ const validateStep3 = (): boolean => {
                     {currentStep < 4 ? (
                         <Button
                             onClick={handleNextStep}
-                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[rgb(0,0,122)] to-blue-600 text-white font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:scale-[1.02] transition-all duration-200"
+                            className="flex-1 h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
                         >
                             Continue
                         </Button>
@@ -813,7 +830,7 @@ const validateStep3 = (): boolean => {
                         <Button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !secondaryContact.isVerified}
-                            className="flex-1 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100"
+                            className="flex-1 h-12 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <span className="flex items-center gap-2">

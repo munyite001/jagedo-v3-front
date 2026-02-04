@@ -52,6 +52,28 @@ export function ProviderSignupForm({
     const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const [isAutoVerifying, setIsAutoVerifying] = useState(false);
+    const [professionSearch, setProfessionSearch] = useState("");
+
+    const professions = [
+        "Architect",
+        "Construction Manager",
+        "Electrical Engineer",
+        "Environment Officer",
+        "Geotechnical Engineer",
+        "Geologist",
+        "Hydrologist",
+        "Interior Designer",
+        "Land Surveyor",
+        "Landscape Architect",
+        "Mechanical Engineer",
+        "Project Manager",
+        "Quantity Surveyor",
+        "Roads Engineer",
+        "Safety Officer",
+        "Structural Engineer",
+        "Topo Surveyor",
+        "Water Engineer"
+    ];
 
     // const countyList = Object.keys(counties);
     // const subCountyList = counties[formData.county as keyof typeof counties]

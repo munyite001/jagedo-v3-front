@@ -220,6 +220,7 @@ export default function FundiSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
+                userType="FUNDI"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

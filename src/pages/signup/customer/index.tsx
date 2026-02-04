@@ -189,7 +189,7 @@ export default function CustomerSignup() {
         setShowProfileCompletionModal(false);
         
         setTimeout(() => {
-            navigate("/customer/dashboard");
+            navigate("/dashboard/customer");
         }, 1500);
     };
 
@@ -231,10 +231,11 @@ export default function CustomerSignup() {
                 </div>
             </main>
 
-            <ProfileCompletionModal 
+            <ProfileCompletionModal
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
+                userType="CUSTOMER"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

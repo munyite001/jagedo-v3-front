@@ -271,6 +271,7 @@ export default function ProfessionalSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
+                userType="PROFESSIONAL"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

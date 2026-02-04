@@ -269,6 +269,7 @@ export default function ContractorSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={"CONTRACTOR" as any}
+                userType="CONTRACTOR"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

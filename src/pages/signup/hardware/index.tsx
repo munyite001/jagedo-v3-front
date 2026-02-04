@@ -270,6 +270,7 @@ export default function HardwareSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={"HARDWARE" as any}
+                userType="HARDWARE"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />
