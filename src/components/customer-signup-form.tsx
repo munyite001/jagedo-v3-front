@@ -52,10 +52,9 @@ export function CustomerSignupForm({
   const [countries, setCountries] = useState<any[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
 
-  // const countyList =
-  //   formData.country.toLowerCase() == "kenya" ? Object.keys(counties) : [];
-
-  // const subCountyList = (formData.country.toLowerCase() == "kenya" && formData.county) ? counties[formData.county as keyof typeof counties] || [] : [];
+  // Local search states (added)
+  const [countrySearch, setCountrySearch] = useState("");
+  const [countySearchLocal, setCountySearchLocal] = useState("");
 
   // OTP timer countdown effect
   useEffect(() => {
@@ -137,18 +136,19 @@ export function CustomerSignupForm({
     const newErrors: Record<string, string> = {}
 
     switch (currentStep) {
-      case 1:
-        if (!formData.accountType) {
-          newErrors.accountType = "Please select an account type"
-        }
-        break
-      case 2:
-        if (!formData.email) {
-          newErrors.email = "Email is required"
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-          newErrors.email = "Please enter a valid email address"
-        }
-        break
+  case 1:
+    if (!formData.accountType) {
+      newErrors.accountType = "Please select an account type"
+    }
+    break; // <-- ADD THIS break so we don't fall-through to case 2
+
+  case 2:
+    if (!formData.email) {
+      newErrors.email = "Email is required"
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address"
+    }
+    break
       case 3:
         if (!formData.phone) {
           newErrors.phone = "Phone number is required"
@@ -168,6 +168,12 @@ export function CustomerSignupForm({
           newErrors.otp = "Please enter a valid 6-digit code"
         }
         break
+        case 6:
+        if (!formData.country) newErrors.country = "Country is required";
+         if (formData.country === "Kenya" && !formData.county)
+         newErrors.county = "County is required";
+        break;
+
       // case 6:
       //   if (formData.accountType === "INDIVIDUAL") {
       //     if (!formData.firstName) {
@@ -705,6 +711,94 @@ export function CustomerSignupForm({
             </div>
           </div>
         )
+case 6:
+  return (
+    <div className="space-y-6 animate-fade-in max-w-md mx-auto">
+      <div className="flex flex-col items-center">
+        <img src="/jagedologo.png" alt="JaGedo Logo" className="h-12 mb-4" />
+        <h2 className="text-2xl font-semibold text-[rgb(0,0,122)]">
+          Location Details
+        </h2>
+      </div>
+
+      {/* Country */}
+      <div className="space-y-2">
+        <Label>Country</Label>
+        <Select
+          value={formData.country}
+          onValueChange={(value) => updateFormData({ country: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select country" />
+          </SelectTrigger>
+          <SelectContent className="bg-white">
+            <div className="px-2 py-1">
+              <Input
+                placeholder="Search country..."
+                value={countrySearch}
+                onChange={(e) => setCountrySearch(e.target.value)}
+              />
+            </div>
+
+            <div className="max-h-60 overflow-y-auto">
+              {countries
+                .filter((c) => (c.name || "").toLowerCase().includes(countrySearch.toLowerCase()))
+                .map((c) => (
+                <SelectItem key={c.name} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </div>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* County (SEARCHABLE) */}
+      {formData.country?.toLowerCase() === "kenya" && (
+        <div className="space-y-2">
+          <Label>County</Label>
+
+          <Select
+            value={formData.county}
+            onValueChange={(value) =>
+              updateFormData({ county: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select county" />
+            </SelectTrigger>
+
+            <SelectContent className="bg-white">
+              <div className="px-2 py-1">
+                <Input
+                  placeholder="Search county..."
+                  onChange={(e) =>
+                    updateFormData({ countySearch: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto">
+                {Object.keys(counties)
+                  .filter((county) =>
+                    county
+                      .toLowerCase()
+                      .includes(
+                        (formData.countySearch || "").toLowerCase()
+                      )
+                  )
+                  .map((county) => (
+                    <SelectItem key={county} value={county}>
+                      {county}
+                    </SelectItem>
+                  ))}
+              </div>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  )
 
       // case 6:
       //   if (formData.accountType === "INDIVIDUAL") {
@@ -980,7 +1074,8 @@ export function CustomerSignupForm({
   }
 
   //const isLastStep = currentStep === 8;
-  const isLastStep = currentStep === 6;
+  const isLastStep = currentStep === 7;
+
 
   return (
     <form
