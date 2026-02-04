@@ -388,6 +388,7 @@ const updateUserInLocalStorage = (
 };
 
 const Experience = ({ userData }) => {
+  
   console.log("User Data: ", userData);
   // const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
   const [isEditingFields, setIsEditingFields] = useState(false);
@@ -587,10 +588,11 @@ const removeCategory = (index: number) => {
             userData.specialization ||
             defaultContSpec,
           class: userData.userProfile.licenseLevel || "",
-          yearsOfExperience:
-            userData.userProfile.contractorExperiences ||
-            userData?.contractorExperiences ||
-            "",
+         yearsOfExperience:
+  userData.userProfile.contractorExperiences?.[0]?.yearsOfExperience ||
+  userData?.contractorExperiences?.[0]?.yearsOfExperience ||
+  "",
+
         };
 
       case "HARDWARE":
@@ -1366,61 +1368,60 @@ const removeCategory = (index: number) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {userData?.userProfile?.contractorExperiences?.map(
-                                (exp, idx) => (
-                                  <tr
-                                    key={idx}
-                                    className="border-b hover:bg-gray-50"
-                                  >
-                                    <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object"
-                                        ? exp.category
-                                        : exp}
-                                    </td>
-                                    <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object"
-                                        ? exp.categoryClass
-                                        : "N/A"}
-                                    </td>
-                                    <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object"
-                                        ? exp.yearsOfExperience
-                                        : "N/A"}
-                                    </td>
-                                    <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" &&
-                                      exp.certificate ? (
-                                        <a
-                                          href={exp.certificate}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline"
-                                        >
-                                          View
-                                        </a>
-                                      ) : (
-                                        "None"
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-2 border text-xs">
-                                      {typeof exp === "object" &&
-                                      exp.license ? (
-                                        <a
-                                          href={exp.license}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 hover:text-blue-800 underline"
-                                        >
-                                          View
-                                        </a>
-                                      ) : (
-                                        "None"
-                                      )}
-                                    </td>
-                                  </tr>
-                                ),
-                              )}
-                            </tbody>
+  {(userData?.userProfile?.contractorExperiences || []).map(
+    (exp: any, idx: number) => {
+      const safe = (v: any) =>
+        typeof v === "string" || typeof v === "number"
+          ? v
+          : typeof v === "object" && v !== null
+          ? v.name || v.label || v.value || "N/A"
+          : "N/A";
+
+      return (
+        <tr key={idx} className="border-b hover:bg-gray-50">
+          <td className="px-2 py-2 border text-xs">
+            {safe(exp?.category)}
+          </td>
+          <td className="px-2 py-2 border text-xs">
+            {safe(exp?.categoryClass)}
+          </td>
+          <td className="px-2 py-2 border text-xs">
+            {safe(exp?.yearsOfExperience)}
+          </td>
+          <td className="px-2 py-2 border text-xs">
+            {exp?.certificate ? (
+              <a
+                href={exp.certificate}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                View
+              </a>
+            ) : (
+              "None"
+            )}
+          </td>
+          <td className="px-2 py-2 border text-xs">
+            {exp?.license ? (
+              <a
+                href={exp.license}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                View
+              </a>
+            ) : (
+              "None"
+            )}
+          </td>
+        </tr>
+      );
+    }
+  )}
+</tbody>
+
                           </table>
                         </div>
                       ) : isEditingFields ? (
