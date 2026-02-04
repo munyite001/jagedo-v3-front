@@ -1401,9 +1401,39 @@ const removeCategory = (index: number) => {
       <Toaster position="top-center" richColors />
       <div className="bg-gray-50 min-h-screen w-full">
         <div className="max-w-6xl bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold mb-8 text-gray-800">
-            {userData?.userType} Experience
-          </h1>
+          {/* Header with Approve Button */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold text-gray-800">
+              {userData?.userType} Experience
+            </h1>
+            <div className="flex items-center gap-3">
+              {userData?.userProfile?.experienceApproved ? (
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                  <FiCheck className="w-4 h-4" />
+                  Experience Approved
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const profile = userData?.userProfile || {};
+                    const updatedProfile = {
+                      ...profile,
+                      experienceApproved: true,
+                      experienceApprovedAt: new Date().toISOString(),
+                    };
+                    userData.userProfile = updatedProfile;
+                    updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
+                    toast.success("Experience section has been approved!");
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                >
+                  <FiCheck className="w-4 h-4" />
+                  Approve
+                </button>
+              )}
+            </div>
+          </div>
 
           <form onSubmit={handleEvaluationSubmit} className="space-y-8">
             {/* Skills Section - Card Based Design */}
@@ -1442,40 +1472,7 @@ const removeCategory = (index: number) => {
                         )}
                       </div>
 
-                      {isGradeField ? (
-                        // Grade/Level field with chip-style options
-                        <div className="flex flex-wrap gap-2">
-                          {field.options.map((opt, i) => {
-                            const isSelected = isEditingFields
-                              ? (editingFields[field.name] || fieldValue) === opt
-                              : fieldValue === opt;
-                            return (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => {
-                                  if (isEditingFields) {
-                                    setEditingFields((prev) => ({
-                                      ...prev,
-                                      [field.name]: opt,
-                                    }));
-                                  }
-                                }}
-                                disabled={!isEditingFields}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                                  isSelected
-                                    ? "bg-blue-600 text-white"
-                                    : isEditingFields
-                                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                    : "bg-gray-100 text-gray-500"
-                                } ${!isEditingFields && "cursor-default"}`}
-                              >
-                                {opt.includes(":") ? opt.split(":")[1].trim() : opt}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : field.name === "experience" || field.name === "yearsOfExperience" ? (
+                      {isGradeField || field.name === "experience" || field.name === "yearsOfExperience" ? (
                         // Experience field with dropdown
                         isEditingFields ? (
                           <select
@@ -1599,10 +1596,28 @@ const removeCategory = (index: number) => {
                           <select
                             value={cat.category}
                             onChange={(e) => {
+                              const newCategory = e.target.value;
                               const updated = [...categories];
-                              updated[index].category = e.target.value;
+                              updated[index].category = newCategory;
                               updated[index].specialization = ""; // Reset specialization when category changes
                               setCategories(updated);
+
+                              // Auto-add a project row for this category if not already exists
+                              if (newCategory) {
+                                const projectExists = attachments.some(
+                                  (att) => att.projectName?.toLowerCase().includes(newCategory.toLowerCase())
+                                );
+                                if (!projectExists) {
+                                  const newProject = {
+                                    id: attachments.length + 1,
+                                    projectName: `${newCategory} Project`,
+                                    files: [],
+                                    category: newCategory,
+                                  };
+                                  setAttachments([...attachments, newProject]);
+                                  toast.info(`Project row added for ${newCategory}`);
+                                }
+                              }
                             }}
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
@@ -2499,56 +2514,6 @@ const removeCategory = (index: number) => {
                 </div>
               </div>
             )}
-
-            {/* Approve Experience Button - Admin Action */}
-            <div className="mt-8 border-t pt-6">
-              {!userData?.userProfile?.experienceApproved ? (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-green-800">
-                        Approve Experience
-                      </h3>
-                      <p className="text-sm text-green-600 mt-1">
-                        Review completed. Approve this user's experience section.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const profile = userData?.userProfile || {};
-                        const updatedProfile = {
-                          ...profile,
-                          experienceApproved: true,
-                          experienceApprovedAt: new Date().toISOString(),
-                        };
-                        userData.userProfile = updatedProfile;
-                        updateUserInLocalStorage(userData.id, { userProfile: updatedProfile });
-                        toast.success("Experience section has been approved!");
-                      }}
-                      className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center gap-2"
-                    >
-                      <FiCheck className="w-5 h-5" />
-                      Approve Experience
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                  <div className="flex items-center gap-3">
-                    <FiCheck className="w-8 h-8 text-green-600" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-green-800">
-                        Experience Approved
-                      </h3>
-                      <p className="text-sm text-green-600">
-                        This user's experience section has been approved.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
 
           </form>
         </div>

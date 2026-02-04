@@ -244,6 +244,15 @@ useEffect(() => {
     };
     localStorage.setItem(`contractorExperience_${user.id}`, JSON.stringify(experienceData));
 
+    // Also save category names for AccountUploads to pick up
+    const categoryNames = contractorCategories
+      .filter(cat => cat.category)
+      .map(cat => cat.category);
+    localStorage.setItem("contractor-categories", JSON.stringify(categoryNames));
+
+    // Trigger storage event for other components to update
+    window.dispatchEvent(new Event('storage'));
+
     // simulate success (no API call)
     return Promise.resolve();
   };

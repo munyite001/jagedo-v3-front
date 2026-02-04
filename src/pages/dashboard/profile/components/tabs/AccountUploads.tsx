@@ -771,40 +771,6 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
                 </div>
               )}
 
-              {/* Verify User Button - Admin Only */}
-              {isAdmin && !userData?.adminApproved && (
-                <button
-                  onClick={() => {
-                    setIsVerifying(true);
-                    updateUserInLocalStorage(userData.id, {
-                      adminApproved: true,
-                      approved: true,
-                      status: "VERIFIED",
-                    });
-                    Object.assign(userData, {
-                      adminApproved: true,
-                      approved: true,
-                      status: "VERIFIED",
-                    });
-                    toast.success("User profile has been verified successfully!");
-                    setIsVerifying(false);
-                  }}
-                  disabled={isVerifying}
-                  className="flex items-center gap-2 py-2 px-4 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isVerifying ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Verify User
-                    </>
-                  )}
-                </button>
-              )}
             </div>
           </div>
 

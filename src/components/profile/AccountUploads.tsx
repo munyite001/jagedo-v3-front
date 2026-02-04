@@ -205,17 +205,41 @@ const AccountUploads = () => {
   const [categoryDocs, setCategoryDocs] = useState({});
   const [categories, setCategories] = useState([]);
 
+  const loadCategories = () => {
+    // Try to load categories from ContractorExperience data first
+    const experienceData = JSON.parse(localStorage.getItem(`contractorExperience_${user?.id}`) || "null");
+    if (experienceData?.categories && experienceData.categories.length > 0) {
+      // Extract category names from contractor experience
+      const categoryNames = experienceData.categories
+        .filter((cat: any) => cat.category)
+        .map((cat: any) => cat.category);
+      setCategories(categoryNames);
+    } else {
+      // Fallback to old storage key
+      setCategories(
+        JSON.parse(localStorage.getItem("contractor-categories") || "[]")
+      );
+    }
+  };
+
   useEffect(() => {
     setDocuments(
       JSON.parse(localStorage.getItem(`docs-contractor`) || "{}")
     );
-    setCategories(
-      JSON.parse(localStorage.getItem("contractor-categories") || "[]")
-    );
+
+    loadCategories();
+
     setCategoryDocs(
       JSON.parse(localStorage.getItem("contractor-category-docs") || "{}")
     );
-  }, []);
+
+    // Listen for storage changes to update categories
+    const handleStorageChange = () => {
+      loadCategories();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user?.id]);
 
   const replaceDocument = (file, key) => {
     const url = URL.createObjectURL(file);
