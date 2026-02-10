@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
+import { initiateSecondaryVerification, verifySecondaryVerification } from "@/api/auth.api";
 
 interface ProfileCompletionProps {
     user: any;
@@ -250,7 +251,9 @@ export function ProfileCompletion({
         }
         setSecondaryContact((prev) => ({ ...prev, isLoading: true }));
         try {
-            setTimeout(() => {
+            const response = await initiateSecondaryVerification(user.email);
+
+            if (response.data.success) {
                 toast.success(`OTP sent to ${secondaryContact.contact}`);
                 setSecondaryContact((prev) => ({
                     ...prev,
@@ -260,10 +263,13 @@ export function ProfileCompletion({
                     resendTimer: 120,
                     canResend: false,
                 }));
-
-            }, 1000);
+            } else {
+                toast.error(response.data.message || "Failed to send OTP.");
+                setSecondaryContact((prev) => ({ ...prev, isLoading: false }));
+            }
         } catch (error: any) {
-            toast.error("Failed to send OTP.");
+            console.error(error);
+            toast.error(error.response?.data?.message || "Failed to send OTP.");
             setSecondaryContact((prev) => ({ ...prev, isLoading: false }));
         }
     };
@@ -275,22 +281,23 @@ export function ProfileCompletion({
         }
         setIsVerifying(true);
         try {
+            const payload: any = {
+                email: user.email,
+                phoneNumber: secondaryContact.contact,
+                otp: secondaryContact.otp
+            };
 
-            await new Promise<void>((resolve, reject) => {
-                setTimeout(() => {
+            const response = await verifySecondaryVerification(payload);
 
-                    const isValid = true;
-                    if (isValid) {
-                        toast.success("Contact verified successfully!");
-                        setSecondaryContact((prev) => ({ ...prev, isVerified: true, isLoading: false }));
-                        resolve();
-                    } else {
-                        reject(new Error("Invalid OTP"));
-                    }
-                }, 1000);
-            });
+            if (response.data.success) {
+                toast.success("Contact verified successfully!");
+                setSecondaryContact((prev) => ({ ...prev, isVerified: true, isLoading: false }));
+            } else {
+                toast.error(response.data.message || "Invalid OTP");
+            }
         } catch (error: any) {
-            toast.error("OTP verification failed");
+            console.error(error);
+            toast.error(error.response?.data?.message || "OTP verification failed");
         } finally {
             setIsVerifying(false);
         }

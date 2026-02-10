@@ -99,3 +99,34 @@ export const phoneLogin = async (data: any) => {
     );
     return {...response.data, user: response.data.user};
 };
+
+//initiate secondary verification 
+export const initiateSecondaryVerification = async (email: string) => {
+  const response = await axios.post(
+    `${import.meta.env.VITE_SERVER_URL}/api/auth/secondary-verification/initiate`,
+    null,
+    {
+      params: { email }
+    }
+  );
+  return response;
+};
+
+
+//verify secondary verification 
+export const verifySecondaryVerification = async (data: any) => {
+    const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/secondary-verification/verify`,
+        data
+    );
+    return response;
+}
+
+//Complete Profile
+export const completeProfile = async (data: any) => {
+    const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/complete-profile`,
+        data
+    );
+    return response;
+}

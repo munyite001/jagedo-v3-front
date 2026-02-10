@@ -6,7 +6,8 @@ import { useGlobalContext } from "@/context/GlobalProvider";
 import {
     initiateRegistraion,
     handleCompleteRegistration,
-    resendOtp
+    resendOtp,
+    completeProfile
 } from "@/api/auth.api";
 import { toast, Toaster } from "sonner";
 import { ProviderSignupForm } from "@/components/provider-signup-form";
@@ -112,120 +113,83 @@ export default function ContractorSignup() {
         }
     };
 
-    // const handleSubmit = async () => {
-    //     const data = {
-    //         email: formData.email,
-    //         firstName: formData.firstName || "Pending",
-    //         lastName: formData.lastName || "User",
-    //         organizationName: formData.organizationName || "Pending",
-    //         contactFirstName: formData.contactFirstName || "Pending",
-    //         contactLastName: formData.contactLastName || "User",
-    //         contactPhone: formData.contactPhone || formData.phone,
-    //         contactEmail: formData.contactEmail || formData.email,
-    //         country: formData.country || "Kenya",
-    //         county: formData.county || "Pending",
-    //         subCounty: formData.subCounty || "Pending",
-    //         estate: formData.estate || "Pending",
-    //         password: formData.password,
-    //         gender: formData.gender || "male",
-    //         state: formData.country,
-    //     };
-    //     try {
-    //         //const response = await handleCompleteRegistration(data);
-    //         const response = {
-    //              data: {
-    //                  success: true,
-    //                  message: "Account Created Successfully (Mock)",
-    //                  user: { email: formData.email, role: "CONTRACTOR" },
-    //                  accessToken: "mock_token_123"
-    //              }
-    //          };
-    //         if (response.data.success) {
-    //             toast.success("Account Created Successfully.Redirecting to login...");
-    //             localStorage.setItem(
-    //                 "user",
-    //                 JSON.stringify(response.data.user)
-    //             );
-    //             localStorage.setItem("token", response.data.accessToken);
-    //             setUser(response.data.user);
-    //             setIsLoggedIn(true);
-    //             setTimeout(() => {
-    //                 navigate("/login");
-    //             }, 2000);
-    //         } else {
-    //             toast.error(
-    //                 `Failed To Create Account: ${response.data.message}`
-    //             );
-    //         }
-    //     } catch (error: any) {
-    //         toast.error(`Error sending OTP: ${error.response.data.message}`);
-    //     }
-    // };
     const handleSubmit = async () => {
-        // 1. Prepare the user object
-        const newUser = {
-            id: crypto.randomUUID(),
+        // 1. Prepare the registration payload
+        const registrationPayload = {
             email: formData.email,
             password: formData.password,
-            userType: "CONTRACTOR",
-            accountType: formData.accountType,
-            phone: formData.phone,
-            profileCompleted: false
-        }
+        };
+
         try {
-            // 2. mock db save
-            const exisitingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
+            // 2. Call the complete registration API
+            const response = await handleCompleteRegistration(registrationPayload);
 
-            if (exisitingUsers.find((u: any) => u.email === newUser.email)) {
-                toast.error("User with this email already exists!");
-                return;
-            }
-            exisitingUsers.push(newUser);
-            localStorage.setItem("mock_users_db", JSON.stringify(exisitingUsers));
-            localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
-
-           // 3. successs message and redirect
-            const response = {
-                data: {
-                    success: true,
-                    user: newUser,
-                    accessToken: "mock_access_token_" + newUser.id
-                }
-            };
-
-            // 4. Show Profile Completion Modal
-             if (response.data.success) {
+            if (response.data.success) {
                 toast.success("Account created successfully. Please complete your profile.");
-                setRegisteredUser(newUser);
+
+                // Store user data and token
+                const userData = response.data.user;
+                localStorage.setItem("token", response.data.accessToken || response.data.token);
+                localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
+
+                // Set registered user and show profile completion modal
+                setRegisteredUser(userData);
                 setShowProfileCompletionModal(true);
-             }
+            } else {
+                toast.error(response.data.message || "Registration failed");
+            }
 
         } catch (error: any) {
-            toast.error("An error occurred during mock registration");
+            console.error("Registration error:", error);
+            toast.error(error.response?.data?.message || "An error occurred during registration");
         }
     };
 
-    const handleProfileComplete = (profileData: any) => {
-        const updatedUser = {
-            ...registeredUser,
-            ...profileData,
-            profileCompleted: true
-        };
-        const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
-        const userIndex = existingUsers.findIndex((u: any) => u.email === updatedUser.email);
-        if (userIndex !== -1) {
-            existingUsers[userIndex] = updatedUser;
-            localStorage.setItem("mock_users_db", JSON.stringify(existingUsers));
+    const handleProfileComplete = async (profileData: any) => {
+        try {
+            // Prepare the complete profile payload
+            const completeProfilePayload = {
+                email: registeredUser.email,
+                firstName: profileData.firstName || "",
+                lastName: profileData.lastName || "",
+                organizationName: profileData.organizationName || "",
+                country: profileData.country || "Kenya",
+                county: profileData.county || "",
+                townCity: profileData.town || "",
+                estateVillage: profileData.estate || "",
+                referenceInfo: profileData.howDidYouHearAboutUs || "",
+            };
+
+            // Call the complete profile API
+            const response = await completeProfile(completeProfilePayload);
+
+            if (response.data.success) {
+                // Update user with profile data
+                const updatedUser = {
+                    ...registeredUser,
+                    ...profileData,
+                    profileCompleted: true
+                };
+
+                // Login the user
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                setIsLoggedIn(true);
+
+                toast.success("Profile completed! Redirecting to dashboard...");
+                setShowProfileCompletionModal(false);
+
+                setTimeout(() => {
+                    navigate("/dashboard/fundi");
+                }, 1500);
+            } else {
+                toast.error(response.data.message || "Failed to complete profile");
+            }
+
+        } catch (error: any) {
+            console.error("Profile completion error:", error);
+            toast.error(error.response?.data?.message || "Error completing profile");
         }
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        localStorage.setItem("token", "mock_access_token_" + updatedUser.id);
-        setUser(updatedUser);
-        setIsLoggedIn(true);
-        toast.success("Profile completed! Redirecting to dashboard...");
-        setShowProfileCompletionModal(false);
-        setTimeout(() => {
-            navigate("/profile");
-        }, 1500);
     };
 
     return (

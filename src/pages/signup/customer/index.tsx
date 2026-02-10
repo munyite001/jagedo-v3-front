@@ -11,6 +11,7 @@ import {
     initiateRegistraion,
     resendOtp,
     handleCompleteRegistration,
+    completeProfile
 } from "@/api/auth.api";
 import { toast, Toaster } from "sonner";
 
@@ -45,7 +46,7 @@ export default function CustomerSignup() {
         estate: "",
         password: "",
         confirmPassword: "",
-        agreeToTerms: false
+        agreeToTerms: false 
     });
 
 
@@ -70,7 +71,7 @@ export default function CustomerSignup() {
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
-            nationalId: formData.nationalId,
+            nationalId: "",
             otpDeliveryMethod: formData.otpMethod.toUpperCase(),
             contractorTypes: "",
             profession: "",
@@ -85,7 +86,7 @@ export default function CustomerSignup() {
                 toast.error(`Failed To Send OTP: ${response.data.message}`);
             }
         } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+            toast.error(`Error sending OTP: ${error.response.data.message}`);
             throw error;
         }
     };
@@ -111,65 +112,88 @@ export default function CustomerSignup() {
                 toast.error(`Failed To Send OTP: ${response.data.message}`);
             }
         } catch (error: any) {
-            toast.error(`Error sending OTP: ${error.response?.data?.message || error.message}`);
+            toast.error(`Error sending OTP: ${error.response.data.message}`);
             throw error;
         }
     };
 
     const handleSubmit = async () => {
         
-        const newUserPayload = {
+        const registrationPayload = {
             email: formData.email,
             password: formData.password,
-            userType: "CUSTOMER",
-            accountType: formData.accountType,
-            phone: formData.phone,
         };
 
         try {
-            const response = await handleCompleteRegistration(newUserPayload);
+            
+            const response = await handleCompleteRegistration(registrationPayload);
 
             if (response.data.success) {
                 toast.success("Account created successfully. Please complete your profile.");
-                setRegisteredUser(response.data.user);
 
                 
-                if (response.data.accessToken) {
-                    localStorage.setItem("token", response.data.accessToken);
-                }
+                const userData = response.data.user;
+                localStorage.setItem("token", response.data.accessToken || response.data.token);
+                localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
+                
+                setRegisteredUser(userData);
                 setShowProfileCompletionModal(true);
             } else {
                 toast.error(response.data.message || "Registration failed");
             }
 
         } catch (error: any) {
+            console.error("Registration error:", error);
             toast.error(error.response?.data?.message || "An error occurred during registration");
         }
     };
 
-    const handleProfileComplete = (profileData: any) => {
-        
+    const handleProfileComplete = async (profileData: any) => {
+        try {
+            
+            const completeProfilePayload = {
+                email: registeredUser.email,
+                firstName: profileData.firstName || "",
+                lastName: profileData.lastName || "",
+                organizationName: profileData.organizationName || "",
+                country: profileData.country || "Kenya",
+                county: profileData.county || "",
+                townCity: profileData.town || "",
+                estateVillage: profileData.estate || "",
+                referenceInfo: profileData.howDidYouHearAboutUs || "",
+            };
 
-        const updatedUser = {
-            ...registeredUser,
-            ...profileData,
-            profileCompleted: true
-        };
+            
+            const response = await completeProfile(completeProfilePayload);
 
-        
-        setUser(updatedUser);
-        setIsLoggedIn(true);
-        if (updatedUser) {
-            localStorage.setItem("user", JSON.stringify(updatedUser));
+            if (response.data.success) {
+                
+                const updatedUser = {
+                    ...registeredUser,
+                    ...profileData,
+                    profileCompleted: true
+                };
+
+                
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                setIsLoggedIn(true);
+
+                toast.success("Profile completed! Redirecting to dashboard...");
+                setShowProfileCompletionModal(false);
+
+                setTimeout(() => {
+                    navigate("/dashboard/customer");
+                }, 1500);
+            } else {
+                toast.error(response.data.message || "Failed to complete profile");
+            }
+
+        } catch (error: any) {
+            console.error("Profile completion error:", error);
+            toast.error(error.response?.data?.message || "Error completing profile");
         }
-
-        toast.success("Profile completed! Redirecting to dashboard...");
-        setShowProfileCompletionModal(false);
-
-        setTimeout(() => {
-            navigate("/dashboard/customer");
-        }, 1500);
     };
 
 

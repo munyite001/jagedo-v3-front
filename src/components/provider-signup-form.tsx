@@ -16,7 +16,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { toast, Toaster } from "sonner";
-import { verifyOtp } from "@/api/auth.api";
+import { verifyOtp, verifyEmail } from "@/api/auth.api";
 import { counties } from "@/pages/data/counties"
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { getPasswordStrength } from "./PasswordStrength";
@@ -82,30 +82,66 @@ export function ProviderSignupForm({
             setEmailStatus('idle');
             return;
         }
-        setEmailStatus('checking');
-        const timer = setTimeout(() => {
-            const existingUsers = JSON.parse(localStorage.getItem("mock_users_db") || "[]");
-            const emailExists = existingUsers.some((u: any) => u.email === formData.email);
-            setEmailStatus(emailExists ? 'taken' : 'available');
-        }, 500);
-        return () => clearTimeout(timer);
+
+        const checkTimeout = setTimeout(async () => {
+            setEmailStatus('checking');
+            try {
+                const response = await verifyEmail({ email: formData.email });
+
+                const message = response.data.message?.toLowerCase() || "";
+
+                if (message.includes("not found") || message.includes("does not exist") || (response.data.success === false && message.includes("user"))) {
+                    setEmailStatus('available');
+                } else if (response.data.success && !message.includes("not found")) {
+                    setEmailStatus('taken');
+                } else {
+                    setEmailStatus('taken');
+                }
+
+            } catch (error: any) {
+                if (error.response && error.response.status === 404) {
+                    setEmailStatus('available');
+                } else {
+                    console.error("Email check failed", error);
+                    setEmailStatus('idle');
+                }
+            }
+        }, 800);
+
+        return () => clearTimeout(checkTimeout);
     }, [formData.email]);
 
     useEffect(() => {
         if (currentStep !== 5) return;
         if (!formData.otp || formData.otp.length !== 6 || !/^\d{6}$/.test(formData.otp)) return;
+        if (isOtpVerified || isAutoVerifying) return;
 
         const autoVerify = async () => {
             setIsAutoVerifying(true);
-            await new Promise(resolve => setTimeout(resolve, 700));
-            setIsOtpVerified(true);
-            toast.success("Bypassed verification for testing!");
-            setIsAutoVerifying(false);
-            nextStep();
+            try {
+                const response = await verifyOtp({
+                    email: formData.email,
+                    phoneNumber: formData.phone,
+                    otp: formData.otp,
+                });
+
+                if (response.data.success) {
+                    setIsOtpVerified(true);
+                    toast.success("OTP Verified Successfully");
+                    setIsAutoVerifying(false);
+                    nextStep();
+                } else {
+                    toast.error(response.data.message || "Invalid OTP");
+                    setIsAutoVerifying(false);
+                }
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || "Error verifying OTP");
+                setIsAutoVerifying(false);
+            }
         };
 
         autoVerify();
-    }, [formData.otp, currentStep, nextStep]);
+    }, [formData.otp, currentStep, nextStep, isOtpVerified, isAutoVerifying]);
 
     const validateStep = () => {
         switch (currentStep) {
@@ -187,13 +223,10 @@ export function ProviderSignupForm({
     const handleContinue = async () => {
         if (validateStep()) {
             if (currentStep === 4) {
-                toast.success("OTP sent successfully (placeholder)");
-                setOtpTimer(120);
-                setTimerActive(true);
-                setHasInitialOtpBeenSent(true);
-                nextStep();
+                await handleSendOTP();
                 return;
             }
+
             if (currentStep === 2 && emailStatus === 'taken') {
                 toast.error("This email is already registered");
                 return;
@@ -227,8 +260,7 @@ export function ProviderSignupForm({
 
     const handleSendOTP = async () => {
         setIsSubmitting(true);
-        setOtpTimer(120);
-        setTimerActive(true);
+
         if (!formData.accountType) {
             toast.error("Please select an account type");
             setIsSubmitting(false);
@@ -244,13 +276,22 @@ export function ProviderSignupForm({
             setIsSubmitting(false);
             return;
         }
+
         try {
-            handleInitiateRegistration();
+            await handleInitiateRegistration();
+
+            setOtpTimer(120);
+            setTimerActive(true);
             setHasInitialOtpBeenSent(true);
+
+            nextStep();
+
         } catch (error: any) {
-            toast.error(error.response.data.message);
+            console.error(error);
             setTimerActive(false);
             setOtpTimer(0);
+
+            toast.error(error.response?.data?.message || "Failed to send OTP");
         } finally {
             setIsSubmitting(false);
         }
@@ -269,12 +310,35 @@ export function ProviderSignupForm({
         }
     }
 
-    const handleVerifyOTP = async () => {
-        setIsSubmitting(true)
-        setIsOtpVerified(true);
-        toast.success("Bypassed verification for testing!");
-        setIsSubmitting(false);
-        nextStep();
+    const handleVerifyOTP = async (otpValue?: string) => {
+        setIsSubmitting(true);
+        const otpToVerify = otpValue || formData.otp;
+
+        if (otpToVerify.length !== 6) {
+            toast.error("Invalid OTP length");
+            setIsSubmitting(false);
+            return;
+        }
+
+        try {
+            const response = await verifyOtp({
+                email: formData.email,
+                phoneNumber: formData.phone,
+                otp: otpToVerify,
+            });
+
+            if (response.data.success) {
+                setIsOtpVerified(true);
+                toast.success("OTP Verified Successfully");
+                nextStep();
+            } else {
+                toast.error(response.data.message || "Invalid OTP");
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Error verifying OTP");
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     useEffect(() => {

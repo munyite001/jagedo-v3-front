@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProfileCompletion } from "./ProfileCompletion";
 
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface ProfileCompletionModalProps {
