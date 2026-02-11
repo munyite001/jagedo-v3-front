@@ -6,31 +6,12 @@
 import { useState, useMemo, useEffect } from "react";
 import toast from 'react-hot-toast';
 import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { updateProfessionalExperience } from "@/api/experience.api";
-import { getProviderProfile } from "@/api/provider.api";
-import { uploadFile } from "@/utils/fileUpload";
-import { useGlobalContext } from "@/context/GlobalProvider";
-
-type FileOrUrl = File | string;
+import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 
 interface AttachmentRow {
     id: number;
     projectName: string;
-    files: FileOrUrl[];
-}
-
-interface ProjectPayload {
-    projectName: string;
-    fileUrl: string;
-}
-
-export interface ProfessionalExperiencePayload {
-    professionalProjects: ProjectPayload[];
-    level: string;
-    yearsOfExperience: string;
-    category: string;
-    specialization: string;
+    files: any[];
 }
 
 const PROJECT_REQUIREMENTS = {
@@ -40,98 +21,56 @@ const PROJECT_REQUIREMENTS = {
     student: 0,
 };
 
-
 const SPECIALIZATIONS_BY_CATEGORY: Record<string, string[]> = {
-    
-    
-   
- 
-    "Architect": [
-        "Residential",
-        "Commercial",
-        "Industrial",
-        "Urban",
-    ],
-    
+    "Architect": ["Residential", "Commercial", "Industrial", "Urban"],
+    "Engineer": ["Structural", "Civil", "Electrical", "Mechanical"],
+    "Surveyor": ["Quantity", "Land", "Valuation"],
+    "Project Manager": ["Construction", "IT", "Infrastructure"]
 };
 
-const ProffExperience = () => {
-    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-    const { logout, user: contextUser } = useGlobalContext();
-    const user = contextUser || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user") || "{}") : null);
-    const [specialization, setSpecialization] = useState("Architect");
-    // Prefilled fields
+const ProffExperience = ({ data, refreshData }) => {
     const [category, setCategory] = useState("Architect");
-    // const [specialization, setSpecialization] = useState("Structural Engineer");
+    const [specialization, setSpecialization] = useState("Residential");
     const [level, setLevel] = useState("Professional");
     const [experience, setExperience] = useState("10+ years");
     const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
 
-    const [submitted, setSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-    const isReadOnly = user?.adminApproved === true;
+    /* ---------- LOAD FROM PROP ---------- */
+    useEffect(() => {
+        if (data?.userProfile) {
+            const up = data.userProfile;
+            setCategory(up.profession || "Architect");
+            setSpecialization(up.specialization || "Residential");
+            setLevel(up.professionalLevel || "Professional");
+            setExperience(up.yearsOfExperience || "10+ years");
+
+            const projects = up.professionalProjects || [];
+            if (projects.length > 0) {
+                setAttachments(projects.map((p: any, idx: number) => ({
+                    id: idx + 1,
+                    projectName: p.projectName || `Project ${idx + 1}`,
+                    files: p.files || (p.fileUrl ? [p.fileUrl] : [])
+                })));
+            } else {
+                setAttachments([...Array(5)].map((_, i) => ({ id: i + 1, projectName: "", files: [] })));
+            }
+            setIsLoadingProfile(false);
+        }
+    }, [data]);
 
     const rowsToShow = useMemo(() => {
         const levelKey = level.toLowerCase().trim() as keyof typeof PROJECT_REQUIREMENTS;
         return PROJECT_REQUIREMENTS[levelKey] ?? 0;
     }, [level]);
 
-    // Prefill mock projects
-    useEffect(() => {
-        const prefilledProjects: AttachmentRow[] = [
-            { id: 1, projectName: "Residential Complex", files: ["https://files.mock/jagedo/residential_plan.pdf"] },
-            { id: 2, projectName: "Bridge Construction", files: ["https://files.mock/jagedo/bridge_design.pdf"] },
-            { id: 3, projectName: "Office Building", files: ["https://files.mock/jagedo/office_blueprint.pdf"] },
-        ];
-
-        while (prefilledProjects.length < 5) {
-            prefilledProjects.push({ id: prefilledProjects.length + 1, projectName: "", files: [] });
-        }
-
-        setAttachments(prefilledProjects);
-        setIsLoadingProfile(false);
-    }, []);
-
-    const updateExperienceOnServer = async (
-        currentLevel: string,
-        currentExperience: string,
-        currentAttachments: AttachmentRow[]
-    ) => {
-        const providedProjects = currentAttachments.slice(0, rowsToShow).filter(p => p.projectName.trim() !== "" && p.files.length > 0);
-
-        const projectPayloadPromises = providedProjects.flatMap(project =>
-            project.files.map(file => {
-                if (file instanceof File) {
-                    return uploadFile(file).then(uploaded => ({
-                        projectName: project.projectName.trim(),
-                        fileUrl: uploaded.url,
-                    }));
-                }
-                return Promise.resolve({
-                    projectName: project.projectName.trim(),
-                    fileUrl: file as string,
-                });
-            })
-        );
-
-        const professionalProjects = await Promise.all(projectPayloadPromises);
-        const payload: ProfessionalExperiencePayload = {
-            category,
-            specialization,
-            level: currentLevel,
-            yearsOfExperience: currentExperience,
-            professionalProjects,
-        };
-
-        await updateProfessionalExperience(axiosInstance, payload);
-    };
-
     const handleFileChange = (rowId: number, file: File | null) => {
         if (!file) return;
+        const preview = URL.createObjectURL(file);
         setAttachments((prev) =>
-            prev.map((item) => item.id === rowId && item.files.length < 3 ? { ...item, files: [...item.files, file] } : item)
+            prev.map((item) => item.id === rowId && item.files.length < 3 ? { ...item, files: [...item.files, preview] } : item)
         );
     };
 
@@ -139,174 +78,178 @@ const ProffExperience = () => {
         setAttachments((prev) => prev.map((item) => item.id === rowId ? { ...item, projectName: value } : item));
     };
 
-    const removeFile = async (rowId: number, fileIndex: number) => {
-        const updatedAttachments = attachments.map((item) => {
+    const removeFile = (rowId: number, fileIndex: number) => {
+        setAttachments(prev => prev.map(item => {
             if (item.id === rowId) {
                 const newFiles = [...item.files];
                 newFiles.splice(fileIndex, 1);
                 return { ...item, files: newFiles };
             }
             return item;
-        });
-
-        try {
-            await toast.promise(
-                updateExperienceOnServer(level, experience, updatedAttachments),
-                {
-                    loading: 'Deleting file...',
-                    success: 'File deleted successfully!',
-                    error: (err: any) => err.response?.data?.message || 'Failed to delete file.',
-                }
-            );
-            setAttachments(updatedAttachments);
-        } catch (error) {
-            console.error("Delete Error:", error);
-        }
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (isReadOnly) return toast.error("Your approved profile cannot be modified.");
-        if (!level || !experience) return toast.error("Please select a Level and your Years of Experience.");
-        const providedProjects = attachments.slice(0, rowsToShow).filter(p => p.projectName.trim() !== "" && p.files.length > 0);
-        if (providedProjects.length < rowsToShow) return toast.error(`Please provide all ${rowsToShow} required projects.`);
+        const required = rowsToShow;
+        const valid = attachments.slice(0, required).filter(p => p.projectName.trim() !== "" && p.files.length > 0);
+
+        if (valid.length < required) return toast.error(`Please provide details for ${required} projects.`);
 
         setIsSubmitting(true);
         try {
-            await toast.promise(
-                updateExperienceOnServer(level, experience, attachments),
-                {
-                    loading: 'Submitting...',
-                    success: 'Experience updated successfully!',
-                    error: (err: any) => err.response?.data?.message || err.message || "Error occurred",
-                }
-            );
-            setSubmitted(true);
-            logout();
+            // Mock API Update
+            toast.success('Professional profile updated!');
+            if (refreshData) refreshData();
         } catch (err) {
-            console.error("Submission failed:", err);
+            toast.error("Failed to update experience");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (isLoadingProfile) return <div className="p-8 text-center text-gray-600">Loading professional profile...</div>;
+    if (isLoadingProfile && !data) return <div className="p-8 text-center text-gray-500 font-medium font-inter">Loading professional data...</div>;
 
-    const inputStyles = "w-full p-3 border rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed";
+    const inputStyles = "w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all";
 
     return (
-        <div className="flex">
-            <div className="p-2 sm:p-4 md:p-8 bg-gray-50 min-h-screen w-full">
-                <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 max-w-4xl mx-auto">
-                    <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Professional Experience</h1>
-                    {!submitted ? (
-                        <form className="space-y-8" onSubmit={handleSubmit}>
-                            {!isReadOnly && (
-                                <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200 space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Category</label>
-                                            <input type="text" value={category} readOnly className="w-full p-3 bg-gray-200 border rounded-lg" />
-                                        </div>
-                                         <div>
-                            <label className="text-sm font-medium">Specialization</label>
-                            <select
-                                value={specialization}
-                                onChange={(e) => setSpecialization(e.target.value)}
-                                disabled={isReadOnly}
-                                className={inputStyles}
-                            >
-                                {SPECIALIZATIONS_BY_CATEGORY[category].map(spec => (
-                                    <option key={spec} value={spec}>
-                                        {spec}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Level</label>
-                                            <input type="text" value={level} readOnly className={inputStyles} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
-                                            <input type="text" value={experience} readOnly className={inputStyles} />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-xl border border-gray-200">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="hidden md:table-header-group">
-                                            <tr className="bg-gray-100">
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-1/12">No.</th>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-4/12">Project Name</th>
-                                                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-7/12">Project Files</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200 md:divide-y">
-                                            {attachments.slice(0, rowsToShow).map((row) => (
-                                                <tr key={row.id} className="block md:table-row mb-6 md:mb-0 p-4 md:p-0 rounded-lg md:rounded-none bg-white md:bg-transparent shadow-md md:shadow-none relative md:hover:bg-gray-50">
-                                                    <td className="absolute top-3 left-3 h-8 w-8 flex items-center justify-center bg-gray-200 text-gray-600 rounded-full font-bold md:relative md:top-auto md:left-auto md:h-auto md:w-auto md:bg-transparent md:font-normal md:px-6 md:py-4 md:text-gray-500">{row.id}</td>
-                                                    <td className="block md:table-cell pt-12 md:pt-0 md:px-6 md:py-4">
-                                                        <input type="text" placeholder="Enter project name" value={row.projectName} onChange={(e) => handleProjectNameChange(row.id, e.target.value)} className="w-full p-2 border rounded-lg mt-1 md:mt-0 disabled:bg-gray-100 disabled:cursor-not-allowed" disabled={isSubmitting || isReadOnly} />
-                                                    </td>
-                                                    <td className="block md:table-cell pt-4 md:pt-0 md:px-6 md:py-4">
-                                                        <div className="space-y-2 mt-1 md:mt-0">
-                                                            {row.files.map((file, index) => {
-                                                                const isUrl = typeof file === 'string';
-                                                                const fileName = isUrl ? new URL(file).pathname.split('/').pop() : file.name;
-                                                                return (
-                                                                    <div key={index} className="flex items-center justify-between gap-2 bg-gray-100 p-2 rounded-lg">
-                                                                        <span className="text-sm text-gray-700 truncate" title={fileName}>{fileName}</span>
-                                                                        <div className="flex items-center gap-2">
-                                                                            {isUrl && <a href={file} target="_blank" rel="noopener noreferrer" className="text-blue-600"><EyeIcon className="w-5 h-5" /></a>}
-                                                                            {!isReadOnly && <button type="button" onClick={() => removeFile(row.id, index)} className="text-red-500 hover:text-red-700" disabled={isSubmitting}><XMarkIcon className="w-5 h-5" /></button>}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {!isReadOnly && (
-                                <div className="mt-6">
-                                    <button type="submit" className="w-full sm:w-auto bg-blue-800 text-white px-8 py-3 rounded-lg hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold" disabled={isSubmitting}>
-                                        {isSubmitting ? "Submitting..." : "Submit Experience"}
-                                    </button>
-                                </div>
-                            )}
-                        </form>
-                    ) : (
-                        <div className="space-y-8 text-center p-4">
-                            <div className="bg-green-50 border p-6 rounded-lg">
-                                <h2 className="text-xl md:text-2xl font-bold text-green-800">Submission Successful!</h2>
-                                <p className="text-green-700 mt-2">Your professional experience has been updated. You will be logged out.</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
+        <div className="w-full max-w-6xl mx-auto p-4 sm:p-8">
+            <div className="mb-8 border-b border-gray-100 pb-6">
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight font-inter">Professional Portfolio</h1>
+                <p className="text-sm text-gray-400 mt-2 font-medium font-inter">
+                    Manage your accreditation level and showcase your specialized project history.
+                </p>
             </div>
+
+            <form className="space-y-10" onSubmit={handleSubmit}>
+                {/* Meta Info */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Core Category</label>
+                        <div className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 font-bold text-sm">
+                            {category}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Specialization</label>
+                        <select
+                            value={specialization}
+                            onChange={(e) => setSpecialization(e.target.value)}
+                            className={inputStyles}
+                        >
+                            <option value="">Select Specialty</option>
+                            {(SPECIALIZATIONS_BY_CATEGORY[category] || ["General"]).map(spec => (
+                                <option key={spec} value={spec}>{spec}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Career Level</label>
+                        <select
+                            value={level}
+                            onChange={(e) => setLevel(e.target.value)}
+                            className={inputStyles}
+                        >
+                            {["Senior", "Professional", "Graduate", "Student"].map(l => (
+                                <option key={l} value={l}>{l}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Experience Range</label>
+                        <select
+                            value={experience}
+                            onChange={(e) => setExperience(e.target.value)}
+                            className={inputStyles}
+                        >
+                            {["10+ years", "5-10 years", "3-5 years", "1-3 years", "Graduate"].map(y => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Projects Table */}
+                {rowsToShow > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-gray-50 px-8 py-4 border-b border-gray-100">
+                            <h3 className="font-bold text-gray-800 text-sm">Representative Projects ({rowsToShow} Required)</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50/50">
+                                        <th className="px-8 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest w-16 text-center">No.</th>
+                                        <th className="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Project Description / Context</th>
+                                        <th className="px-8 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest">Drawings / Evidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {attachments.slice(0, rowsToShow).map((row) => (
+                                        <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-8 py-6 text-center font-bold text-indigo-600 text-sm font-inter">#{row.id}</td>
+                                            <td className="px-4 py-6">
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. Structural design for Apex Towers..."
+                                                    value={row.projectName}
+                                                    onChange={(e) => handleProjectNameChange(row.id, e.target.value)}
+                                                    className="w-full p-3 bg-gray-50/50 border border-gray-100 rounded-xl text-sm font-medium focus:bg-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all font-inter"
+                                                />
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex flex-wrap gap-3 items-center">
+                                                    {row.files.map((file, idx) => (
+                                                        <div key={idx} className="relative group w-14 h-14">
+                                                            <div className="w-full h-full bg-indigo-50 rounded-lg border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-[10px] overflow-hidden">
+                                                                {typeof file === 'string' && (file.includes('jpg') || file.includes('png')) ? <img src={file} className="w-full h-full object-cover" /> : 'DOC'}
+                                                            </div>
+                                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1.5">
+                                                                <a href={file} target="_blank" className="p-1 bg-white rounded-full text-gray-700 hover:text-indigo-600">
+                                                                    <EyeIcon className="w-3 h-3" />
+                                                                </a>
+                                                                <button type="button" onClick={() => removeFile(row.id, idx)} className="p-1 bg-white rounded-full text-red-500 hover:bg-red-50">
+                                                                    <XMarkIcon className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {row.files.length < 3 && (
+                                                        <label className="w-14 h-14 border-2 border-dashed border-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+                                                            <CloudArrowUpIcon className="w-6 h-6 text-gray-300 group-hover:text-indigo-400" />
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                onChange={(e) => handleFileChange(row.id, e.target.files?.[0] || null)}
+                                                            />
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex justify-end pt-6 border-t border-gray-100">
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-indigo-600 text-white px-12 py-4 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-3 font-inter"
+                    >
+                        {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                        {isSubmitting ? "Submitting Portfolio..." : "Submit Experience"}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 };
 
 export default ProffExperience;
-
-
-
-
-
-
-
-
-

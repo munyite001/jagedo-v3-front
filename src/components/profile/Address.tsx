@@ -1,289 +1,185 @@
-import { useState, useEffect, useMemo } from "react";
-import { FiEdit } from "react-icons/fi";
-import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { useGlobalContext } from "@/context/GlobalProvider";
-import { getProviderProfile, updateProfileAddress } from "@/api/provider.api";
+/* eslint-disable */
+//@ts-nocheck
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { updateAddress } from "@/api/provider.api";
 import { counties } from "@/pages/data/counties";
-import { MOCK_ADDRESSES } from "@/pages/mockAddresses";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
-const Address = () => {
-  const { user } = useGlobalContext();
-  const canEdit = user?.userType === "CUSTOMER" || !user?.adminApproved;
-
-  const [isEditing, setIsEditing] = useState(false);
+// Accept data and refreshData props
+const Address = ({ data, refreshData }) => {
   const [address, setAddress] = useState({
     country: "Kenya",
     county: "",
     subCounty: "",
     estate: "",
   });
-  const [providerProfile, setProviderProfile] = useState(null);
+
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [updateMessage, setUpdateMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const isLoadingCountries = false;
 
+  /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
-    if (!user) return;
-
-    const key = (user.username || user.email || "").split("@")[0];
-    let stored = null;
-    try {
-      const raw = localStorage.getItem("address");
-      if (raw && raw !== "undefined") {
-        stored = JSON.parse(raw);
-      }
-    } catch {
-      localStorage.removeItem("address");
-    }
-
-    if (stored) {
-      setAddress(stored);
-      setProviderProfile(stored);
-    } else {
-
-      const mock = MOCK_ADDRESSES[key] || {
-        country: "Kenya",
-        county: user.county || "",
-        subCounty: user.subCounty || "",
-        estate: user.estate || user.town || "",
-      };
-
-      setAddress(mock);
-      setProviderProfile(mock);
-      localStorage.setItem("address", JSON.stringify(mock));
-    }
-
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    if (updateMessage) {
-      const timer = setTimeout(() => {
-        setUpdateMessage(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [updateMessage]);
-
-  const countyList = useMemo(() => {
-    return address.country?.toLowerCase() === "kenya" ? Object.keys(counties) : [];
-  }, [address.country]);
-
-  const subCountyList = useMemo(() => {
-    if (address.country?.toLowerCase() === "kenya" && address.county) {
-      return counties[address.county as keyof typeof counties] || [];
-    }
-    return [];
-  }, [address.country, address.county]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === "country") {
-      setAddress((prev) => ({ ...prev, country: value, county: "", subCounty: "" }));
-    } else if (name === "county") {
-      setAddress((prev) => ({ ...prev, county: value, subCounty: "" }));
-    } else {
-      setAddress((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const validateAddress = () => {
-    const requiredFields: Array<keyof typeof address> = ['country', 'county'];
-    const missingFields = requiredFields.filter(field => !address[field]?.trim());
-
-    if (missingFields.length > 0) {
-      setUpdateMessage({
-        type: "error",
-        text: `Please fill in required fields: ${missingFields.join(', ')}`
-      });
-      return false;
-    }
-    return true;
-  };
-
-
-  const handleUpdate = () => {
-    if (!validateAddress()) return;
-
-    setUpdating(true);
-
-    setTimeout(() => {
-      localStorage.setItem("address", JSON.stringify(address));
-      setProviderProfile(address);
-      setUpdateMessage({ type: "success", text: "Address updated successfully!" });
-      setIsEditing(false);
-      setUpdating(false);
-    }, 600);
-  };
-
-  const handleCancel = () => {
-    if (providerProfile) {
+    if (data) {
       setAddress({
-        country: providerProfile.country || "",
-        county: providerProfile.county || "",
-        subCounty: providerProfile.subCounty || "",
-        estate: providerProfile.estate || "",
+        country: data.country || "Kenya",
+        county: data.county || "",
+        subCounty: data.subCounty || "",
+        estate: data.estate || "",
       });
+      setLoading(false);
     }
-    setIsEditing(false);
-    setUpdateMessage(null);
+  }, [data]);
+
+  /* ---------- HANDLERS ---------- */
+  const subCounties = counties[address.county] || [];
+
+  const handleUpdate = async () => {
+    if (!address.county || !address.subCounty || !address.estate) {
+      return toast.error("Please fill in all address fields");
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await updateAddress(axiosInstance, address);
+      if (response.success) {
+        toast.success("Address updated successfully");
+        setIsEditing(false);
+        if (refreshData) refreshData();
+      } else {
+        toast.error(response.message || "Failed to update address");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleReset = () => {
-    setAddress({
-      country: "Kenya",
-      county: "",
-      subCounty: "",
-      estate: "",
-    });
-    setUpdateMessage(null);
-  };
-
-  if (loading || isLoadingCountries) {
-    return (
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-md p-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-10 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading && !data) return <div className="p-8">Loading address...</div>;
 
   return (
-    <div className="w-full max-w-4xl bg-white rounded-xl shadow-md p-8">
-      <div className="flex justify-between items-center mb-6 border-b pb-3">
-        <h1 className="text-2xl font-bold">My Address</h1>
-        {!isEditing && canEdit && (
-          <FiEdit className="text-[rgb(0,0,122)] cursor-pointer hover:opacity-75" size={20} onClick={() => setIsEditing(true)} />
-        )}
-      </div>
+    <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">Address</h1>
 
-      {!canEdit && !isEditing && (
-        <div className="mb-6 p-4 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-200">
-          Your profile has been approved. To update your address, please contact support for assistance.
-        </div>
-      )}
-
-      {updateMessage && (
-        <div className={`mb-4 p-3 rounded ${updateMessage.type === "success"
-          ? "bg-green-50 text-green-700 border border-green-200"
-          : "bg-red-50 text-red-700 border border-red-200"
-          }`}>
-          {updateMessage.text}
-        </div>
-      )}
-
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Country (Read Only) */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Country <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-medium text-gray-700">Country</label>
+          <input
+            type="text"
+            value={address.country}
+            readOnly
+            className="w-full px-4 py-2 border-b bg-transparent"
+          />
+        </div>
+
+        {/* County */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">County</label>
           {isEditing ? (
-            <div className="w-full px-4 py-2 border-b bg-gray-50 flex items-center gap-2">
-              <div className="kenyanimg">
-                <img
-                  src="/src/assets/kenyan flag.png"
-                  alt="Kenya Flag"
-                  height="10"
-                  width="30"
-                />
-              </div>
-              <span className="text-gray-700 font-medium">Kenya</span>
-            </div>
+            <select
+              value={address.county}
+              onChange={(e) =>
+                setAddress({ ...address, county: e.target.value, subCounty: "" })
+              }
+              className="w-full px-4 py-2 border rounded-md"
+            >
+              <option value="">Select County</option>
+              {Object.keys(counties).map((countyName) => (
+                <option key={countyName} value={countyName}>
+                  {countyName}
+                </option>
+              ))}
+            </select>
           ) : (
-            <p className="w-full px-4 py-2 border-b">{address.country || "Not specified"}</p>
+            <input
+              type="text"
+              value={address.county}
+              readOnly
+              className="w-full px-4 py-2 border-b bg-transparent"
+            />
           )}
         </div>
 
-        {address.country?.toLowerCase() === 'kenya' && (
-          <>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">County <span className="text-red-500">*</span></label>
-              {isEditing ? (
-                <select
-                  name="county"
-                  value={address.county}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border-b outline-none focus:border-[rgb(0,0,122)]"
-                  required
-                >
-                  <option value="">Select County</option>
-                  {countyList.map((county) => (
-                    <option key={county} value={county}>{county}</option>
-                  ))}
-                </select>
-              ) : (
-                <p className="w-full px-4 py-2 border-b">{address.county || "Not specified"}</p>
-              )}
-            </div>
-
-            {address.county && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Sub County</label>
-                {isEditing ? (
-                  <select
-                    name="subCounty"
-                    value={address.subCounty}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border-b outline-none focus:border-[rgb(0,0,122)]"
-                  >
-                    <option value="">Select Sub-County</option>
-                    {subCountyList.map((sub) => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="w-full px-4 py-2 border-b">{address.subCounty || "Not specified"}</p>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
+        {/* Sub-county */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Estate / Town</label>
+          <label className="block text-sm font-medium text-gray-700">Sub-county</label>
+          {isEditing ? (
+            <select
+              value={address.subCounty}
+              onChange={(e) => setAddress({ ...address, subCounty: e.target.value })}
+              className="w-full px-4 py-2 border rounded-md"
+              disabled={!address.county}
+            >
+              <option value="">Select Sub-county</option>
+              {subCounties.map((sc) => (
+                <option key={sc} value={sc}>
+                  {sc}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={address.subCounty}
+              readOnly
+              className="w-full px-4 py-2 border-b bg-transparent"
+            />
+          )}
+        </div>
+
+        {/* Estate */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Estate</label>
           {isEditing ? (
             <input
-              name="estate"
+              type="text"
               value={address.estate}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border-b outline-none focus:border-[rgb(0,0,122)]"
-              placeholder="Enter estate/area"
+              onChange={(e) => setAddress({ ...address, estate: e.target.value })}
+              className="w-full px-4 py-2 border rounded-md"
             />
           ) : (
-            <p className="w-full px-4 py-2 border-b">{address.estate || "Not specified"}</p>
+            <input
+              type="text"
+              value={address.estate}
+              readOnly
+              className="w-full px-4 py-2 border-b bg-transparent"
+            />
           )}
         </div>
 
-        {isEditing && (
-          <div className="flex gap-4 mt-4 items-center">
-            <button type="button" onClick={handleUpdate} disabled={updating} className="bg-[rgb(0,0,122)] text-white px-6 py-2 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-              {updating ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Updating...</>) : ("Update")}
+        {/* Action Buttons */}
+        <div className="pt-4 flex gap-4">
+          {!isEditing ? (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="bg-blue-800 text-white px-8 py-2 rounded font-semibold"
+            >
+              Edit Address
             </button>
-            <button type="button" onClick={handleReset} disabled={updating} className="border border-gray-400 text-gray-700 px-6 py-2 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-              Reset
-            </button>
-            <button type="button" onClick={handleCancel} disabled={updating} className="text-red-500 px-6 py-2 rounded hover:underline ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
-              Cancel
-            </button>
-          </div>
-        )}
+          ) : (
+            <>
+              <button
+                onClick={handleUpdate}
+                disabled={isSubmitting}
+                className="bg-blue-800 text-white px-8 py-2 rounded font-semibold disabled:opacity-50"
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="border border-blue-800 text-blue-800 px-8 py-2 rounded font-semibold"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
-
   );
 };
 

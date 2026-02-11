@@ -9,12 +9,42 @@ import Activity from "@/components/profile/Activity";
 import ProffExperience from "@/components/profile/ProffExperience";
 import ShopAppPage from "@/components/profile/FundiShopApp";
 import ContractorExperience from "@/components/profile/ContractorExperience";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { getProviderProfile } from "@/api/provider.api";
 
 function ProfilePage() {
     const [activeComponent, setActiveComponent] = useState("Account Info");
     const { user, logout } = useGlobalContext();
     const [rerender, setRerender] = useState(0);
+    const [providerData, setProviderData] = useState(null); // State for API Data
+    const [loadingData, setLoadingData] = useState(true);
+
+    const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
+
+    // 1. Fetch Data Once Here
+    useEffect(() => {
+        const fetchProviderProfile = async () => {
+            if (!user?.id) {
+                setLoadingData(false);
+                return;
+            }
+
+            try {
+                setLoadingData(true);
+                const response = await getProviderProfile(axiosInstance, user.id);
+                if (response.success) {
+                    setProviderData(response.data);
+                }
+            } catch (error) {
+                console.error("Error fetching provider profile:", error);
+            } finally {
+                setLoadingData(false);
+            }
+        };
+
+        fetchProviderProfile();
+    }, [user?.id, rerender]); // Added rerender to dependencies to allow refetching
 
     useEffect(() => {
         const handleStorageChange = () => {
@@ -25,21 +55,16 @@ function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        if (!user) {
-            return;
-        }
+        if (!user) return;
         const userType = user?.userType?.toUpperCase();
         const serviceProviderTypes = ["FUNDI", "CONTRACTOR", "PROFESSIONAL", "HARDWARE"];
 
-        if (
-            serviceProviderTypes.includes(userType) &&
-            !user?.userProfile?.complete
-        ) {
+        if (serviceProviderTypes.includes(userType) && !user?.userProfile?.complete) {
             setActiveComponent("Account Info");
         }
     }, [user]);
 
-    const completionStatus = useMemo((): { [key: string]: 'complete' | 'incomplete' } => {
+    const completionStatus = useMemo(() => {
         const userType = user?.userType?.toLowerCase() || '';
 
         const getRequiredDocuments = () => {
@@ -59,13 +84,23 @@ function ProfilePage() {
 
         const uploadedDocs = JSON.parse(localStorage.getItem(`uploads_demo_${user?.id}`) || '{}');
         const requiredDocs = getRequiredDocuments();
-        const uploadsComplete = requiredDocs.length === 0 || requiredDocs.every(doc => uploadedDocs[doc]);
+
+        let uploadsComplete = requiredDocs.length === 0 || requiredDocs.every(doc => uploadedDocs[doc]);
+
+        // Enhance check using providerData if available
+        if (providerData?.userProfile) {
+            // If the API says it's complete, trust it
+            if (providerData.userProfile.complete) {
+                uploadsComplete = true;
+            }
+        }
 
         let experienceComplete = false;
         if (userType !== 'customer' && userType !== 'hardware') {
-            const hasGrade = user?.userProfile?.grade;
-            const hasExperience = user?.userProfile?.experience;
-            const hasProjects = user?.userProfile?.previousJobPhotoUrls && user.userProfile.previousJobPhotoUrls.length > 0;
+            const up = providerData?.userProfile || user?.userProfile;
+            const hasGrade = up?.grade;
+            const hasExperience = up?.experience;
+            const hasProjects = up?.previousJobPhotoUrls && up.previousJobPhotoUrls.length > 0;
             experienceComplete = hasGrade && hasExperience && hasProjects;
         } else {
             experienceComplete = true;
@@ -79,7 +114,7 @@ function ProfilePage() {
             'Products': 'incomplete',
             'Activities': 'complete',
         };
-    }, [user?.id, user?.accountType, user?.userType, user?.userProfile, rerender]);
+    }, [user?.id, user?.accountType, user?.userType, user?.userProfile, providerData, rerender]);
 
     const progressPercentage = useMemo(() => {
         const relevantKeys = Object.keys(completionStatus).filter(key => key !== 'Activities');
@@ -94,39 +129,46 @@ function ProfilePage() {
         return Math.round((completedCount / finalKeys.length) * 100);
     }, [completionStatus, user]);
 
-
+    // 2. Prop Drill 'data' to children
     const renderContent = () => {
         const userType = (user?.userType || '').toLowerCase();
 
+        // Common props passed to all relevant components
+        const props = {
+            data: providerData,
+            refreshData: () => setRerender(prev => prev + 1)
+        };
+
         switch (activeComponent) {
             case "Account Info":
-                return <AccountInfo />;
+                return <AccountInfo {...props} />;
             case "Address":
-                return <Address />;
+                return <Address {...props} />;
             case "Account Uploads":
-                return <AccountUploads />;
+                return <AccountUploads {...props} />;
             case "Experience":
-                if (userType === 'fundi') {
-                    return <FundiExperience />;
-                }
-                if (userType === 'professional') {
-                    return <ProffExperience />;
-                }
-                if (userType === 'contractor') {
-                    return <ContractorExperience />;
-                }
-                return <AccountInfo />;
+                if (userType === 'fundi') return <FundiExperience {...props} />;
+                if (userType === 'professional') return <ProffExperience {...props} />;
+                if (userType === 'contractor') return <ContractorExperience {...props} />;
+                return <AccountInfo {...props} />;
             case "Products":
-                if (userType === 'customer') {
-                    return <AccountInfo />;
-                }
-                return <ShopAppPage />;
+                if (userType === 'customer') return <AccountInfo {...props} />;
+                return <ShopAppPage {...props} />;
             case "Activities":
-                return <Activity />;
+                return <Activity {...props} />;
             default:
-                return <AccountInfo />;
+                return <AccountInfo {...props} />;
         }
     };
+
+    if (loadingData && !providerData) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mb-4" />
+                <p className="text-gray-600 font-medium">Loading Profile...</p>
+            </div>
+        );
+    }
 
     const isServiceProvider =
         user?.userType === "FUNDI" ||
@@ -136,12 +178,12 @@ function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {isServiceProvider && user.adminApproved === false && (
+            {isServiceProvider && (providerData?.adminApproved === false || user?.adminApproved === false) && (
                 <div className="fixed top-12 w-full px-4 sm:px-6 pointer-events-none z-50">
                     <div className="w-[70%] sm:max-w-md mx-auto flex items-start gap-2 bg-yellow-100 rounded-md p-2 sm:p-4 shadow-md">
                         <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-1 text-yellow-500 flex-shrink-0" />
                         <span className="text-xs sm:text-sm text-yellow-700 leading-tight sm:leading-snug">
-                            {user?.userProfile?.complete
+                            {(providerData?.userProfile?.complete || user?.userProfile?.complete)
                                 ? "Your profile is complete and awaiting admin approval."
                                 : "Please complete your profile for your account to be approved."
                             }
@@ -151,7 +193,6 @@ function ProfilePage() {
             )}
 
             <div className="flex">
-                {/* Sidebar */}
                 <ProfileSide
                     activeComponent={activeComponent}
                     setActiveComponent={setActiveComponent}
@@ -160,25 +201,14 @@ function ProfilePage() {
                 />
 
                 <div className="flex-1 ml-16 sm:ml-64 lg:ml-80 transition-all duration-500 flex flex-col min-h-screen">
-
                     <header className="sticky top-0 z-30 w-full bg-white py-4 shadow-sm px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between">
-                            {/* Welcome Message */}
                             <h1 className="text-xl font-bold pl-4 text-gray-800 sm:text-2xl md:text-3xl truncate">
-                                Welcome, {user?.organizationName || user?.firstName || user?.contactFullName || "User"}!
+                                Welcome, {providerData?.organizationName || providerData?.firstName || user?.firstName || "User"}!
                             </h1>
-
-                            {/* Logout Button */}
                             <button
                                 onClick={logout}
-                                className="
-                                    rounded-md bg-indigo-600 px-4 py-2 
-                                    text-sm font-semibold text-white 
-                                    shadow-sm transition-colors duration-200 
-                                    hover:bg-indigo-500 
-                                    focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                                    whitespace-nowrap flex-shrink-0
-                                "
+                                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                             >
                                 Logout
                             </button>
@@ -187,7 +217,6 @@ function ProfilePage() {
 
                     <main className="flex-1 p-3 sm:p-4 lg:p-6">
                         <div className="max-w-6xl mx-auto space-y-6">
-
                             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                                 <div className="flex justify-between items-center mb-2">
                                     <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -213,7 +242,6 @@ function ProfilePage() {
                                         : "Complete all sections to verify your account."}
                                 </p>
                             </div>
-
                             {renderContent()}
                         </div>
                     </main>

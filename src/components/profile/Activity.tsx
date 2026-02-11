@@ -7,7 +7,8 @@ import { getSalesActivities } from '@/api/sales.api'
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { useGlobalContext } from "@/context/GlobalProvider";
 
-const Activity = () => {
+// Accept data as profileData from parent
+const Activity = ({ data: profileData }) => {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [requestData, setRequestData] = useState(null);
@@ -62,15 +63,18 @@ const Activity = () => {
         }
     }, [data, userType]);
 
-    if (loading) {
+    if (loading && !profileData) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="text-gray-500">Loading...</div>
+                <div className="text-gray-500">Loading activity...</div>
             </div>
         )
     }
 
-    const activeDuration = data?.date ? calculateDuration(data.date) : '1y 2m 18d'
+    // Use createdAt from profileData if available
+    const activeDuration = profileData?.userProfile?.createdAt
+        ? calculateDuration(profileData.userProfile.createdAt)
+        : (data?.date ? calculateDuration(data.date) : '1y 2m 18d');
 
     return (
         <div className="max-w-4xl mx-auto p-8">

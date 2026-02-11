@@ -1,14 +1,16 @@
+/* eslint-disable */
+//@ts-nocheck
 import { Download, FileText, Upload, Eye, Image } from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
-import { MOCK_UPLOADS } from "@/pages/mockUploads";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { updateProfileDocuments } from "@/api/provider.api";
 
 const DocumentCard = ({ label, url, onReplace }) => {
   const fileName = url?.split("/").pop();
 
   if (!url) {
-    // Empty state - needs upload
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div className="flex items-start gap-3 mb-3">
@@ -41,7 +43,6 @@ const DocumentCard = ({ label, url, onReplace }) => {
     );
   }
 
-  // Uploaded state
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
       <div className="flex items-start gap-3 mb-3">
@@ -54,7 +55,6 @@ const DocumentCard = ({ label, url, onReplace }) => {
         </div>
       </div>
 
-      {/* Action buttons - View, Download, Replace */}
       <div className="flex gap-2 flex-wrap">
         <a
           href={url}
@@ -93,45 +93,39 @@ const DocumentCard = ({ label, url, onReplace }) => {
   );
 };
 
-const AccountUploads = () => {
+const AccountUploads = ({ data, refreshData }) => {
   const { user } = useGlobalContext();
   const userType = user?.userType?.toLowerCase();
 
-  /* ---------------- NON-CONTRACTORS ---------------- */
+  const [documents, setDocuments] = useState({});
+  const [categoryDocs, setCategoryDocs] = useState({});
+  const [categories, setCategories] = useState([]);
+
+  /* ---------- LOAD FROM PROP ---------- */
+  useEffect(() => {
+    if (data?.userProfile) {
+      setDocuments(data.userProfile);
+
+      // Handling categories for contractors if present in the data
+      if (userType === 'contractor' && data.userProfile.contractorExperiences) {
+        const catNames = data.userProfile.contractorExperiences.map(exp => exp.category);
+        setCategories(catNames);
+      }
+    }
+  }, [data, userType]);
+
+  const replaceDocument = (file, key) => {
+    const url = URL.createObjectURL(file);
+    setDocuments(prev => ({ ...prev, [key]: url }));
+    toast.success("Document selected (will save to backend)");
+  };
+
+  const handleSaveDocuments = () => {
+    toast.success('Uploads saved successfully (mock)');
+    if (refreshData) refreshData();
+  };
+
   if (userType !== "contractor") {
-    const [documents, setDocuments] = useState({});
-
-    useEffect(() => {
-      setDocuments(
-        JSON.parse(localStorage.getItem(`docs-${userType}`)) ||
-        MOCK_UPLOADS[userType] ||
-        {}
-      );
-    }, [userType]);
-
-    const replaceDocument = (file, key) => {
-      const url = URL.createObjectURL(file);
-      const updated = { ...documents, [key]: url };
-      setDocuments(updated);
-      localStorage.setItem(`docs-${userType}`, JSON.stringify(updated));
-      
-      // ✅ NEW: Also save to the expected storage key for completion tracking
-      localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
-      
-      // ✅ DON'T trigger status update here - wait for Save button click
-    };
-
-    const handleSaveDocuments = () => {
-      // Save documents to localStorage
-      localStorage.setItem(`docs-${userType}`, JSON.stringify(documents));
-      localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(documents));
-      
-      // Trigger completion status update
-      window.dispatchEvent(new Event('storage'));
-      
-      toast.success('Uploads saved successfully');
-    };
-
     const defaultFields = {
       customer: [
         { label: "Business Permit", key: "businessPermit" },
@@ -165,7 +159,6 @@ const AccountUploads = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
-            {/* Header */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900">Uploaded Documents</h1>
               <p className="text-sm text-gray-500 mt-1">
@@ -173,7 +166,6 @@ const AccountUploads = () => {
               </p>
             </div>
 
-            {/* Document Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {fields.map(f => (
                 <DocumentCard
@@ -200,92 +192,6 @@ const AccountUploads = () => {
   }
 
   /* ---------------- CONTRACTORS ONLY ---------------- */
-
-  const [documents, setDocuments] = useState({});
-  const [categoryDocs, setCategoryDocs] = useState({});
-  const [categories, setCategories] = useState([]);
-
-  const loadCategories = () => {
-    // Try to load categories from ContractorExperience data first
-    const experienceData = JSON.parse(localStorage.getItem(`contractorExperience_${user?.id}`) || "null");
-    if (experienceData?.categories && experienceData.categories.length > 0) {
-      // Extract category names from contractor experience
-      const categoryNames = experienceData.categories
-        .filter((cat: any) => cat.category)
-        .map((cat: any) => cat.category);
-      setCategories(categoryNames);
-    } else {
-      // Fallback to old storage key
-      setCategories(
-        JSON.parse(localStorage.getItem("contractor-categories") || "[]")
-      );
-    }
-  };
-
-  useEffect(() => {
-    setDocuments(
-      JSON.parse(localStorage.getItem(`docs-contractor`) || "{}")
-    );
-
-    loadCategories();
-
-    setCategoryDocs(
-      JSON.parse(localStorage.getItem("contractor-category-docs") || "{}")
-    );
-
-    // Listen for storage changes to update categories
-    const handleStorageChange = () => {
-      loadCategories();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [user?.id]);
-
-  const replaceDocument = (file, key) => {
-    const url = URL.createObjectURL(file);
-    const updated = { ...documents, [key]: url };
-    setDocuments(updated);
-    localStorage.setItem("docs-contractor", JSON.stringify(updated));
-    
-    // ✅ NEW: Also save to the expected storage key for completion tracking
-    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
-    
-    // ✅ DON'T trigger status update here - wait for Save button click
-  };
-
-  const replaceCategoryDoc = (category, type, file) => {
-    const url = URL.createObjectURL(file);
-    const updated = {
-      ...categoryDocs,
-      [category]: {
-        ...categoryDocs[category],
-        [type]: url
-      }
-    };
-    setCategoryDocs(updated);
-    localStorage.setItem("contractor-category-docs", JSON.stringify(updated));
-    
-    // ✅ NEW: Also save to the expected storage key for completion tracking
-    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify(updated));
-    
-    // ✅ DON'T trigger status update here - wait for Save button click
-  };
-
-  const handleSaveDocuments = () => {
-    // Save all documents to localStorage
-    localStorage.setItem("docs-contractor", JSON.stringify(documents));
-    localStorage.setItem("contractor-category-docs", JSON.stringify(categoryDocs));
-    localStorage.setItem(`uploads_demo_${user?.id}`, JSON.stringify({
-      ...documents,
-      ...categoryDocs
-    }));
-    
-    // Trigger completion status update
-    window.dispatchEvent(new Event('storage'));
-    
-    toast.success('Uploads saved successfully');
-  };
-
   const generalFields = [
     { label: "Business Registration", key: "businessRegistration" },
     { label: "Business Permit", key: "businessPermit" },
@@ -297,7 +203,6 @@ const AccountUploads = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Contractor Documents</h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -305,7 +210,6 @@ const AccountUploads = () => {
             </p>
           </div>
 
-          {/* Section 1 - Company Documents */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-gray-600 mb-4">Company Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -320,7 +224,6 @@ const AccountUploads = () => {
             </div>
           </div>
 
-          {/* Section 2 - Category Documents */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-gray-600 mb-4">
               Category Licences & Certificates
@@ -339,17 +242,18 @@ const AccountUploads = () => {
                   <DocumentCard
                     label={`${cat} Certificate`}
                     url={categoryDocs?.[cat]?.certificate}
-                    onReplace={file =>
-                      replaceCategoryDoc(cat, "certificate", file)
-                    }
+                    onReplace={file => {
+                      const url = URL.createObjectURL(file);
+                      setCategoryDocs(prev => ({ ...prev, [cat]: { ...prev[cat], certificate: url } }));
+                    }}
                   />
-
                   <DocumentCard
                     label={`${cat} Practice License`}
                     url={categoryDocs?.[cat]?.license}
-                    onReplace={file =>
-                      replaceCategoryDoc(cat, "license", file)
-                    }
+                    onReplace={file => {
+                      const url = URL.createObjectURL(file);
+                      setCategoryDocs(prev => ({ ...prev, [cat]: { ...prev[cat], license: url } }));
+                    }}
                   />
                 </div>
               </div>
