@@ -11,6 +11,8 @@ import {
   updateProfileImage
 } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { uploadFile } from "@/utils/fileUpload";
+import { Loader2 } from "lucide-react";
 
 const isValidPhone = (phone: string) => /^2547\d{8}$/.test(phone);
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -44,6 +46,7 @@ function AccountInfo({ data, refreshData }) {
   const [isVerifyingPhoneOtp, setIsVerifyingPhoneOtp] = useState(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState(false);
   const [isVerifyingEmailOtp, setIsVerifyingEmailOtp] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   /* ---------- LOAD PROFILE FROM PROP ---------- */
   useEffect(() => {
@@ -155,15 +158,25 @@ function AccountInfo({ data, refreshData }) {
   };
 
   /* ---------- HANDLERS ---------- */
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImageSrc(event.target?.result);
-        toast.success("Image selected");
-      };
-      reader.readAsDataURL(file);
+      setIsUploadingImage(true);
+      const loadingToast = toast.loading("Uploading profile image...");
+      try {
+        // 1. Upload to storage
+        const uploaded = await uploadFile(file);
+        // 2. Update profile
+        await updateProfileImage(axiosInstance, uploaded.url);
+
+        setImageSrc(uploaded.url);
+        toast.success("Profile image updated!", { id: loadingToast });
+        if (refreshData) refreshData();
+      } catch (error: any) {
+        toast.error(error.message || "Failed to upload image", { id: loadingToast });
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   };
 
@@ -191,14 +204,25 @@ function AccountInfo({ data, refreshData }) {
 
       {/* Avatar */}
       <div className="flex flex-col items-start mb-8">
-        <img
-          src={imageSrc}
-          className="w-24 h-24 rounded-full object-cover border"
-          alt="Profile Avatar"
-        />
+        <div className="relative group">
+          <img
+            src={imageSrc}
+            className={`w-24 h-24 rounded-full object-cover border ${isUploadingImage ? 'opacity-50' : ''}`}
+            alt="Profile Avatar"
+          />
+          {isUploadingImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+          )}
+        </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={() => fileInputRef.current.click()} className="text-blue-700 text-sm hover:text-blue-900">
-            Change Photo
+          <button
+            disabled={isUploadingImage}
+            onClick={() => fileInputRef.current.click()}
+            className="text-blue-700 text-sm hover:text-blue-900 disabled:opacity-50"
+          >
+            {isUploadingImage ? "Uploading..." : "Change Photo"}
           </button>
         </div>
         <input type="file" hidden ref={fileInputRef} onChange={handleImageChange} accept="image/*" />
