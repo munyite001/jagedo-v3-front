@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Mail, Phone, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,7 @@ export function ProviderSignupForm({
     const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
     const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const [isAutoVerifying, setIsAutoVerifying] = useState(false);
+    const lastVerifiedOtp = useRef<string>("");
     const [professionSearch, setProfessionSearch] = useState("");
 
     const professions = [
@@ -113,11 +114,17 @@ export function ProviderSignupForm({
 
     useEffect(() => {
         if (currentStep !== 5) return;
-        if (!formData.otp || formData.otp.length !== 6 || !/^\d{6}$/.test(formData.otp)) return;
-        if (isOtpVerified || isAutoVerifying) return;
+        if (!formData.otp || formData.otp.length !== 6 || !/^\d{6}$/.test(formData.otp)) {
+            if (formData.otp && formData.otp.length < 6) {
+                lastVerifiedOtp.current = "";
+            }
+            return;
+        }
+        if (isOtpVerified || isAutoVerifying || lastVerifiedOtp.current === formData.otp) return;
 
         const autoVerify = async () => {
             setIsAutoVerifying(true);
+            lastVerifiedOtp.current = formData.otp;
             try {
                 const response = await verifyOtp({
                     email: formData.email,
@@ -141,7 +148,7 @@ export function ProviderSignupForm({
         };
 
         autoVerify();
-    }, [formData.otp, currentStep, nextStep, isOtpVerified, isAutoVerifying]);
+    }, [formData.otp, currentStep, nextStep, isOtpVerified]);
 
     const validateStep = () => {
         switch (currentStep) {

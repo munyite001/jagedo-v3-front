@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Eye, EyeOff, Mail, Phone, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +43,8 @@ export function CustomerSignupForm({
   const [timerActive, setTimerActive] = useState(false);
   const [hasInitialOtpBeenSent, setHasInitialOtpBeenSent] = useState(false);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const lastVerifiedOtp = useRef<string>("");
 
 
   useEffect(() => {
@@ -291,6 +293,7 @@ export function CustomerSignupForm({
     if (otpToVerify.length !== 6) {
       toast.error("Invalid OTP length");
       setIsSubmitting(false);
+      setIsVerifyingOtp(false);
       return;
     }
 
@@ -307,9 +310,12 @@ export function CustomerSignupForm({
         nextStep();
       } else {
         toast.error(response.data.message || "Invalid OTP");
+        setIsSubmitting(false);
+        setIsVerifyingOtp(false);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Error verifying OTP");
+      setIsVerifyingOtp(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -628,7 +634,13 @@ export function CustomerSignupForm({
                     const value = e.target.value.replace(/\D/g, "");
                     updateFormData({ otp: value });
 
-                    if (value.length === 6) {
+                    if (value.length < 6) {
+                      lastVerifiedOtp.current = "";
+                    }
+
+                    if (value.length === 6 && !isVerifyingOtp && lastVerifiedOtp.current !== value) {
+                      setIsVerifyingOtp(true);
+                      lastVerifiedOtp.current = value;
                       setTimeout(() => handleVerifyOTP(value), 0);
                     }
                   }}
