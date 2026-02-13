@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback } from "react";
+import * as XLSX from "xlsx";
 import {
     Card,
     CardContent,
@@ -50,6 +51,7 @@ import {
     deleteCategory as deleteCategoryAPI,
     toggleCategoryStatus as toggleCategoryStatusAPI,
     createCategory,
+    updateCategory,
     Category
 } from "@/api/categories.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -59,7 +61,6 @@ export default function ShopCategories() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
     const [selectedStatus, setSelectedStatus] = useState("all");
     const [selectedCategoryDetail, setSelectedCategoryDetail] =
         useState<Category | null>(null);
@@ -70,6 +71,8 @@ export default function ShopCategories() {
         useState(false);
     const [showAddSubCategoryModal, setShowAddSubCategoryModal] =
         useState(false);
+    const [showEditCategoryModal, setShowEditCategoryModal] =
+        useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
         null
     );
@@ -79,9 +82,18 @@ export default function ShopCategories() {
     const [parentCategoryForSub, setParentCategoryForSub] =
         useState<Category | null>(null);
 
-    // Form states
     const [newCategoryName, setNewCategoryName] = useState("");
-    const [newCategoryType, setNewCategoryType] = useState("");
+
+    const [selectedCategoryType, setSelectedCategoryType] = useState("HARDWARE");
+
+    const [editCategoryData, setEditCategoryData] = useState({
+        id: 0,
+        name: "",
+        subCategory: "",
+        urlKey: "",
+        metaTitle: "",
+        metaKeywords: ""
+    });
     const [subCategoryData, setSubCategoryData] = useState({
         name: "",
         urlKey: "",
@@ -89,22 +101,19 @@ export default function ShopCategories() {
         metaKeywords: ""
     });
 
-    // Main category tabs
-    const mainCategories = [
-        { id: "HARDWARE", label: "Hardware" },
-        { id: "DESIGN", label: "Design" },
-        { id: "CUSTOM_PRODUCTS", label: "Custom Products" },
-        { id: "MACHINERY", label: "Machinery" }
-    ];
-
-    // Status tabs
     const statuses = [
         { id: "all", label: "All" },
         { id: "active", label: "Active" },
         { id: "inactive", label: "Inactive" }
     ];
 
-    // Fetch categories from API
+    const categoryTypes = [
+        { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
+        { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
+        { id: "DESIGNS", label: "Designs", type: "PROFESSIONAL" },
+        { id: "HIRE_MACHINERY", label: "Hire Machinery & Equipment", type: "CONTRACTOR" }
+    ];
+
     const fetchCategories = useCallback(async () => {
         try {
             setLoading(true);
@@ -122,32 +131,60 @@ export default function ShopCategories() {
         }
     }, []);
 
-    // Handle edit category
     const handleEditCategory = (category: Category) => {
-        // For now, just show a toast - edit functionality can be added later
-        toast("Edit functionality coming soon");
+        setEditCategoryData({
+            id: category.id,
+            name: category.name,
+            subCategory: category.subCategory || "",
+            urlKey: category.urlKey || "",
+            metaTitle: category.metaTitle || "",
+            metaKeywords: category.metaKeywords || ""
+        });
+        setShowEditCategoryModal(true);
     };
 
-    // Handle add sub-category
+    const handleUpdateCategory = async () => {
+        if (!editCategoryData.name.trim()) {
+            toast.error("Category name is required");
+            return;
+        }
+
+        try {
+            await updateCategory(axiosInstance, editCategoryData.id, {
+                id: editCategoryData.id,
+                name: editCategoryData.name.trim(),
+                active: true,
+                subCategory: editCategoryData.subCategory.trim(),
+                urlKey: editCategoryData.urlKey.trim(),
+                metaTitle: editCategoryData.metaTitle.trim(),
+                metaKeywords: editCategoryData.metaKeywords.trim()
+            });
+            toast.success("Category updated successfully");
+            setShowEditCategoryModal(false);
+            fetchCategories();
+        } catch (error) {
+            console.error("Error updating category:", error);
+            toast.error("Failed to update category");
+        }
+    };
+
     const handleAddSubCategory = (category: Category) => {
         setParentCategoryForSub(category);
         setShowAddSubCategoryModal(true);
     };
 
-    // Handle delete category confirmation
     const handleDeleteCategory = (category: Category) => {
         setCategoryToDelete(category);
         setShowDeleteConfirm(true);
     };
 
-    // Delete category
     const deleteCategory = async () => {
         if (!categoryToDelete) return;
 
         try {
             await deleteCategoryAPI(axiosInstance, categoryToDelete.id);
             toast.success("Category deleted successfully");
-            fetchCategories(); // Refresh the list
+            fetchCategories();
         } catch (error) {
             console.error("Error deleting category:", error);
             toast.error("Failed to delete category");
@@ -157,13 +194,11 @@ export default function ShopCategories() {
         }
     };
 
-    // Handle toggle category status confirmation
     const handleToggleCategoryStatus = (category: Category) => {
         setCategoryToToggle(category);
         setShowStatusConfirm(true);
     };
 
-    // Toggle category status
     const toggleCategoryStatus = async () => {
         if (!categoryToToggle) return;
 
@@ -178,7 +213,7 @@ export default function ShopCategories() {
                     ? "Category disabled successfully"
                     : "Category enabled successfully"
             );
-            fetchCategories(); // Refresh the list
+            fetchCategories();
         } catch (error) {
             console.error("Error toggling category status:", error);
             toast.error("Failed to update category status");
@@ -188,33 +223,38 @@ export default function ShopCategories() {
         }
     };
 
-    // Create new category
     const handleCreateCategory = async () => {
-        if (!newCategoryType.trim()) {
-            toast.error("Category type is required");
+        const trimmedName = newCategoryName.trim();
+
+        if (!trimmedName) {
+            toast.error("Category name is required");
             return;
         }
-        if (!newCategoryName.trim()) {
-            toast.error("Category name is required");
+
+        const isDuplicate = categories.some(
+            (category) => category.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            toast.error(`A category with the name "${trimmedName}" already exists.`);
             return;
         }
 
         try {
             await createCategory(axiosInstance, {
-                name: newCategoryName.trim(),
-                type: newCategoryType
+                name: trimmedName,
+                type: selectedCategoryType
             });
             toast.success("Category created successfully");
             setNewCategoryName("");
             setShowCreateCategoryModal(false);
-            fetchCategories(); // Refresh the list
+            fetchCategories();
         } catch (error) {
             console.error("Error creating category:", error);
             toast.error("Failed to create category");
         }
     };
 
-    // Create sub-category
     const handleCreateSubCategory = async () => {
         if (!subCategoryData.name.trim()) {
             toast.error("Sub-category name is required");
@@ -227,17 +267,17 @@ export default function ShopCategories() {
         }
 
         try {
-            const subCategoryPayload = {
-                name: subCategoryData.name.trim(),
+            await updateCategory(axiosInstance, parentCategoryForSub.id, {
+                id: parentCategoryForSub.id,
+                name: parentCategoryForSub.name,
+                active: parentCategoryForSub.active,
+                type: selectedCategoryType,
                 subCategory: subCategoryData.name.trim(),
                 urlKey: subCategoryData.urlKey.trim(),
                 metaTitle: subCategoryData.metaTitle.trim(),
-                metaKeywords: subCategoryData.metaKeywords.trim(),
-                type: parentCategoryForSub.type || "HARDWARE"
-            };
-
-            await createCategory(axiosInstance, subCategoryPayload);
-            toast.success("Sub-category created successfully");
+                metaKeywords: subCategoryData.metaKeywords.trim()
+            });
+            toast.success("Sub-category added successfully");
             setSubCategoryData({
                 name: "",
                 urlKey: "",
@@ -246,14 +286,13 @@ export default function ShopCategories() {
             });
             setShowAddSubCategoryModal(false);
             setParentCategoryForSub(null);
-            fetchCategories(); // Refresh the list
+            fetchCategories();
         } catch (error) {
             console.error("Error creating sub-category:", error);
             toast.error("Failed to create sub-category");
         }
     };
 
-    // Filter categories based on search term, main category, and status
     const filteredCategories = categories?.filter((category) => {
         const matchesSearch =
             category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -267,10 +306,6 @@ export default function ShopCategories() {
                 .toLowerCase()
                 .includes(searchTerm.toLowerCase());
 
-        const matchesMainCategory =
-            category.type === selectedCategory ||
-            selectedCategory === "HARDWARE"; // Default to Hardware
-
         let matchesStatus = true;
         if (selectedStatus === "active") {
             matchesStatus = category.active;
@@ -278,14 +313,18 @@ export default function ShopCategories() {
             matchesStatus = !category.active;
         }
 
-        return matchesSearch && matchesMainCategory && matchesStatus;
+        let matchesType = true;
+        if (selectedCategoryType) {
+            matchesType = category.type === selectedCategoryType;
+        }
+
+        return matchesSearch && matchesStatus && matchesType;
     });
 
     useEffect(() => {
         fetchCategories();
     }, []);
 
-    // Category Detail Modal Component
     const CategoryDetailModal = ({
         category,
         isOpen,
@@ -311,7 +350,6 @@ export default function ShopCategories() {
                     </DialogHeader>
 
                     <div className="space-y-6">
-                        {/* Basic Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">
                                 Basic Information
@@ -356,7 +394,6 @@ export default function ShopCategories() {
                             </div>
                         </div>
 
-                        {/* SEO Information */}
                         {(category.metaTitle || category.metaKeywords) && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold">
@@ -387,7 +424,6 @@ export default function ShopCategories() {
                             </div>
                         )}
 
-                        {/* Status Information */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">
                                 Status Information
@@ -419,7 +455,6 @@ export default function ShopCategories() {
                             </div>
                         </div>
 
-                        {/* Statistics */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">
                                 Statistics
@@ -470,7 +505,6 @@ export default function ShopCategories() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
@@ -482,23 +516,21 @@ export default function ShopCategories() {
                 </div>
             </div>
 
-            {/* Main Category Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                {mainCategories.map((category) => (
+                {categoryTypes.map((categoryType) => (
                     <button
-                        key={category.id}
-                        onClick={() => setSelectedCategory(category.id)}
-                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedCategory === category.id
-                            ? "bg-[#00007A] text-white"
-                            : "bg-transparent text-blue-600 hover:bg-blue-50"
+                        key={categoryType.id}
+                        onClick={() => setSelectedCategoryType(categoryType.type)}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${selectedCategoryType === categoryType.type
+                            ? "bg-[#00007A] text-white shadow-sm"
+                            : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-900"
                             }`}
                     >
-                        {category.label}
+                        {categoryType.label}
                     </button>
                 ))}
             </div>
 
-            {/* Status Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
                 {statuses.map((status) => (
                     <button
@@ -506,7 +538,7 @@ export default function ShopCategories() {
                         onClick={() => setSelectedStatus(status.id)}
                         className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedStatus === status.id
                             ? "bg-[#00007A] text-white"
-                            : "bg-transparent text-blue-600 hover:bg-blue-50"
+                            : "bg-transparent text-black hover:bg-blue-50"
                             }`}
                     >
                         {status.label}
@@ -514,7 +546,6 @@ export default function ShopCategories() {
                 ))}
             </div>
 
-            {/* Search and Actions */}
             <div className="flex items-center space-x-2 bg-white border-none">
                 <div className="relative flex-1 border-none">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -525,10 +556,7 @@ export default function ShopCategories() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                </Button>
+
                 <Button
                     onClick={() => setShowCreateCategoryModal(true)}
                     style={{ backgroundColor: "#00007A", color: "white" }}
@@ -538,7 +566,6 @@ export default function ShopCategories() {
                 </Button>
             </div>
 
-            {/* Categories Table */}
             <Card className="bg-white border-none shadow-md">
                 <CardHeader>
                     <CardTitle>Categories</CardTitle>
@@ -706,7 +733,6 @@ export default function ShopCategories() {
                 </CardContent>
             </Card>
 
-            {/* Pagination */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-muted-foreground">
@@ -732,7 +758,6 @@ export default function ShopCategories() {
                 </div>
             </div>
 
-            {/* Category Detail Modal */}
             <CategoryDetailModal
                 category={selectedCategoryDetail}
                 isOpen={showCategoryModal}
@@ -742,7 +767,6 @@ export default function ShopCategories() {
                 }}
             />
 
-            {/* Create Category Modal */}
             <Dialog
                 open={showCreateCategoryModal}
                 onOpenChange={setShowCreateCategoryModal}
@@ -755,25 +779,6 @@ export default function ShopCategories() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Category Type *
-                        </label>
-
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                            {['contractor', 'fundi', 'professional', 'hardware'].map((type) => (
-                                <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="categoryType"
-                                        value={type}
-                                        checked={newCategoryType === type}
-                                        onChange={(e) => setNewCategoryType(e.target.value)}
-                                        className="text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="text-sm text-gray-700 capitalize">{type}</span>
-                                </label>
-                            ))}
-                        </div>
                         <div>
                             <label
                                 htmlFor="categoryName"
@@ -816,7 +821,6 @@ export default function ShopCategories() {
                 </DialogContent>
             </Dialog>
 
-            {/* Add Sub-Category Modal */}
             <Dialog
                 open={showAddSubCategoryModal}
                 onOpenChange={setShowAddSubCategoryModal}
@@ -829,7 +833,6 @@ export default function ShopCategories() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {/* Parent Category */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Parent Category
@@ -841,7 +844,6 @@ export default function ShopCategories() {
                             />
                         </div>
 
-                        {/* Sub-category Name */}
                         <div>
                             <label
                                 htmlFor="subCategoryName"
@@ -862,18 +864,16 @@ export default function ShopCategories() {
                             />
                         </div>
 
-                        {/* SEO Section */}
                         <div className="space-y-4">
                             <h4 className="text-sm font-medium text-gray-700">
                                 Search Engine Optimize
                             </h4>
 
-                            {/* URL Key */}
                             <div>
                                 <label
                                     htmlFor="urlKey"
                                     className="block text-sm font-medium text-gray-700 mb-2"
-                                >
+                                    >
                                     URL Key
                                 </label>
                                 <Input
@@ -889,7 +889,6 @@ export default function ShopCategories() {
                                 />
                             </div>
 
-                            {/* Meta Title */}
                             <div>
                                 <label
                                     htmlFor="metaTitle"
@@ -910,7 +909,6 @@ export default function ShopCategories() {
                                 />
                             </div>
 
-                            {/* Meta Keywords */}
                             <div>
                                 <label
                                     htmlFor="metaKeywords"
@@ -952,7 +950,6 @@ export default function ShopCategories() {
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation Dialog */}
             <Dialog
                 open={showDeleteConfirm}
                 onOpenChange={setShowDeleteConfirm}
@@ -986,7 +983,6 @@ export default function ShopCategories() {
                 </DialogContent>
             </Dialog>
 
-            {/* Status Toggle Confirmation Dialog */}
             <Dialog
                 open={showStatusConfirm}
                 onOpenChange={setShowStatusConfirm}
@@ -1022,6 +1018,144 @@ export default function ShopCategories() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={showEditCategoryModal}
+                onOpenChange={setShowEditCategoryModal}
+            >
+                <DialogContent className="max-w-2xl bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Edit Category</DialogTitle>
+                        <DialogDescription>
+                            Update category information for "{editCategoryData.name}"
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <label
+                                htmlFor="editCategoryName"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Category Name *
+                            </label>
+                            <Input
+                                id="editCategoryName"
+                                placeholder="Enter category name"
+                                value={editCategoryData.name}
+                                onChange={(e) =>
+                                    setEditCategoryData((prev) => ({
+                                        ...prev,
+                                        name: e.target.value
+                                    }))
+                                }
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="editSubCategory"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Sub Category
+                            </label>
+                            <Input
+                                id="editSubCategory"
+                                placeholder="Enter sub-category"
+                                value={editCategoryData.subCategory}
+                                onChange={(e) =>
+                                    setEditCategoryData((prev) => ({
+                                        ...prev,
+                                        subCategory: e.target.value
+                                    }))
+                                }
+                            />
+                        </div>
+
+                        <div className="space-y-4">
+                            <h4 className="text-sm font-medium text-gray-700">
+                                Search Engine Optimize
+                            </h4>
+
+                            <div>
+                                <label
+                                    htmlFor="editUrlKey"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                    URL Key
+                                </label>
+                                <Input
+                                    id="editUrlKey"
+                                    placeholder="Enter URL key"
+                                    value={editCategoryData.urlKey}
+                                    onChange={(e) =>
+                                        setEditCategoryData((prev) => ({
+                                            ...prev,
+                                            urlKey: e.target.value
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="editMetaTitle"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                    Meta Title
+                                </label>
+                                <Input
+                                    id="editMetaTitle"
+                                    placeholder="Enter meta title"
+                                    value={editCategoryData.metaTitle}
+                                    onChange={(e) =>
+                                        setEditCategoryData((prev) => ({
+                                            ...prev,
+                                            metaTitle: e.target.value
+                                        }))
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="editMetaKeywords"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                    Meta Keywords
+                                </label>
+                                <Input
+                                    id="editMetaKeywords"
+                                    placeholder="Enter meta keywords (comma separated)"
+                                    value={editCategoryData.metaKeywords}
+                                    onChange={(e) =>
+                                        setEditCategoryData((prev) => ({
+                                            ...prev,
+                                            metaKeywords: e.target.value
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowEditCategoryModal(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleUpdateCategory}
+                            style={{
+                                backgroundColor: "#00007A",
+                                color: "white"
+                            }}
+                        >
+                            Update Category
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
-} 
+}

@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
+//@ts-nocheck
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -10,13 +15,10 @@ const Register = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-
-    // State for the entity (job or order)
     const [entity, setEntity] = useState(null);
     const [entityType, setEntityType] = useState('');
     const [entityId, setEntityId] = useState('');
     const [filterCriteria, setFilterCriteria] = useState('');
-
     const [providers, setProviders] = useState([]);
     const [selectedRows, setSelectedRows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,6 +71,7 @@ const Register = () => {
                     setAssignedProviders(entityRes.data.assignedServiceProviders || []);
                     setProviders(providersRes.hashSet.filter((provider) => provider.adminApproved));
                 } catch (err) {
+                    console.log("Error: ", err)
                     setError(`Failed to fetch ${currentEntityType} or providers.`);
                     toast.error("Failed to fetch data. Please try again.");
                 } finally {
@@ -95,20 +98,33 @@ const Register = () => {
             toast.error("Please select at least one service provider.");
             return;
         }
+
         setAssigning(true);
+
         try {
+            const payload = {
+                procurementMethod,
+                providerIds: providerIds,  // <-- ARRAY is passed correctly
+            };
+
             if (entityType === 'job') {
-                await assignJobToProviders(axiosInstance, entityId, { procurementMethod, providerIds });
+                await assignJobToProviders(axiosInstance, entityId, payload);
             } else {
-                await assignOrderToProviders(axiosInstance, entityId, { procurementMethod, providerIds });
+                await assignOrderToProviders(axiosInstance, entityId, payload);
             }
 
             setIsAssigned(true);
             toast.success("Providers assigned successfully!");
+
             setTimeout(() => {
-                const navigateUrl = entityType === 'job' ? "/dashboard/admin/jobs" : "/dashboard/admin/orders";
+                const navigateUrl =
+                    entityType === 'job'
+                        ? "/dashboard/admin/jobs"
+                        : "/dashboard/admin/orders";
+
                 navigate(navigateUrl);
             }, 1500);
+
         } catch (err) {
             toast.error("Assignment failed. Please try again.");
         } finally {
@@ -232,8 +248,8 @@ const Register = () => {
                                             )}
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.skills || provider.profession || provider.contractorTypes}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.firstName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.lastName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.firstName || provider?.contactFirstName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.lastName || provider?.contactLastName}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.phoneNumber}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{provider.county}</td>

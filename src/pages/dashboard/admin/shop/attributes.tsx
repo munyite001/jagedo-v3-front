@@ -11,6 +11,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -40,6 +57,7 @@ import {
     getAllAttributes,
     deleteAttribute,
     toggleAttributeStatus,
+    updateAttribute,
     Attribute
 } from "@/api/attributes.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
@@ -50,17 +68,31 @@ export default function ShopAttributes() {
     const [attributes, setAttributes] = useState<Attribute[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Hardware");
+    const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
     const [attributeToDelete, setAttributeToDelete] =
         useState<Attribute | null>(null);
     const [attributeToToggle, setAttributeToToggle] =
         useState<Attribute | null>(null);
     const [showAddAttribute, setShowAddAttribute] = useState(false);
+    const [showEditAttribute, setShowEditAttribute] = useState(false);
+    const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        type: "",
+        productType: "",
+        values: "",
+        attributeGroup: "",
+        filterable: false,
+        active: true,
+        customerView: false
+    });
 
-    // Category tabs
-    const categories = ["Hardware", "Design", "Custom Products", "Machinery"];
+    const categories = [
+        { label: "Hardware", type: "HARDWARE" },
+        { label: "Custom Products", type: "FUNDI" },
+        { label: "Designs", type: "PROFESSIONAL" },
+        { label: "Machinery & Equipment", type: "CONTRACTOR" }
+    ];
 
-    // Fetch attributes
     const fetchAttributes = useCallback(async () => {
         try {
             setLoading(true);
@@ -81,23 +113,67 @@ export default function ShopAttributes() {
         fetchAttributes();
     }, []);
 
-    // Filter attributes based on search term
     const filteredAttributes = attributes?.filter(
-        (attribute) =>
-            attribute.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            attribute.values.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            attribute.attributeGroup
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase())
+        (attribute) => {
+            const matchesSearch =
+                attribute.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                attribute.values.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                attribute.attributeGroup
+                    .toLowerCase()
+                    .includes(searchTerm.toLowerCase());
+
+            const matchesCategory = attribute.productType === selectedCategory;
+
+            return matchesSearch && matchesCategory;
+        }
     );
 
-    // Handle edit attribute
-    const handleEditAttribute = () => {
-        // For now, just show a toast - edit functionality can be added later
-        toast("Edit functionality coming soon");
+    const handleEditAttribute = (attribute: Attribute) => {
+        setEditingAttribute(attribute);
+        setEditFormData({
+            type: attribute.type,
+            productType: attribute.productType,
+            values: attribute.values,
+            attributeGroup: attribute.attributeGroup,
+            filterable: attribute.filterable,
+            active: attribute.active,
+            customerView: attribute.customerView
+        });
+        setShowEditAttribute(true);
     };
 
-    // Handle delete attribute
+    const handleSaveEditAttribute = async () => {
+        if (!editingAttribute) return;
+
+        const isDuplicate = attributes.some((attr) => 
+            attr.id !== editingAttribute.id &&
+            attr.type.toLowerCase().trim() === editFormData.type.toLowerCase().trim() &&
+            attr.productType === editFormData.productType
+        );
+
+        if (isDuplicate) {
+            toast.error("An attribute with this name already exists for the selected product type.");
+            return;
+        }
+
+        try {
+            const response = await updateAttribute(axiosInstance, editingAttribute.id, {
+                id: editingAttribute.id,
+                ...editFormData
+            });
+            if (response.success) {
+                toast.success("Attribute updated successfully");
+                setShowEditAttribute(false);
+                fetchAttributes();
+            } else {
+                toast.error(response.message || "Failed to update attribute");
+            }
+        } catch (error) {
+            console.error("Error updating attribute:", error);
+            toast.error("Failed to update attribute");
+        }
+    };
+
     const handleDeleteAttribute = (attribute: Attribute) => {
         setAttributeToDelete(attribute);
     };
@@ -124,7 +200,6 @@ export default function ShopAttributes() {
         }
     };
 
-    // Handle toggle attribute status
     const handleToggleAttributeStatus = (attribute: Attribute) => {
         setAttributeToToggle(attribute);
     };
@@ -140,8 +215,7 @@ export default function ShopAttributes() {
             );
             if (response.success) {
                 toast.success(
-                    `Attribute ${
-                        attributeToToggle.active ? "disabled" : "enabled"
+                    `Attribute ${attributeToToggle.active ? "disabled" : "enabled"
                     } successfully`
                 );
                 fetchAttributes();
@@ -158,12 +232,10 @@ export default function ShopAttributes() {
         }
     };
 
-    // Handle add attribute
     const handleAddAttribute = () => {
         setShowAddAttribute(true);
     };
 
-    // If showing add attribute form, render it
     if (showAddAttribute) {
         return (
             <AddAttributeForm
@@ -174,13 +246,13 @@ export default function ShopAttributes() {
                     setShowAddAttribute(false);
                     fetchAttributes();
                 }}
+                defaultProductType={selectedCategory}
             />
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
@@ -199,24 +271,21 @@ export default function ShopAttributes() {
                 </Button>
             </div>
 
-            {/* Category Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
                 {categories.map((category) => (
                     <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            selectedCategory === category
-                                ? "bg-blue-800 text-white"
-                                : "text-blue-600 hover:bg-blue-50"
-                        }`}
+                        key={category.type}
+                        onClick={() => setSelectedCategory(category.type)}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedCategory === category.type
+                            ? "bg-[#00007A] text-white"
+                            : "bg-transparent text-black hover:bg-blue-50"
+                            }`}
                     >
-                        {category}
+                        {category.label}
                     </button>
                 ))}
             </div>
 
-            {/* Search and Actions */}
             <div className="flex items-center space-x-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -229,7 +298,6 @@ export default function ShopAttributes() {
                 </div>
             </div>
 
-            {/* Attributes Table */}
             <Card>
                 <CardHeader>
                     <CardTitle>Product Attributes</CardTitle>
@@ -273,7 +341,10 @@ export default function ShopAttributes() {
                                 </TableRow>
                             ) : (
                                 filteredAttributes?.map((attribute, index) => (
-                                    <TableRow key={attribute.id}>
+                                    <TableRow 
+                                        key={attribute.id}
+                                        className={!attribute.active ? "bg-gray-100 opacity-60 grayscale" : ""}
+                                    >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell className="font-medium">
                                             {attribute.type}
@@ -296,7 +367,7 @@ export default function ShopAttributes() {
                                             >
                                                 {attribute.active
                                                     ? "Yes"
-                                                    : "No"}
+                                                    : "Inactive"}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
@@ -341,7 +412,7 @@ export default function ShopAttributes() {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            handleEditAttribute()
+                                                            handleEditAttribute(attribute)
                                                         }
                                                     >
                                                         <Edit className="mr-2 h-4 w-4" />
@@ -385,72 +456,200 @@ export default function ShopAttributes() {
                 </CardContent>
             </Card>
 
-            {/* Delete Confirmation Dialog */}
-            {attributeToDelete && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold mb-4">
-                            Delete Attribute
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete "
-                            {attributeToDelete.type}"? This action cannot be
-                            undone.
-                        </p>
-                        <div className="flex justify-end space-x-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setAttributeToDelete(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={deleteAttributeHandler}
-                            >
-                                Delete
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog open={!!attributeToDelete} onOpenChange={(open) => !open && setAttributeToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Attribute</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-gray-600">
+                        Are you sure you want to delete "{attributeToDelete?.type}"? This action cannot be undone.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAttributeToDelete(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={deleteAttributeHandler}
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            {/* Toggle Status Confirmation Dialog */}
-            {attributeToToggle && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold mb-4">
-                            {attributeToToggle.active ? "Disable" : "Enable"}{" "}
-                            Attribute
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            Are you sure you want to{" "}
-                            {attributeToToggle.active ? "disable" : "enable"} "
-                            {attributeToToggle.type}"?
-                        </p>
-                        <div className="flex justify-end space-x-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setAttributeToToggle(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant={
-                                    attributeToToggle.active
-                                        ? "destructive"
-                                        : "default"
+            <Dialog open={!!attributeToToggle} onOpenChange={(open) => !open && setAttributeToToggle(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {attributeToToggle?.active ? "Disable" : "Enable"} Attribute
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-gray-600">
+                        Are you sure you want to{" "}
+                        {attributeToToggle?.active ? "disable" : "enable"} "{attributeToToggle?.type}"?
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAttributeToToggle(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={attributeToToggle?.active ? "destructive" : "default"}
+                            onClick={toggleAttributeStatusHandler}
+                        >
+                            {attributeToToggle?.active ? "Disable" : "Enable"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditAttribute} onOpenChange={setShowEditAttribute}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Attribute</DialogTitle>
+                        <DialogDescription>
+                            Update the attribute details below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-type">Attribute Name</Label>
+                            <Input
+                                id="edit-type"
+                                value={editFormData.type}
+                                onChange={(e) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        type: e.target.value
+                                    })
                                 }
-                                onClick={toggleAttributeStatusHandler}
+                                placeholder="e.g., Color, Size"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-product-type">Product Type</Label>
+                            <Select
+                                value={editFormData.productType}
+                                onValueChange={(value) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        productType: value
+                                    })
+                                }
                             >
-                                {attributeToToggle.active
-                                    ? "Disable"
-                                    : "Enable"}
-                            </Button>
+                                <SelectTrigger id="edit-product-type">
+                                    <SelectValue placeholder="Select product type" />
+                                </SelectTrigger>
+                                <SelectContent className='bg-white'>
+                                    <SelectItem value="HARDWARE">Hardware</SelectItem>
+                                    <SelectItem value="FUNDI">Custom Products</SelectItem>
+                                    <SelectItem value="PROFESSIONAL">Designs</SelectItem>
+                                    <SelectItem value="CONTRACTOR">Hire Machinery & E</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-values">Values</Label>
+                            <Input
+                                id="edit-values"
+                                value={editFormData.values}
+                                onChange={(e) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        values: e.target.value
+                                    })
+                                }
+                                placeholder="e.g., Red, Blue, Green"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-group">Attribute Group</Label>
+                            <Input
+                                id="edit-group"
+                                value={editFormData.attributeGroup}
+                                onChange={(e) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        attributeGroup: e.target.value
+                                    })
+                                }
+                                placeholder="e.g., Physical Properties"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-filterable"
+                                    checked={editFormData.filterable}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            filterable: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-filterable" className="cursor-pointer">
+                                    Is Filterable
+                                </Label>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-customer-view"
+                                    checked={editFormData.customerView}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            customerView: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-customer-view" className="cursor-pointer">
+                                    Show To Customers
+                                </Label>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-active"
+                                    checked={editFormData.active}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            active: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-active" className="cursor-pointer">
+                                    Active
+                                </Label>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowEditAttribute(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSaveEditAttribute}
+                            style={{ backgroundColor: "#00007A", color: "white" }}
+                        >
+                            Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

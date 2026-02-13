@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+//@ts-nocheck
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createRegion, RegionCreateRequest } from '@/api/regions.api';
+import { createRegion, RegionCreateRequest, getAllRegions } from '@/api/regions.api'; 
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
+import { kenyanRegions, getCountiesForRegion } from '@/data/kenyanRegions';
 
 interface AddRegionFormProps {
   onBack: () => void;
@@ -17,28 +22,87 @@ interface AddRegionFormProps {
 export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
+  const [existingRegions, setExistingRegions] = useState<any[]>([]); 
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedCounty, setSelectedCounty] = useState('');
+
   const [formData, setFormData] = useState<RegionCreateRequest>({
     country: 'Kenya',
     name: '',
+    type: 'HARDWARE',
+    counties: '',
     active: true,
     customerView: false,
     filterable: false
   });
 
-  // Handle form submission
+  
+  useEffect(() => {
+    const fetchExistingRegions = async () => {
+      try {
+        const response = await getAllRegions(axiosInstance);
+        if (response.success && Array.isArray(response.hashSet)) {
+          setExistingRegions(response.hashSet);
+        }
+      } catch (error) {
+        console.error('Failed to fetch existing regions for validation', error);
+      }
+    };
+    fetchExistingRegions();
+  }, []);
+
+  
+  const availableCounties = useMemo(() => {
+    return selectedRegion ? getCountiesForRegion(selectedRegion) : [];
+  }, [selectedRegion]);
+
+  
+  const handleRegionSelect = (region: string) => {
+    setSelectedRegion(region);
+    setFormData({ ...formData, name: region });
+  };
+
+  
+  const handleCountySelect = (county: string) => {
+    setSelectedCounty(county);
+    if (county && county !== selectedRegion) {
+      setFormData({ ...formData, name: `${selectedRegion} - ${county}`, counties: county });
+    } else {
+      setFormData({ ...formData, name: selectedRegion, counties: '' });
+    }
+  };
+
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('Region name is required');
       return;
     }
 
+    
+    const isDuplicate = existingRegions.some((region) => {
+      
+      const existingName = region.name?.toLowerCase().trim();
+      const newName = formData.name.toLowerCase().trim();
+
+      
+      
+      return existingName === newName && region.type === formData.type;
+    });
+
+    if (isDuplicate) {
+      toast.error(`A region with the name "${formData.name}" and type "${formData.type}" already exists.`);
+      return;
+    }
+    
+
     try {
       setLoading(true);
-      
+
       const response = await createRegion(axiosInstance, formData);
-      
+
       if (response.success) {
         toast.success('Region created successfully');
         onSuccess();
@@ -53,7 +117,7 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
     }
   };
 
-  // Handle discard
+  
   const handleDiscard = () => {
     onBack();
   };
@@ -95,17 +159,67 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   placeholder="Enter country name"
+                  readOnly                
                 />
               </div>
-              
+
+              <div className="space-y-2">
+                <Label htmlFor="region">Select Region</Label>
+                <Select value={selectedRegion} onValueChange={handleRegionSelect}>
+                  <SelectTrigger id="region">
+                    <SelectValue placeholder="Select a region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {kenyanRegions.map((r) => (
+                      <SelectItem key={r.region} value={r.region}>
+                        {r.region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedRegion && (
+                <div className="space-y-2">
+                  <Label htmlFor="county">Select County (Optional)</Label>
+                  <Select onValueChange={handleCountySelect}>
+                    <SelectTrigger id="county">
+                      <SelectValue placeholder="Select a county" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCounties.map((county) => (
+                        <SelectItem key={county} value={county}>
+                          {county}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="name">Region Name</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter region name"
+                  placeholder="Enter or modify region name"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="type">Type</Label>
+                <Select value={formData.type || 'HARDWARE'} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Select a type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HARDWARE">Hardware</SelectItem>
+                    <SelectItem value="FUNDI">Custom Products</SelectItem>
+                    <SelectItem value="PROFESSIONAL">Designs</SelectItem>
+                    <SelectItem value="CONTRACTOR">Hire Machinery & E</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -177,4 +291,4 @@ export default function AddRegionForm({ onBack, onSuccess }: AddRegionFormProps)
       </form>
     </div>
   );
-} 
+}

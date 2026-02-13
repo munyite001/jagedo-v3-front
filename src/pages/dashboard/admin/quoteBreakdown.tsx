@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 //@ts-nocheck
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import ProffContractorFee from '@/components/ProffContractorBidsJobComponents/Pr
 import JobSpecification from '@/components/ProffContractorBidsJobComponents/Job_Specification';
 import Milestones from '@/components/ProffContractorBidsJobComponents/Milestones';
 import PaymentBreakdown from '@/components/ProffContractorBidsJobComponents/PaymentBreakdown';
-import OtherExpenses from '@/components/ProffContractorBidsJobComponents/Other_expenses';
+// import OtherExpenses from '@/components/ProffContractorBidsJobComponents/Other_expenses';
 import ProffWorkPlan from '@/components/ProffContractorBidsJobComponents/ProffContWorkPlan';
 
 function AdminBidBreakDown() {
@@ -68,7 +69,7 @@ function AdminBidBreakDown() {
     const tabs = [
         { name: "Job Specification" },
         { name: "Work Plan" },
-        { name: "Professional Fee" },
+        { name: jobData?.jobType === "PROFESSIONAL" ? "Professional Fee" : "Contractor Fee" },
         // { name: "Other Expenses" },
         { name: "Milestones" },
         { name: "Grand Summary" },
@@ -99,6 +100,12 @@ function AdminBidBreakDown() {
                     onNextClick={() => setActiveTab("Professional Fee")}
                 />;
             case "Professional Fee":
+                return <ProffContractorFee
+                    {...componentProps}
+                    onPrevClick={() => setActiveTab("Work Plan")}
+                    onNextClick={() => setActiveTab("Milestones")}
+                />;
+            case "Contractor Fee":
                 return <ProffContractorFee
                     {...componentProps}
                     onPrevClick={() => setActiveTab("Work Plan")}

@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+//@ts-nocheck
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getOrderRequestsById, PostOrderAdminNotesandAttachments, updateStage, RecallOrder } from "@/api/orderRequests.api";
+import { getOrderRequestsById, PostOrderAdminNotesandAttachments, updateStage, RecallOrder, assignOrderToProviders } from "@/api/orderRequests.api";
 import { AiOutlinePaperClip } from "react-icons/ai";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
+import { getUserProfileAdmin } from "@/api/provider.api";
 import { TiTick } from "react-icons/ti";
 import { uploadFile, type UploadedFile } from "@/utils/fileUpload";
 import { toast } from "react-hot-toast";
@@ -17,7 +20,15 @@ const OrderDetail = () => {
     const [customer, setCustomer] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [method, setMethod] = useState("Restricted");
+
+    const [method, setMethod] = useState(() => {
+        if (id) {
+            const savedMethod = localStorage.getItem(`orderAssignmentMethod-${id}`);
+            return savedMethod || "Restricted";
+        }
+        return "Restricted";
+    });
+
     const methods = ["Restricted", "Competitive"];
     const [adminNotes, setAdminNotes] = useState("");
     const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -32,6 +43,15 @@ const OrderDetail = () => {
 
     const buttonRef = useRef(null);
 
+
+    const isUnreviewed = !order?.stage || order?.stage === "UNREVIEWED";
+
+    useEffect(() => {
+        if (id) {
+            localStorage.setItem(`orderAssignmentMethod-${id}`, method);
+        }
+    }, [method, id]);
+
     const fetchOrder = async () => {
         setLoading(true);
         setError(null);
@@ -42,19 +62,20 @@ const OrderDetail = () => {
                 return;
             }
             const response = await getOrderRequestsById(axiosInstance, id);
-            setOrder(response.data);
-            setOrderIsAssigned(response.data?.assignedServiceProviders?.length > 0);
+            const orderData = response.data;
+            setOrder(orderData);
+            setOrderIsAssigned(orderData?.assignedServiceProviders?.length > 0);
 
-            if (response.data?.adminNotes) {
-                setAdminNotes(response?.data?.adminNotes);
+            if (orderData?.adminNotes) {
+                setAdminNotes(orderData?.adminNotes);
             }
 
             if (
-                response?.data?.adminAttachments &&
-                Array.isArray(response?.data?.adminAttachments)
+                orderData?.adminAttachments &&
+                Array.isArray(orderData?.adminAttachments)
             ) {
                 const existingAttachments: UploadedFile[] =
-                    response?.data?.adminAttachments.map(
+                    orderData?.adminAttachments.map(
                         (url: string, index: number) => ({
                             id: `existing-${index}-${Date.now()}`,
                             originalName: url.split("/").pop() || `attachment-${index + 1}`,
@@ -68,7 +89,26 @@ const OrderDetail = () => {
                 setAttachments(existingAttachments);
             }
 
-            if (response?.data?.customer) setCustomer(response?.data?.customer);
+
+            const customerId = orderData.customer?.id || orderData.customerId;
+
+            if (customerId) {
+                try {
+                    const profileResponse = await getUserProfileAdmin(axiosInstance, customerId);
+                    if (profileResponse && profileResponse.data) {
+                        setCustomer(profileResponse.data);
+                    } else {
+                        setCustomer(profileResponse);
+                    }
+                } catch (profileErr) {
+                    console.error("Failed to fetch customer profile details:", profileErr);
+                    if (orderData.customer) setCustomer(orderData.customer);
+                }
+            } else if (orderData.customer) {
+                setCustomer(orderData.customer);
+            }
+
+
         } catch (err: any) {
             setError(err.message || "Failed to fetch order details");
         } finally {
@@ -94,7 +134,7 @@ const OrderDetail = () => {
 
         setIsRecallingOrder(true);
         try {
-            await RecallOrder(axiosInstance, order.id, { reason });
+            await RecallOrder(axiosInstance, order.id);
             toast.success("Order recalled successfully!");
             setShowReason(false);
             setReason("");
@@ -126,10 +166,10 @@ const OrderDetail = () => {
         setIsSubmittingAdminData(true);
         try {
             const adminNotesData = {
-                adminNotes: adminNotes.trim(),
-                attachments: attachments.map((file) => file.url)
+                attachments: attachments.map((file) => file.url),
+                adminNotes: adminNotes.trim()
             };
-            await PostOrderAdminNotesandAttachments(axiosInstance, order.id, adminNotesData);
+            await PostOrderAdminNotesandAttachments(axiosInstance, adminNotesData, order.id);
             toast.success("Admin data submitted successfully!");
             fetchOrder();
             setAdminNotes("");
@@ -144,21 +184,39 @@ const OrderDetail = () => {
 
     const handleBottomButtonClick = async () => {
         const navigateUrl = `/dashboard/admin/register?method=${method.toLowerCase()}&orderId=${order.id}&type=${order.type}`;
+
         if (method.toLowerCase() === "competitive") {
+            navigate(navigateUrl);
+        } else {
             try {
+                const sellerIds = order?.items
+                    ?.map(item => item?.product?.sellerId)
+                    .filter(id => id != null);
+
+                const uniqueSellerIds = [...new Set(sellerIds)];
+
+                if (!uniqueSellerIds || uniqueSellerIds.length === 0) {
+                    toast.error("Could not find any sellers for the items in this order.");
+                    console.error("Error: No sellerIds found in order items.", order);
+                    return;
+                }
+
                 const payload = {
                     procurementMethod: method,
-                    providerIds: order?.providerIds || []
+                    providerIds: uniqueSellerIds
                 };
-                await axiosInstance.post(`/api/order-requests/${order.id}/assign`, payload);
-                toast.success("Order submitted for competitive selection!");
-                navigate(navigateUrl);
+
+                await assignOrderToProviders(axiosInstance, order.id, payload);
+                toast.success("Order assigned successfully!");
+                setTimeout(() => {
+                    navigate("/dashboard/admin/orders");
+                }
+                    , 1500);
+
             } catch (error) {
-                console.error("Error submitting competitive order:", error);
-                toast.error("Failed to submit order for competitive selection.");
+                console.error("Error assigning order:", error);
+                toast.error("Failed to assign order.");
             }
-        } else {
-            navigate(navigateUrl);
         }
     };
 
@@ -199,11 +257,34 @@ const OrderDetail = () => {
     if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
     if (!order) return <div className="p-10 text-center">No order data found.</div>;
 
+
+    const getDisplayPrice = (item: any) => {
+        if (item.price > 0) return item.price;
+        if (item.product?.customPrice) return item.product.customPrice;
+        return 0;
+    };
+
+
+    const customerName =
+        customer?.organizationName ||
+        (customer?.firstName && customer?.lastName ? `${customer.firstName} ${customer.lastName}` : null) ||
+        (customer?.contactFirstName && customer?.contactLastName ? `${customer.contactFirstName} ${customer.contactLastName}` : null) ||
+        customer?.username ||
+        order.customer?.username ||
+        "Unknown Customer";
+
+    const contactPerson =
+        (customer?.contactFirstName && customer?.contactLastName) ? `${customer.contactFirstName} ${customer.contactLastName}` : null;
+
+    const displayPhone = customer?.phoneNumber || customer?.contactPhone || order.customerPhone;
+    const displayEmail = customer?.email || customer?.contactEmail || order.customerEmail;
+
+
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg relative border border-gray-200">
             <div className="flex justify-between items-center bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
                 <h1 className="text-2xl font-bold text-gray-800">{order.orderId || `ID: ${order.id}`}</h1>
-                {order.stage && <span className="text-xs font-semibold bg-[rgb(0,0,122)] text-white px-3 py-1 rounded-full shadow-sm">{order.stage}</span>}
+                <span className="text-xs font-semibold bg-[rgb(0,0,122)] text-white px-3 py-1 rounded-full shadow-sm">{order.stage || "NEW"}</span>
                 <span className="text-xs font-semibold bg-[rgb(0,0,122)] text-white px-3 py-1 rounded-full shadow-sm">{method}</span>
                 <h2 className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-full shadow-sm">
                     Created: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
@@ -234,7 +315,7 @@ const OrderDetail = () => {
                             )}
                         </div>
                     )}
-                    {order.stage === "UNREVIEWED" && (
+                    {isUnreviewed && (
                         <button type="button" className="ml-4 bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition-colors" onClick={handleStartReview}>
                             Start Review
                         </button>
@@ -243,18 +324,18 @@ const OrderDetail = () => {
             </div>
             <br className="my-6 border-gray-200" />
 
+            {/* Customer Details Section (Summarized) */}
             <div className="p-8 my-6 rounded-xl shadow-lg bg-white hover:shadow-xl transition-all duration-300">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Customer Details</h2>
                 <div className="grid grid-cols-1 gap-6">
-                    {customer ? (
-                        <div className="flex items-center bg-gray-50 p-3 rounded-lg">
-                            <span className="font-semibold text-gray-800 w-32">Username:</span>
-                            <span className="text-gray-700">{customer.username}</span>
-                        </div>
-                    ) : (<div className="col-span-2 text-gray-500">No customer data.</div>)}
+                    <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+                        <span className="font-semibold text-gray-800 w-32">Name:</span>
+                        <span className="text-gray-700">{customerName}</span>
+                    </div>
                 </div>
             </div>
 
+            {/* Order Details Section */}
             <div className="p-8 my-6 rounded-xl shadow-lg bg-white hover:shadow-xl transition-all duration-300 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Order Details</h2>
                 <div className="flex justify-between gap-8">
@@ -266,7 +347,7 @@ const OrderDetail = () => {
                             {order.items && order.items.length > 0 ? order.items.map((item, index) => (
                                 <div key={index} className="text-gray-700 mt-2">
                                     <p><span className="font-semibold">{item.productName}</span> (x{item.quantity})</p>
-                                    <p className="text-sm">Price: KES {item.price.toLocaleString()}</p>
+                                    <p className="text-sm">Price: KES {getDisplayPrice(item).toLocaleString()}</p>
                                 </div>
                             )) : <p className="text-gray-500">No items in this order.</p>}
                         </div>
@@ -279,84 +360,91 @@ const OrderDetail = () => {
                             </div>
                         )}
                         <div className="bg-blue-50 p-4 rounded-2xl shadow-md mt-4 border border-gray-200">
-                            <h3 className="text-xl font-bold text-blue-900 mb-2">Package Details</h3>
-                            {(() => {
-                                if (!order) return null;
-                                if (order.type === "FUNDI") {
-                                    return (
-                                        <ul className="space-y-3 mt-4 text-gray-700">
-                                            {["Arrival time", "Scope budget", "Workmanship for a day"].map((text, idx) => (
-                                                <li key={idx} className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />{text}</li>
-                                            ))}
-                                        </ul>
-                                    );
-                                }
-                                if (order.type === "PROFESSIONAL") {
-                                    return (
-                                        <ul className="space-y-3 mt-4 text-gray-700">
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Time: Duration of Execution</li>
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Scope of budget: Determined through Competitive bidding</li>
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Quality: Professionalism and peer reviewing</li>
-                                        </ul>
-                                    );
-                                }
-                                if (order.type === "CONTRACTOR") {
-                                    return (
-                                        <ul className="space-y-3 mt-4 text-gray-700">
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Time: Duration of Execution</li>
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Scope of Budget: Determined through competitive bidding.</li>
-                                            <li className="flex items-center"><TiTick className="text-green-500 mr-2 text-xl" />Quality: Workmanship and site supervisions.</li>
-                                        </ul>
-                                    );
-                                }
-                                return null;
-                            })()}
+                            <h3 className="text-xl font-bold text-blue-900 mb-1">
+                                Package Details
+                            </h3>
+                            <ul className="space-y-3 text-gray-700">
+                                <li className="flex items-center">
+                                    <TiTick className="text-green-500 mr-2 text-xl" />
+                                    Jagedo Oversees
+                                </li>
+                            </ul>
+                            <h3 className="text-xl font-bold text-blue-900 mb-1">
+                                Arrival Time
+                            </h3>
+                            <ul className="space-y-3 text-gray-700">
+                                <li className="flex items-center">
+                                    <TiTick className="text-green-500 mr-2 text-xl" />
+                                    Scope Budget
+                                </li>
+
+                                <li className="flex items-center">
+                                    <TiTick className="text-green-500 mr-2 text-xl" />
+                                    Products Quality
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6 bg-white p-8 shadow-lg rounded-xl border border-gray-200">
-                <div className="pr-6 border-r border-gray-200">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Notes</h2>
-                    <p className="text-gray-600 leading-relaxed">{order.notes || "No notes provided."}</p>
+            {/* Contact Details Section - SPLIT VIEW */}
+            <div className="p-8 my-6 bg-white shadow-lg rounded-xl border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Contact Details</h2>
+                <div className="grid grid-cols-2 gap-6">
+                    {/* LEFT COLUMN: Identity (Name & Contact Person) */}
+                    <div className="pr-6 border-r border-gray-200 space-y-3 text-gray-700">
+                        {customerName && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800 w-28">Name:</span>
+                                <span>{customerName}</span>
+                            </div>
+                        )}
+
+                        {contactPerson && contactPerson !== customerName && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800 w-28">Contact Person:</span>
+                                <span>{contactPerson}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Communication (Phone & Email) */}
+                    <div className="pl-6 space-y-3 text-gray-700">
+                        {displayPhone && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800 w-20">Phone:</span>
+                                <span>{displayPhone}</span>
+                            </div>
+                        )}
+
+                        {displayEmail && (
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800 w-20">Email:</span>
+                                <span>{displayEmail}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Customer Attachments</h2>
-                    <table className="w-full border-collapse rounded-lg overflow-hidden">
-                        <thead>
-                            <tr className="bg-gray-50"><th className="px-6 py-4 text-left text-sm font-semibold text-gray-800">File Name</th><th className="px-6 py-4 text-left text-sm font-semibold text-gray-800">Action</th></tr>
-                        </thead>
-                        <tbody>
-                            {order.customerAttachments && Array.isArray(order.customerAttachments) && order.customerAttachments.length > 0 ? (
-                                order.customerAttachments.map((url: string, index: number) => (
-                                    <tr key={index} className="hover:bg-gray-50 transition-all duration-200">
-                                        <td className="px-6 py-4 border-t border-gray-200 truncate">{url?.split("/")?.pop() || 'attachment'}</td>
-                                        <td className="px-6 py-4 border-t border-gray-200 flex items-center gap-4">
-                                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-900 hover:text-blue-700 flex items-center gap-2 transition-colors">
-                                                <ArrowDownTrayIcon className="w-5 h-5" />Download
-                                            </a>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (<tr><td colSpan={2} className="text-gray-500 text-center py-4">No customer attachments</td></tr>)}
-                        </tbody>
-                    </table>
-                </div>
+
+                {/* Fallback if all empty */}
+                {!customerName && !displayPhone && !displayEmail && (
+                    <p className="text-gray-500 italic mt-2">No contact details provided.</p>
+                )}
             </div>
             <br className="my-6 border-gray-200" />
 
             <div className="grid grid-cols-2 gap-6 bg-white p-8 shadow-lg rounded-xl border border-gray-200">
                 <div className="pr-6 border-r border-gray-200">
                     <h2 className="text-xl font-bold text-gray-800 mb-4">Admin Notes</h2>
-                    <textarea className="w-full p-4 border border-gray-200 rounded-md" rows={10} placeholder="Enter admin notes..." value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} disabled={order?.stage?.toLowerCase() === "unreviewed"} />
+                    <textarea className="w-full p-4 border border-gray-200 rounded-md" rows={10} placeholder="Enter admin notes..." value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} disabled={isUnreviewed} />
                 </div>
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold text-gray-800 mb-4">Admin Attachments</h2>
                     <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 bg-gray-100 gap-3">
                         <label className="cursor-pointer flex items-center gap-2 flex-1">
                             <AiOutlinePaperClip className="text-gray-700 text-2xl" /><span className="text-gray-600">{isUploading ? "Uploading..." : "Click to upload files"}</span>
-                            <input type="file" className="hidden" onChange={handleFileUpload} multiple disabled={isUploading || order?.stage?.toLowerCase() === "unreviewed"} accept="image/*,.pdf,.doc,.docx" />
+                            <input type="file" className="hidden" onChange={handleFileUpload} multiple disabled={isUploading || isUnreviewed} accept="image/*,.pdf,.doc,.docx" />
                         </label>
                     </div>
                     {attachments.length > 0 && (
@@ -373,41 +461,45 @@ const OrderDetail = () => {
                 </div>
             </div>
 
-            {(order?.status !== "DRAFT" && order?.stage?.toLowerCase() !== "unreviewed") && (<div className="flex justify-center mt-6">
-                <button type="button" onClick={handleSubmitAdminData} disabled={isSubmittingAdminData || (!adminNotes.trim() && attachments.length === 0)} className="bg-[#00007A] text-white px-6 py-2 rounded-md shadow-md hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmittingAdminData ? "Saving..." : "Save Changes"}
-                </button>
-            </div>)}
-
-            {(order?.status !== "DRAFT" && order?.stage?.toLowerCase() !== "unreviewed") && (<div className="flex justify-between mt-6">
-                <button type="button" onClick={handleBottomButtonClick} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
-                    {method.toLowerCase() === "competitive" ? "Assign" : "View Registers"}
-                </button>
-                {!orderIsAssigned && (<button ref={buttonRef} type="button" onClick={() => setShowConfirm(true)} className="bg-red-600 text-white px-6 py-2 rounded-md shadow-md hover:bg-red-700">Recall Order</button>)}
-
-                {showConfirm && (
-                    <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-md shadow-md w-64 p-4 z-10">
-                        <h2 className="text-sm font-semibold mb-3">Are you sure you want to recall this order?</h2>
-                        <div className="flex justify-end space-x-2">
-                            <button onClick={() => setShowConfirm(false)} className="text-sm px-3 py-1 border rounded hover:bg-gray-100">Cancel</button>
-                            <button onClick={() => { setShowConfirm(false); setShowReason(true); }} className="text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Yes</button>
-                        </div>
+            {(order?.status !== "DRAFT" && !isUnreviewed) && (
+                <>
+                    <div className="flex justify-center mt-6">
+                        <button type="button" onClick={handleSubmitAdminData} disabled={isSubmittingAdminData || (!adminNotes.trim() && attachments.length === 0)} className="bg-[#00007A] text-white px-6 py-2 rounded-md shadow-md hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isSubmittingAdminData ? "Saving..." : "Save Changes"}
+                        </button>
                     </div>
-                )}
 
-                {showReason && (
-                    <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-md shadow-md w-80 p-4 z-10">
-                        <h2 className="text-sm font-semibold mb-2">Reason for recalling order</h2>
-                        <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Enter reason..." className="w-full text-sm border border-gray-300 rounded p-2 mb-3" />
-                        <div className="flex justify-end space-x-2">
-                            <button onClick={() => { setShowReason(false); setReason(""); }} className="text-sm px-3 py-1 border rounded hover:bg-gray-100">Cancel</button>
-                            <button onClick={handleRecallOrder} disabled={!reason.trim() || isRecallingOrder} className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-                                {isRecallingOrder ? "Recalling..." : "Submit & Recall"}
-                            </button>
-                        </div>
+                    <div className="flex justify-between mt-6">
+                        <button type="button" onClick={handleBottomButtonClick} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                            {method.toLowerCase() === "restricted" ? "Assign" : "View Registers"}
+                        </button>
+                        {!orderIsAssigned && (<button ref={buttonRef} type="button" onClick={() => setShowConfirm(true)} className="bg-red-600 text-white px-6 py-2 rounded-md shadow-md hover:bg-red-700">Recall Order</button>)}
+
+                        {showConfirm && (
+                            <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-md shadow-md w-64 p-4 z-10">
+                                <h2 className="text-sm font-semibold mb-3">Are you sure you want to recall this order?</h2>
+                                <div className="flex justify-end space-x-2">
+                                    <button onClick={() => setShowConfirm(false)} className="text-sm px-3 py-1 border rounded hover:bg-gray-100">Cancel</button>
+                                    <button onClick={() => { setShowConfirm(false); setShowReason(true); }} className="text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Yes</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {showReason && (
+                            <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-md shadow-md w-80 p-4 z-10">
+                                <h2 className="text-sm font-semibold mb-2">Reason for recalling order</h2>
+                                <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Enter reason..." className="w-full text-sm border border-gray-300 rounded p-2 mb-3" />
+                                <div className="flex justify-end space-x-2">
+                                    <button onClick={() => { setShowReason(false); setReason(""); }} className="text-sm px-3 py-1 border rounded hover:bg-gray-100">Cancel</button>
+                                    <button onClick={handleRecallOrder} disabled={!reason.trim() || isRecallingOrder} className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                                        {isRecallingOrder ? "Recalling..." : "Submit & Recall"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>)}
+                </>
+            )}
         </div>
     );
 };
