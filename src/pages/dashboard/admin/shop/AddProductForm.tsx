@@ -21,7 +21,7 @@ import {
 interface AddProductFormProps {
   onBack: () => void;
   onSuccess: () => void;
-  product?: any; // Product data for editing mode
+  product?: any;
   isEditMode?: boolean;
 }
 
@@ -30,6 +30,7 @@ interface ProductFormData {
   description: string;
   type: string;
   category: string;
+  subcategory: string;
   bId: string;
   sku: string;
   material: string;
@@ -53,6 +54,7 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
     description: product?.description || '',
     type: product?.type || '',
     category: product?.category || '',
+    subcategory: product?.subcategory || '',
     bId: product?.bId || '',
     sku: product?.sku || '',
     material: product?.material || '',
@@ -64,7 +66,7 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
 
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>(
     product?.images?.map((url: string, index: number) => ({
@@ -75,7 +77,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
     })) || []
   );
 
-  // Type options (4 user types)
   const typeOptions = [
     { value: 'HARDWARE', label: 'Hardware' },
     { value: 'FUNDI', label: 'Fundi' },
@@ -83,24 +84,37 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
     { value: 'CONTRACTOR', label: 'Contractor' }
   ];
 
-  const fetchCategories = useCallback(async () => {
+  const generateBID = () => {
+    const timestamp = Date.now().toString(36).toUpperCase().slice(-6);
+    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `BID-${timestamp}-${randomPart}`;
+  };
+
+  const fetchCategories = useCallback(async (type?: string) => {
     try {
-      setLoading(true);
       const response = await getAllCategories(axiosInstance);
       if (response.success) {
-        setCategories(response.hashSet || []);
+        let filteredCategories = response.hashSet || [];
+        const typeToFilter = type || formData.type;
+        
+        if (typeToFilter && !isEditMode) {
+          const typeToFilterLower = typeToFilter.toLowerCase();
+          filteredCategories = filteredCategories.filter((cat: any) => {
+            const catTypeLower = cat.type ? cat.type.toLowerCase() : "";
+            return catTypeLower === typeToFilterLower || !cat.type;
+          });
+        }
+        
+        setCategories(filteredCategories);
       } else {
         toast.error("Failed to fetch categories");
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to fetch categories");
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [axiosInstance, isEditMode, formData.type]);
 
-  // UOM options
   const uomOptions = [
     { value: 'pcs', label: 'Pieces' },
     { value: 'kg', label: 'Kilograms' },
@@ -110,10 +124,18 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
   ];
 
   const handleInputChange = (field: keyof ProductFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      if (field === 'category') {
+        const selectedCategory = categories.find((cat: any) => cat.name === value);
+        if (selectedCategory) {
+          updated.subcategory = selectedCategory.subCategory || '';
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,17 +147,14 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
 
     try {
       for (const file of files) {
-        // Validate file before upload
         const validation = validateFile(file);
         if (!validation.isValid) {
           toast.error(validation.error || 'Invalid file');
           continue;
         }
 
-        // Upload file using the utility function
         const uploadedFile = await uploadFile(file);
 
-        // Add to uploaded images list
         setUploadedImages(prev => [...prev, {
           id: uploadedFile.id,
           url: uploadedFile.url,
@@ -158,14 +177,33 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
   };
 
   const handleSubmit = async () => {
+    const requiredFields = [
+      { key: 'type', label: 'Type' },
+      { key: 'category', label: 'Category' },
+      { key: 'name', label: 'Product Name' },
+      { key: 'description', label: 'Description' },
+      { key: 'bId', label: 'B-ID' },
+      { key: 'sku', label: 'SKU' },
+    ];
+
+    const missingField = requiredFields.find(field => !formData[field.key as keyof ProductFormData]);
+
+    if (missingField) {
+      toast.error(`Please fill in the ${missingField.label}`);
+      return;
+    }
+
+    if (uploadedImages.length === 0) {
+      toast.error("Please upload at least one image");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Extract image URLs from uploaded images
       const imageUrls = uploadedImages.map(img => img.url);
 
-      // Prepare the data for API - matching the new payload structure
-      const submitData = {
+      const submitData: any = {
         name: formData.name,
         description: formData.description,
         type: formData.type,
@@ -180,31 +218,27 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
       };
 
       if (isEditMode && product) {
-        // Update existing product
         await updateProduct(axiosInstance, product.id, submitData);
         toast.success('Product updated successfully');
       } else {
-        // Create new product
         await createProductAdmin(axiosInstance, submitData);
         toast.success('Product created successfully');
       }
 
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error(isEditMode ? 'Failed to update product' : 'Failed to create product');
+      toast.error(error.response?.data?.message || (isEditMode ? 'Failed to update product' : 'Failed to create product'));
     } finally {
       setLoading(false);
     }
   };
 
   const handlePreview = () => {
-    // Implement preview functionality
     toast?.info('Preview functionality coming soon');
   };
 
   const handleSaveChanges = () => {
-    // Implement save as draft functionality
     toast?.info('Save as draft functionality coming soon');
   };
 
@@ -212,9 +246,35 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    if (!isEditMode && !formData.bId) {
+      setFormData(prev => ({
+        ...prev,
+        bId: generateBID()
+      }));
+    }
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode && formData.type) {
+      fetchCategories(formData.type);
+    }
+  }, [formData.type, isEditMode]);
+
+  useEffect(() => {
+    if (isEditMode && product?.category && categories.length > 0) {
+      const categoryExists = categories.some(cat => cat.name === product.category);
+      if (!categoryExists && formData.category !== product.category) {
+        setFormData(prev => ({
+          ...prev,
+          category: product.category
+        }));
+      }
+    }
+  }, [categories, isEditMode, product]);
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      {/* Header */}
       <div className="flex items-center space-x-4">
         <Button variant="ghost" onClick={onBack} className="p-2">
           <ArrowLeft className="h-5 w-5" />
@@ -223,12 +283,10 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
       </div>
 
       <div className="space-y-8">
-        {/* Product Information */}
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Type */}
             <div className="space-y-2">
-              <Label htmlFor="type" className="font-semibold">Type</Label>
+              <Label htmlFor="type" className="font-semibold">Type*</Label>
               <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type..." />
@@ -243,16 +301,20 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               </Select>
             </div>
 
-            {/* Category */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="font-semibold">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+              <Label htmlFor="category" className="font-semibold">Category*</Label>
+              <Select value={formData.category || ""} onValueChange={(value) => handleInputChange('category', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select..." />
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className='bg-white'>
+                  {isEditMode && formData.category && !categories.some(cat => cat.name === formData.category) && (
+                    <SelectItem value={formData.category}>
+                      {formData.category}
+                    </SelectItem>
+                  )}
                   {categories.map((category) => (
-                    <SelectItem key={category.name} value={category.name}>
+                    <SelectItem key={category.id} value={category.name}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -260,9 +322,8 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               </Select>
             </div>
 
-            {/* Product Name */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-semibold">Product Name</Label>
+              <Label htmlFor="name" className="font-semibold">Product Name*</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -272,9 +333,8 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
             </div>
           </div>
 
-          {/* Product Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="font-semibold">Product Description</Label>
+            <Label htmlFor="description" className="font-semibold">Product Description*</Label>
             <Textarea
               id="description"
               value={formData.description}
@@ -285,24 +345,22 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
           </div>
         </div>
 
-        {/* Product Attributes */}
         <div className="space-y-4">
           <Label className="font-semibold">Product Attributes</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* B-ID */}
             <div className="space-y-2">
-              <Label htmlFor="bId" className="text-sm">B-ID</Label>
+              <Label htmlFor="bId" className="text-sm">B-ID (Auto)*</Label>
               <Input
                 id="bId"
                 value={formData.bId}
-                onChange={(e) => handleInputChange('bId', e.target.value)}
-                placeholder="Enter B-ID"
+                readOnly
+                className="bg-gray-100 text-gray-500 cursor-not-allowed"
+                placeholder="Auto-generated"
               />
             </div>
 
-            {/* SKU */}
             <div className="space-y-2">
-              <Label htmlFor="sku" className="text-sm">SKU</Label>
+              <Label htmlFor="sku" className="text-sm">SKU*</Label>
               <Input
                 id="sku"
                 value={formData.sku}
@@ -311,7 +369,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               />
             </div>
 
-            {/* Material */}
             <div className="space-y-2">
               <Label htmlFor="material" className="text-sm">Material</Label>
               <Input
@@ -322,7 +379,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               />
             </div>
 
-            {/* Size */}
             <div className="space-y-2">
               <Label htmlFor="size" className="text-sm">Size</Label>
               <Input
@@ -333,7 +389,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               />
             </div>
 
-            {/* Color */}
             <div className="space-y-2">
               <Label htmlFor="color" className="text-sm">Color</Label>
               <Input
@@ -344,7 +399,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               />
             </div>
 
-            {/* UOM */}
             <div className="space-y-2">
               <Label htmlFor="uom" className="text-sm">UOM</Label>
               <Select value={formData.uom} onValueChange={(value) => handleInputChange('uom', value)}>
@@ -363,10 +417,9 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
           </div>
         </div>
 
-        {/* Media Upload */}
         <div className="space-y-4">
           <Label className="font-semibold">
-            Media Upload (Upload in the manner: Front, Back, Side Elevations)
+            Media Upload (Upload in the manner: Front, Back, Side Elevations)*
           </Label>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
             <div className="flex items-center justify-center space-x-4">
@@ -400,7 +453,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
               </div>
             </div>
 
-            {/* Display uploaded images */}
             {uploadedImages.length > 0 && (
               <div className="mt-6">
                 <h4 className="text-sm font-medium mb-2">Uploaded Images:</h4>
@@ -430,7 +482,6 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-end space-x-4 pt-6">
           <Button
             variant="outline"
@@ -440,14 +491,16 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
           >
             Preview
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleSaveChanges}
-            disabled={loading || uploadingImages}
-            style={{ backgroundColor: '#f3f4f6', color: '#00007A', borderColor: '#00007A' }}
-          >
-            Save Changes
-          </Button>
+          {!isEditMode && (
+            <Button
+              variant="outline"
+              onClick={handleSaveChanges}
+              disabled={loading || uploadingImages}
+              style={{ backgroundColor: '#f3f4f6', color: '#00007A', borderColor: '#00007A' }}
+            >
+              Save Changes
+            </Button>
+          )}
           <Button
             onClick={handleSubmit}
             disabled={loading || uploadingImages}
@@ -459,4 +512,4 @@ export default function AddProductForm({ onBack, onSuccess, product, isEditMode 
       </div>
     </div>
   );
-} 
+}

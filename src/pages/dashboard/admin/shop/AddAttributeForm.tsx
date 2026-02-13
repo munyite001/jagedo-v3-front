@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,19 +7,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createAttribute, AttributeCreateRequest } from '@/api/attributes.api';
+import { createAttribute, AttributeCreateRequest, getAllAttributes } from '@/api/attributes.api';
+import { getAllCategories } from '@/api/categories.api';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 
 interface AddAttributeFormProps {
   onBack: () => void;
   onSuccess: () => void;
+  defaultProductType: string;
 }
 
-export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeFormProps) {
+export default function AddAttributeForm({ onBack, onSuccess, defaultProductType }: AddAttributeFormProps) {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [loading, setLoading] = useState(false);
+  const [existingAttributes, setExistingAttributes] = useState<any[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
   const [formData, setFormData] = useState<AttributeCreateRequest>({
     type: '',
+    productType: defaultProductType,
     values: '',
     attributeGroup: '',
     filterable: false,
@@ -30,10 +35,38 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
   const [attributeValues, setAttributeValues] = useState<string[]>([]);
   const [newValue, setNewValue] = useState('');
 
-  // Handle form submission
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [attributesResponse, categoriesResponse] = await Promise.all([
+          getAllAttributes(axiosInstance),
+          getAllCategories(axiosInstance)
+        ]);
+
+        if (attributesResponse.success && Array.isArray(attributesResponse.hashSet)) {
+          setExistingAttributes(attributesResponse.hashSet);
+        }
+
+        if (categoriesResponse.success && Array.isArray(categoriesResponse.hashSet)) {
+          const filteredCategories = categoriesResponse.hashSet
+            .filter((cat: any) => 
+              cat.type?.toUpperCase() === defaultProductType.toUpperCase()
+            )
+            .map((cat: any) => cat.name);
+
+          setAvailableGroups(filteredCategories);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch data for validation and options', error);
+      }
+    };
+    fetchData();
+  }, [defaultProductType]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.type.trim()) {
       toast.error('Attribute name is required');
       return;
@@ -46,16 +79,28 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
       }
     }
 
+    const isDuplicate = existingAttributes.some((attr) => {
+      const existingName = (attr.type || "").trim().toLowerCase();
+      const newName = formData.type.trim().toLowerCase();
+
+      return existingName === newName && attr.productType === formData.productType;
+    });
+
+    if (isDuplicate) {
+      toast.error(`An attribute with the name "${formData.type}" already exists for ${formData.productType}.`);
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       const submitData: AttributeCreateRequest = {
         ...formData,
         values: attributeValues.join(',')
       };
 
       const response = await createAttribute(axiosInstance, submitData);
-      
+
       if (response.success) {
         toast.success('Attribute created successfully');
         onSuccess();
@@ -70,7 +115,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
     }
   };
 
-  // Handle adding new attribute value
   const handleAddValue = () => {
     if (newValue.trim() && !attributeValues.includes(newValue.trim())) {
       setAttributeValues([...attributeValues, newValue.trim()]);
@@ -78,19 +122,16 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
     }
   };
 
-  // Handle removing attribute value
   const handleRemoveValue = (index: number) => {
     setAttributeValues(attributeValues.filter((_, i) => i !== index));
   };
 
-  // Handle discard
   const handleDiscard = () => {
     onBack();
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center space-x-4">
         <Button
           variant="ghost"
@@ -108,7 +149,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* General Section */}
           <Card>
             <CardHeader>
               <CardTitle>General</CardTitle>
@@ -117,7 +157,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
@@ -128,8 +167,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                   required
                 />
               </div>
-
-              {/* Type */}
               <div className="space-y-2">
                 <Label>Type</Label>
                 <RadioGroup
@@ -156,21 +193,17 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                 </RadioGroup>
               </div>
 
-              {/* Values (for select/multiselect) */}
               {(attributeType === 'select' || attributeType === 'multiselect') && (
                 <div className="space-y-2">
                   <Label>Values</Label>
+
                   <div className="flex space-x-2">
-                    <Select>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="option1">Option 1</SelectItem>
-                        <SelectItem value="option2">Option 2</SelectItem>
-                        <SelectItem value="option3">Option 3</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      placeholder="Enter new value (e.g., Red, Small, Cotton)"
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddValue())}
+                    />
                     <Button
                       type="button"
                       onClick={handleAddValue}
@@ -180,34 +213,23 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                       Add
                     </Button>
                   </div>
-                  
-                  {/* Add new value input */}
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Enter new value"
-                      value={newValue}
-                      onChange={(e) => setNewValue(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddValue())}
-                    />
-                  </div>
 
-                  {/* Display added values */}
                   {attributeValues.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Added Values:</Label>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2 mt-4">
+                      <Label className="text-xs text-gray-500">Added Values:</Label>
+                      <div className="flex flex-wrap gap-2 border p-2 rounded-md bg-gray-50 min-h-[40px]">
                         {attributeValues.map((value, index) => (
                           <div
                             key={index}
-                            className="flex items-center space-x-1 bg-gray-100 px-2 py-1 rounded-md"
+                            className="flex items-center space-x-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm"
                           >
-                            <span className="text-sm">{value}</span>
+                            <span className="text-sm font-medium">{value}</span>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveValue(index)}
-                              className="h-4 w-4 p-0"
+                              className="h-4 w-4 p-0 text-gray-500 hover:text-red-500"
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -219,7 +241,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                 </div>
               )}
 
-              {/* Attribute Group */}
               <div className="space-y-2">
                 <Label htmlFor="attributeGroup">Attribute Group</Label>
                 <Select
@@ -227,21 +248,26 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                   onValueChange={(value) => setFormData({ ...formData, attributeGroup: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select..." />
+                    <SelectValue placeholder="Select attribute group..." />
                   </SelectTrigger>
                   <SelectContent className='bg-white'>
-                    <SelectItem value="physical">Physical Properties</SelectItem>
-                    <SelectItem value="appearance">Appearance</SelectItem>
-                    <SelectItem value="technical">Technical Specs</SelectItem>
-                    <SelectItem value="dimensions">Dimensions</SelectItem>
-                    <SelectItem value="materials">Materials</SelectItem>
+                    {availableGroups.length > 0 ? (
+                      availableGroups.map((group, index) => (
+                        <SelectItem key={index} value={group}>
+                          {group}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <div className="p-2 text-sm text-gray-500 text-center">
+                        No active categories found for {defaultProductType}
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Setting Section */}
           <Card>
             <CardHeader>
               <CardTitle>Setting</CardTitle>
@@ -250,7 +276,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Is Filterable */}
               <div className="space-y-2">
                 <Label>Is Filterable?</Label>
                 <RadioGroup
@@ -269,7 +294,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
                 </RadioGroup>
               </div>
 
-              {/* Show to customers */}
               <div className="space-y-2">
                 <Label>Show to customers?</Label>
                 <RadioGroup
@@ -291,7 +315,6 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
           </Card>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end space-x-4 mt-8">
           <Button
             type="button"
@@ -312,4 +335,4 @@ export default function AddAttributeForm({ onBack, onSuccess }: AddAttributeForm
       </form>
     </div>
   );
-} 
+}

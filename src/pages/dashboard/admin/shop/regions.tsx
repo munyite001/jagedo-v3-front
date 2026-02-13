@@ -11,6 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
     Table,
     TableBody,
     TableCell,
@@ -19,6 +29,13 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import {
     Plus,
     Search,
@@ -39,8 +56,10 @@ import {
     getAllRegions,
     deleteRegion,
     toggleRegionStatus,
+    updateRegion,
     Region
 } from "@/api/regions.api";
+import { kenyanRegions, getCountiesForRegion } from "@/data/kenyanRegions";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import AddRegionForm from "./AddRegionForm";
 
@@ -49,17 +68,32 @@ export default function ShopRegions() {
     const [regions, setRegions] = useState<Region[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Hardware");
-    const [regionToDelete, setRegionToDelete] =
-        useState<Region | null>(null);
-    const [regionToToggle, setRegionToToggle] =
-        useState<Region | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
+    const [regionToDelete, setRegionToDelete] = useState<Region | null>(null);
+    const [regionToToggle, setRegionToToggle] = useState<Region | null>(null);
     const [showAddRegion, setShowAddRegion] = useState(false);
+    const [showEditRegion, setShowEditRegion] = useState(false);
+    const [editingRegion, setEditingRegion] = useState<Region | null>(null);
+    const [editSelectedRegion, setEditSelectedRegion] = useState("");
+    const [editSelectedCounty, setEditSelectedCounty] = useState("");
+    const [editFormData, setEditFormData] = useState({
+        country: "",
+        name: "",
+        code: "",
+        type: "HARDWARE",
+        counties: "",
+        filterable: false,
+        customerView: false,
+        active: true
+    });
 
-    // Category tabs
-    const categories = ["Hardware", "Design", "Custom Products", "Machinery"];
+    const categories = [
+        { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
+        { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
+        { id: "DESIGNS", label: "Designs", type: "PROFESSIONAL" },
+        { id: "HIRE_MACHINERY", label: "Hire Machinery & E", type: "CONTRACTOR" }
+    ];
 
-    // Fetch regions
     const fetchRegions = useCallback(async () => {
         try {
             setLoading(true);
@@ -80,20 +114,78 @@ export default function ShopRegions() {
         fetchRegions();
     }, []);
 
-    // Filter regions based on search term
+    const selectedCategoryType = categories.find(cat => cat.id === selectedCategory)?.type || "HARDWARE";
+    
     const filteredRegions = regions?.filter(
-        (region) =>
-            region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            region.country.toLowerCase().includes(searchTerm.toLowerCase())
+        (region) => {
+            const matchesSearch =
+                region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                region.country.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesCategory = region.type === selectedCategoryType;
+            
+            return matchesSearch && matchesCategory;
+        }
     );
 
-    // Handle edit region
-    const handleEditRegion = () => {
-        // For now, just show a toast - edit functionality can be added later
-        toast("Edit functionality coming soon");
+    const handleEditRegion = (region: Region) => {
+        setEditingRegion(region);
+        const baseRegion = region.name.split(" - ")[0];
+        setEditSelectedRegion(baseRegion);
+        setEditSelectedCounty(region.counties || "");
+        setEditFormData({
+            country: region.country,
+            name: region.name,
+            code: "",
+            type: region.type || "HARDWARE",
+            counties: region.counties || "",
+            filterable: region.filterable,
+            customerView: region.customerView,
+            active: region.active
+        });
+        setShowEditRegion(true);
     };
 
-    // Handle delete region
+    const handleEditRegionSelect = (region: string) => {
+        setEditSelectedRegion(region);
+        setEditFormData({ ...editFormData, name: region });
+    };
+
+    const handleEditCountySelect = (county: string) => {
+        setEditSelectedCounty(county);
+        if (county && county !== editSelectedRegion) {
+            setEditFormData({ ...editFormData, name: `${editSelectedRegion} - ${county}`, counties: county });
+        } else {
+            setEditFormData({ ...editFormData, name: editSelectedRegion, counties: '' });
+        }
+    };
+
+    const handleSaveEditRegion = async () => {
+        if (!editingRegion) return;
+
+        try {
+            const response = await updateRegion(axiosInstance, editingRegion.id, {
+                country: editFormData.country,
+                name: editFormData.name,
+                type: editFormData.type,
+                counties: editFormData.counties,
+                filterable: editFormData.filterable,
+                customerView: editFormData.customerView,
+                active: editFormData.active
+            } as any);
+            if (response.success) {
+                toast.success("Region updated successfully");
+                setShowEditRegion(false);
+                fetchRegions();
+            } else {
+                toast.error(response.message || "Failed to update region");
+            }
+        } catch (error) {
+            console.error("Error updating region:", error);
+            toast.error("Failed to update region");
+        }
+    };
+
     const handleDeleteRegion = (region: Region) => {
         setRegionToDelete(region);
     };
@@ -120,7 +212,6 @@ export default function ShopRegions() {
         }
     };
 
-    // Handle toggle region status
     const handleToggleRegionStatus = (region: Region) => {
         setRegionToToggle(region);
     };
@@ -154,12 +245,10 @@ export default function ShopRegions() {
         }
     };
 
-    // Handle add region
     const handleAddRegion = () => {
         setShowAddRegion(true);
     };
 
-    // If showing add region form, render it
     if (showAddRegion) {
         return (
             <AddRegionForm
@@ -176,7 +265,6 @@ export default function ShopRegions() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
@@ -195,24 +283,22 @@ export default function ShopRegions() {
                 </Button>
             </div>
 
-            {/* Category Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
                 {categories.map((category) => (
                     <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            selectedCategory === category
-                                ? "bg-blue-800 text-white"
-                                : "text-blue-600 hover:bg-blue-50"
+                        key={category.id}
+                        onClick={() => setSelectedCategory(category.id)}
+                        className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            selectedCategory === category.id
+                                ? "bg-[#00007A] text-white"
+                                : "bg-transparent text-black hover:bg-blue-50"
                         }`}
                     >
-                        {category}
+                        {category.label}
                     </button>
                 ))}
             </div>
 
-            {/* Search and Actions */}
             <div className="flex items-center space-x-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -225,7 +311,6 @@ export default function ShopRegions() {
                 </div>
             </div>
 
-            {/* Regions Table */}
             <Card>
                 <CardHeader>
                     <CardTitle>Product Regions</CardTitle>
@@ -269,11 +354,24 @@ export default function ShopRegions() {
                                 </TableRow>
                             ) : (
                                 filteredRegions?.map((region, index) => (
-                                    <TableRow key={region.id}>
+                                    <TableRow 
+                                        key={region.id}
+                                        className={!region.active ? "bg-gray-100 opacity-60 grayscale" : ""}
+                                    >
                                         <TableCell>{index + 1}</TableCell>
                                         <TableCell>{region.country}</TableCell>
                                         <TableCell>{region.name}</TableCell>
-                                        <TableCell>-</TableCell>
+                                        <TableCell>
+                                            <div className="text-sm max-w-xs">
+                                                {region.counties ? (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {region.counties}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             <Badge
                                                 variant={
@@ -316,7 +414,7 @@ export default function ShopRegions() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleEditRegion()}>
+                                                    <DropdownMenuItem onClick={() => handleEditRegion(region)}>
                                                         <Edit className="mr-2 h-4 w-4" />
                                                         Edit
                                                     </DropdownMenuItem>
@@ -346,61 +444,219 @@ export default function ShopRegions() {
                 </CardContent>
             </Card>
 
-            {/* Delete Confirmation Dialog */}
-            {regionToDelete && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold mb-4">Delete Region</h3>
-                        <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete "{regionToDelete.name}"? This action cannot be undone.
-                        </p>
-                        <div className="flex justify-end space-x-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setRegionToDelete(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={deleteRegionHandler}
-                            >
-                                Delete
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog open={!!regionToDelete} onOpenChange={(open) => !open && setRegionToDelete(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Region</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-gray-600">
+                        Are you sure you want to delete "{regionToDelete?.name}"? This action cannot be undone.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setRegionToDelete(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={deleteRegionHandler}
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            {/* Toggle Status Confirmation Dialog */}
-            {regionToToggle && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold mb-4">
-                            {regionToToggle.active ? "Disable" : "Enable"} Region
-                        </h3>
-                        <p className="text-gray-600 mb-6">
-                            Are you sure you want to {regionToToggle.active ? "disable" : "enable"} "{regionToToggle.name}"?
-                        </p>
-                        <div className="flex justify-end space-x-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setRegionToToggle(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant={
-                                    regionToToggle.active ? "destructive" : "default"
+            <Dialog open={!!regionToToggle} onOpenChange={(open) => !open && setRegionToToggle(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {regionToToggle?.active ? "Disable" : "Enable"} Region
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-gray-600">
+                        Are you sure you want to {regionToToggle?.active ? "disable" : "enable"} "{regionToToggle?.name}"?
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setRegionToToggle(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={regionToToggle?.active ? "destructive" : "default"}
+                            onClick={toggleRegionStatusHandler}
+                        >
+                            {regionToToggle?.active ? "Disable" : "Enable"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditRegion} onOpenChange={setShowEditRegion}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Region</DialogTitle>
+                        <DialogDescription>
+                            Update the region details below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-country">Country</Label>
+                            <Input
+                                id="edit-country"
+                                value={editFormData.country}
+                                onChange={(e) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        country: e.target.value
+                                    })
                                 }
-                                onClick={toggleRegionStatusHandler}
+                                placeholder="e.g., Kenya"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-region">Select Region</Label>
+                            <Select value={editSelectedRegion} onValueChange={handleEditRegionSelect}>
+                                <SelectTrigger id="edit-region">
+                                    <SelectValue placeholder="Select a region" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {kenyanRegions.map((r) => (
+                                        <SelectItem key={r.region} value={r.region}>
+                                            {r.region}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {editSelectedRegion && (
+                            <div className="space-y-2">
+                                <Label htmlFor="edit-county">Select County (Optional)</Label>
+                                <Select onValueChange={handleEditCountySelect}>
+                                    <SelectTrigger id="edit-county">
+                                        <SelectValue placeholder="Select a county" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {getCountiesForRegion(editSelectedRegion).map((county) => (
+                                            <SelectItem key={county} value={county}>
+                                                {county}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-name">Region Name</Label>
+                            <Input
+                                id="edit-name"
+                                value={editFormData.name}
+                                onChange={(e) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        name: e.target.value
+                                    })
+                                }
+                                placeholder="e.g., Nairobi"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-type">Type</Label>
+                            <Select
+                                value={editFormData.type || 'HARDWARE'}
+                                onValueChange={(value) =>
+                                    setEditFormData({
+                                        ...editFormData,
+                                        type: value
+                                    })
+                                }
                             >
-                                {regionToToggle.active ? "Disable" : "Enable"}
-                            </Button>
+                                <SelectTrigger id="edit-type">
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="HARDWARE">Hardware</SelectItem>
+                                    <SelectItem value="FUNDI">Custom Products</SelectItem>
+                                    <SelectItem value="PROFESSIONAL">Designs</SelectItem>
+                                    <SelectItem value="CONTRACTOR">Hire Machinery & E</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-filterable"
+                                    checked={editFormData.filterable}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            filterable: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-filterable" className="cursor-pointer">
+                                    Is Filterable
+                                </Label>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-customer-view"
+                                    checked={editFormData.customerView}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            customerView: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-customer-view" className="cursor-pointer">
+                                    Show To Customers
+                                </Label>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="edit-active"
+                                    checked={editFormData.active}
+                                    onCheckedChange={(checked) =>
+                                        setEditFormData({
+                                            ...editFormData,
+                                            active: checked as boolean
+                                        })
+                                    }
+                                />
+                                <Label htmlFor="edit-active" className="cursor-pointer">
+                                    Active
+                                </Label>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowEditRegion(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSaveEditRegion}
+                            style={{ backgroundColor: "#00007A", color: "white" }}
+                        >
+                            Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
-} 
+}

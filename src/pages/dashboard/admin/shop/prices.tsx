@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 //@ts-nocheck
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
     Card,
     CardContent,
@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
-    getAllProducts,
     getActiveProducts
 } from "@/api/products.api";
 import {
@@ -48,6 +47,7 @@ interface Region {
     id: number;
     name: string;
     country: string;
+    type: string;
     active: boolean;
     filterable: boolean;
     customerView: boolean;
@@ -65,6 +65,7 @@ interface Product {
     description: string;
     type: string;
     category: string;
+    subcategory: string | null;
     basePrice: number | null;
     pricingReference: string | null;
     lastUpdated: string | null;
@@ -83,6 +84,169 @@ interface Product {
     prices: Price[];
 }
 
+// --- EXTRACTED COMPONENTS (Fixes re-render/focus issues) ---
+
+const PriceInput = React.memo(({ 
+    regionId, 
+    regionName, 
+    initialValue, 
+    onChange 
+}: { 
+    regionId: number; 
+    regionName: string; 
+    initialValue: string; 
+    onChange: (id: number, val: string) => void 
+}) => {
+    // We use local state for the input to ensure smooth typing
+    // but we sync with parent via onChange
+    const [value, setValue] = useState(initialValue);
+
+    // Update local state if initialValue changes (e.g. when opening modal for different product)
+    useEffect(() => {
+        setValue(initialValue);
+    }, [initialValue]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+        // Allow only numbers and decimal point
+        if (/^\d*\.?\d*$/.test(newValue) || newValue === '') {
+            setValue(newValue);
+            onChange(regionId, newValue);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-3">
+            <label className="w-32 font-medium text-sm text-gray-700">{regionName}</label>
+            <div className="flex items-center gap-1 flex-1">
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={value}
+                    onChange={handleChange}
+                    className="flex-1 px-2 py-1 text-sm"
+                    placeholder="0.00"
+                />
+                <span className="text-xs text-gray-500">KES</span>
+            </div>
+        </div>
+    );
+});
+
+const PriceModal = ({
+    product,
+    isOpen,
+    onClose,
+    categoryType,
+    regions,
+    onSave,
+    isSaving
+}: {
+    product: Product | null;
+    isOpen: boolean;
+    onClose: () => void;
+    categoryType: string;
+    regions: Region[];
+    onSave: (prices: { regionId: number; regionName: string; price: number }[]) => void;
+    isSaving: boolean;
+}) => {
+    // Store price edits in a simple object: { [regionId]: "100.00" }
+    const [priceMap, setPriceMap] = useState<Record<number, string>>({});
+
+    // Filter regions by type
+    const modalFilteredRegions = regions.filter(region => region.type === categoryType);
+
+    // Initialize prices when modal opens or product changes
+    useEffect(() => {
+        if (isOpen && product) {
+            const initialMap: Record<number, string> = {};
+            modalFilteredRegions.forEach(region => {
+                const existingPrice = product.prices?.find(p => p.regionId === region.id);
+                initialMap[region.id] = existingPrice ? String(existingPrice.price) : "";
+            });
+            setPriceMap(initialMap);
+        }
+    }, [isOpen, product, regions, categoryType]); // Added dependencies
+
+    const handleInputChange = useCallback((regionId: number, val: string) => {
+        setPriceMap(prev => ({ ...prev, [regionId]: val }));
+    }, []);
+
+    const handleSave = () => {
+        const priceArray = modalFilteredRegions.map(region => {
+            const priceStr = priceMap[region.id];
+            return {
+                regionId: region.id,
+                regionName: region.name,
+                price: priceStr ? parseFloat(priceStr) : 0
+            };
+        });
+        onSave(priceArray);
+    };
+
+    if (!product) return null;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Package className="h-5 w-5" />
+                        Manage Regional Prices
+                    </DialogTitle>
+                    <DialogDescription>
+                        Set prices for {product.name} across different regions
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                    {/* Product Info */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-lg">{product.name}</h3>
+                        <p className="text-gray-600">{product.category} • {product.type}</p>
+                        {product.sku && <p className="text-sm text-gray-500">SKU: {product.sku}</p>}
+                    </div>
+
+                    {/* Regional Prices */}
+                    <div className="space-y-3">
+                        <h3 className="text-base font-semibold">Regional Prices</h3>
+                        <div className="space-y-2">
+                            {modalFilteredRegions.map((region) => (
+                                <PriceInput 
+                                    key={region.id} 
+                                    regionId={region.id} 
+                                    regionName={region.name} 
+                                    initialValue={priceMap[region.id] || ""}
+                                    onChange={handleInputChange}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button variant="outline" onClick={onClose} disabled={isSaving}>
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        style={{
+                            backgroundColor: "#00007A",
+                            color: "white"
+                        }}
+                    >
+                        <Save className="h-4 w-4 mr-2" />
+                        {isSaving ? 'Saving...' : 'Save Prices'}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+// --- MAIN COMPONENT ---
+
 export default function ShopPrices() {
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const [products, setProducts] = useState<Product[]>([]);
@@ -92,7 +256,6 @@ export default function ShopPrices() {
     const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showPriceModal, setShowPriceModal] = useState(false);
-    const [editingPrices, setEditingPrices] = useState<Price[]>([]);
     const [savingPrices, setSavingPrices] = useState(false);
 
     // Main category tabs with correct mapping
@@ -134,6 +297,9 @@ export default function ShopPrices() {
     // Get the selected category type
     const selectedCategoryType = categories.find(cat => cat.id === selectedCategory)?.type || "HARDWARE";
 
+    // Filter regions based on selected category type
+    const filteredRegions = regions?.filter((region) => region.type === selectedCategoryType);
+
     // Filter products based on search term and category
     const filteredProducts = products?.filter((product) => {
         const matchesSearch =
@@ -161,32 +327,11 @@ export default function ShopPrices() {
     // Handle edit prices
     const handleEditPrices = (product: Product) => {
         setSelectedProduct(product);
-        // Initialize editing prices with existing prices or empty prices for all regions
-        const initialPrices = regions.map(region => {
-            const existingPrice = product.prices?.find(p => p.regionId === region.id);
-            return {
-                regionId: region.id,
-                regionName: region.name,
-                price: existingPrice?.price || 0
-            };
-        });
-        setEditingPrices(initialPrices);
         setShowPriceModal(true);
     };
 
-    // Handle price change
-    const handlePriceChange = (regionId: number, newPrice: number) => {
-        setEditingPrices(prev => 
-            prev.map(price => 
-                price.regionId === regionId 
-                    ? { ...price, price: newPrice }
-                    : price
-            )
-        );
-    };
-
     // Save prices
-    const handleSavePrices = async () => {
+    const handleSavePrices = async (priceData: Price[]) => {
         if (!selectedProduct) return;
 
         try {
@@ -194,7 +339,7 @@ export default function ShopPrices() {
             
             const payload = {
                 productId: selectedProduct.id,
-                prices: editingPrices.filter(price => price.price > 0) // Only save prices > 0
+                prices: priceData.filter(price => price.price > 0) // Only save prices > 0
             };
 
             const response = await axiosInstance.post(
@@ -206,7 +351,9 @@ export default function ShopPrices() {
                 toast.success("Prices updated successfully");
                 setShowPriceModal(false);
                 setSelectedProduct(null);
-                fetchData(); // Refresh the data
+                setTimeout(() => {
+                    fetchData();
+                }, 300);
             } else {
                 toast.error(response.data.message || "Failed to update prices");
             }
@@ -222,87 +369,6 @@ export default function ShopPrices() {
     const getPriceForRegion = (product: Product, regionId: number) => {
         const price = product.prices?.find(p => p.regionId === regionId);
         return price ? formatPrice(price.price) : "-";
-    };
-
-    // Price Management Modal
-    const PriceModal = ({
-        product,
-        isOpen,
-        onClose
-    }: {
-        product: Product | null;
-        isOpen: boolean;
-        onClose: () => void;
-    }) => {
-        if (!product) return null;
-
-        return (
-            <Dialog open={isOpen} onOpenChange={onClose}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Package className="h-5 w-5" />
-                            Manage Regional Prices
-                        </DialogTitle>
-                        <DialogDescription>
-                            Set prices for {product.name} across different regions
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-6">
-                        {/* Product Info */}
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <h3 className="font-semibold text-lg">{product.name}</h3>
-                            <p className="text-gray-600">{product.category} • {product.type}</p>
-                            {product.sku && <p className="text-sm text-gray-500">SKU: {product.sku}</p>}
-                        </div>
-
-                        {/* Regional Prices */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Regional Prices (KES)</h3>
-                            <div className="grid gap-4">
-                                {editingPrices.map((price) => (
-                                    <div key={price.regionId} className="flex items-center justify-between p-3 border rounded-lg">
-                                        <div>
-                                            <span className="font-medium">{price.regionName}</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <span className="text-sm text-gray-500">KES</span>
-                                            <Input
-                                                type="number"
-                                                value={price.price}
-                                                onChange={(e) => handlePriceChange(price.regionId, parseFloat(e.target.value) || 0)}
-                                                className="w-32"
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                        <Button variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSavePrices}
-                            disabled={savingPrices}
-                            style={{
-                                backgroundColor: "#00007A",
-                                color: "white"
-                            }}
-                        >
-                            <Save className="h-4 w-4 mr-2" />
-                            {savingPrices ? 'Saving...' : 'Save Prices'}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        );
     };
 
     return (
@@ -328,7 +394,7 @@ export default function ShopPrices() {
                         className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                             selectedCategory === category.id
                                 ? "bg-[#00007A] text-white"
-                                : "bg-transparent text-blue-600 hover:bg-blue-50"
+                                : "bg-transparent text-black hover:bg-blue-50"
                         }`}
                     >
                         {category.label}
@@ -377,9 +443,8 @@ export default function ShopPrices() {
                                     <TableRow>
                                         <TableHead className="w-12">No</TableHead>
                                         <TableHead>Category</TableHead>
-                                        <TableHead>Sub-Category</TableHead>
                                         <TableHead>Product Name</TableHead>
-                                        {regions.map((region) => (
+                                        {filteredRegions.map((region) => (
                                             <TableHead key={region.id}>{region.name}</TableHead>
                                         ))}
                                         <TableHead className="w-32">Actions</TableHead>
@@ -396,7 +461,6 @@ export default function ShopPrices() {
                                                     {product.category}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>-</TableCell>
                                             <TableCell>
                                                 <div>
                                                     <div className="font-medium">
@@ -409,7 +473,7 @@ export default function ShopPrices() {
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            {regions.map((region) => (
+                                            {filteredRegions.map((region) => (
                                                 <TableCell key={region.id}>
                                                     <div className="text-sm">
                                                         {getPriceForRegion(product, region.id)}
@@ -446,7 +510,11 @@ export default function ShopPrices() {
                     setShowPriceModal(false);
                     setSelectedProduct(null);
                 }}
+                categoryType={selectedCategoryType}
+                regions={regions}
+                onSave={handleSavePrices}
+                isSaving={savingPrices}
             />
         </div>
     );
-} 
+}

@@ -28,16 +28,18 @@ import {
 import {
     Plus,
     Search,
-    Download,
     Edit,
     Trash2,
     Eye,
-    Calendar,
     X,
     Check,
-    Package
+    Package,
+    FileUp,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import * as XLSX from "xlsx";
 import AddProductForm from "./AddProductForm";
 import {
     getAllProducts,
@@ -58,6 +60,7 @@ interface Product {
     description: string;
     type: string;
     category: string;
+    subcategory: string | null;
     basePrice: number | null;
     pricingReference: string | null;
     lastUpdated: string | null;
@@ -84,20 +87,20 @@ export default function ShopProducts() {
     const [selectedCategory, setSelectedCategory] = useState("HARDWARE");
     const [showAddProduct, setShowAddProduct] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(
-        null
-    );
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [showProductModal, setShowProductModal] = useState(false);
 
-    // Main category tabs with correct mapping
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
     const categories = [
         { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
         { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
         { id: "DESIGNS", label: "Designs", type: "PROFESSIONAL" },
-        { id: "HIRE_MACHINERY", label: "Hire Machinery & E", type: "CONTRACTOR" }
+        { id: "HIRE_MACHINERY", label: "Hire Machinery & Equipment", type: "CONTRACTOR" }
     ];
 
-    // Fetch products from API
     const fetchProducts = async () => {
         try {
             setLoading(true);
@@ -115,47 +118,40 @@ export default function ShopProducts() {
         }
     };
 
-    // Handle edit product
     const handleEditProduct = (product: Product) => {
         setEditingProduct(product);
         setShowAddProduct(true);
     };
 
-    // Handle view product details
     const handleViewProduct = (product: Product) => {
         setSelectedProduct(product);
         setShowProductModal(true);
     };
 
-    // Delete product
     const deleteProduct = async (productId: number) => {
         try {
             await deleteProductAPI(axiosInstance, productId);
             toast.success("Product deleted successfully");
-            fetchProducts(); // Refresh the list
+            fetchProducts();
         } catch (error) {
             console.error("Error deleting product:", error);
             toast.error("Failed to delete product");
         }
     };
-
 
     const handleApproveProduct = async (productId: number) => {
         try {
             await approveProduct(axiosInstance, productId);
-            toast.success("Product deleted successfully");
-            fetchProducts(); // Refresh the list
+            toast.success("Product status updated successfully");
+            fetchProducts();
         } catch (error) {
-            console.error("Error deleting product:", error);
-            toast.error("Failed to delete product");
+            console.error("Error updating product:", error);
+            toast.error("Failed to update product status");
         }
     };
 
-    console.log("Products: ", products);
-
     const selectedCategoryType = categories.find(cat => cat.id === selectedCategory)?.type || "HARDWARE";
 
-    // Filter products based on search term and category
     const filteredProducts = products?.filter((product) => {
         const matchesSearch =
             product?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
@@ -163,18 +159,64 @@ export default function ShopProducts() {
             (product?.bId?.toLowerCase() || "").includes(searchTerm?.toLowerCase()) ||
             (product?.basePrice?.toString() || "").includes(searchTerm) ||
             (product?.pricingReference?.toLowerCase() || "").includes(searchTerm?.toLowerCase()) ||
-            (product.active ? "active" : "inactive").includes(
-                searchTerm.toLowerCase()
-            );
+            (product.active ? "active" : "inactive").includes(searchTerm.toLowerCase());
 
         const matchesCategory = product.type === selectedCategoryType;
 
         return matchesSearch && matchesCategory;
     });
 
+    // Pagination Logic
+    const totalPages = Math.ceil((filteredProducts?.length || 0) / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentProducts = filteredProducts?.slice(indexOfFirstItem, indexOfLastItem) || [];
+
+    // Reset pagination when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, selectedCategory]);
+
     useEffect(() => {
         fetchProducts();
     }, []);
+
+    const handleExportToXLSX = () => {
+        try {
+            const exportData = filteredProducts.map((product) => ({
+                ID: product.id,
+                Name: product.name,
+                Description: product.description,
+                Type: product.type,
+                Category: product.category,
+                "BID": product.bId || "",
+                "SKU": product.sku || "",
+                Material: product.material || "",
+                Size: product.size || "",
+                Color: product.color || "",
+                UOM: product.uom || "",
+                Custom: product.custom ? "Yes" : "No",
+                "Image Count": product.images?.length || 0,
+                "Custom Price": product.customPrice || "",
+                "Created At": product.createdAt,
+                "Updated At": product.updatedAt,
+                Status: product.active ? "Active" : "Inactive"
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+            const timestamp = new Date().toISOString().split("T")[0];
+            const filename = `products_${selectedCategory}_${timestamp}.xlsx`;
+
+            XLSX.writeFile(workbook, filename);
+            toast.success("Products exported successfully!");
+        } catch (error) {
+            console.error("Error exporting to XLSX:", error);
+            toast.error("Failed to export products");
+        }
+    };
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat("en-KE", {
@@ -183,25 +225,20 @@ export default function ShopProducts() {
         }).format(price);
     };
 
-    // Get the lowest price from the prices array
     const getLowestPrice = (product: Product) => {
         if (product.prices && product.prices.length > 0) {
-            const minPrice = Math.min(...product.prices.map(p => p.price));
-            return minPrice;
+            return Math.min(...product.prices.map(p => p.price));
         }
         return product.basePrice || 0;
     };
 
-    // Get the highest price from the prices array
     const getHighestPrice = (product: Product) => {
         if (product.prices && product.prices.length > 0) {
-            const maxPrice = Math.max(...product.prices.map(p => p.price));
-            return maxPrice;
+            return Math.max(...product.prices.map(p => p.price));
         }
         return product.basePrice || 0;
     };
 
-    // If showing add product form, render it
     if (showAddProduct) {
         return (
             <AddProductForm
@@ -220,7 +257,6 @@ export default function ShopProducts() {
         );
     }
 
-    // Product Detail Modal Component (UI Layout Fix)
     const ProductDetailModal = ({
         product,
         isOpen,
@@ -232,7 +268,6 @@ export default function ShopProducts() {
     }) => {
         if (!product) return null;
 
-        // A simple, stateless helper for consistent styling
         const DetailItem = ({ label, children }: { label: string; children: React.ReactNode }) => (
             <div>
                 <dt className="text-sm font-medium text-gray-500">{label}</dt>
@@ -242,7 +277,7 @@ export default function ShopProducts() {
 
         return (
             <Dialog open={isOpen} onOpenChange={onClose}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-6 sm:p-8 rounded-lg">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-6 sm:p-8 rounded-lg hide-scrollbar">
                     <DialogHeader>
                         <DialogTitle className="text-3xl font-bold text-gray-900">
                             {product.name}
@@ -253,11 +288,9 @@ export default function ShopProducts() {
                     </DialogHeader>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mt-6">
-                        {/* Left Column: Images */}
                         <div className="md:col-span-1 space-y-4">
                             {product.images && product.images.length > 0 ? (
                                 <>
-                                    {/* Main Image */}
                                     <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
                                         <img
                                             src={product.images[0]}
@@ -265,7 +298,6 @@ export default function ShopProducts() {
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    {/* Thumbnails */}
                                     {product.images.length > 1 && (
                                         <div className="grid grid-cols-4 gap-2">
                                             {product.images.slice(1).map((image, index) => (
@@ -288,7 +320,6 @@ export default function ShopProducts() {
                             )}
                         </div>
 
-                        {/* Right Column: Details */}
                         <div className="md:col-span-2 space-y-6">
                             <section>
                                 <p className="text-gray-700">{product.description || "No description available."}</p>
@@ -300,6 +331,7 @@ export default function ShopProducts() {
                                 <h3 className="text-base font-semibold text-gray-800 mb-3">Product Details</h3>
                                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
                                     <DetailItem label="Category">{product.category}</DetailItem>
+                                    <DetailItem label="Subcategory">{product.subcategory || '-'}</DetailItem>
                                     <DetailItem label="Type">{product.type}</DetailItem>
                                     {product.material && <DetailItem label="Material">{product.material}</DetailItem>}
                                     {product.size && <DetailItem label="Size">{product.size}</DetailItem>}
@@ -326,7 +358,7 @@ export default function ShopProducts() {
                                 {product.prices && product.prices.length > 0 && (
                                     <div className="mt-4">
                                         <h4 className="text-sm font-medium text-gray-500 mb-2">Regional Prices</h4>
-                                        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 border rounded-md p-2 bg-gray-50/50">
+                                        <div className="space-y-2 max-h-32 overflow-y-auto pr-2 border rounded-md p-2 bg-gray-50/50 hide-scrollbar">
                                             {product.prices.map((price, index) => (
                                                 <div key={index} className="flex justify-between items-center text-sm">
                                                     <span className="font-medium text-gray-700">{price.regionName}</span>
@@ -358,7 +390,7 @@ export default function ShopProducts() {
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t mt-6">
-                        <Button variant="outline" onClick={onClose}>
+                        <Button variant="outline" onClick={onClose} className="hover:bg-gray-100 transition-colors">
                             Close
                         </Button>
                         <Button
@@ -366,7 +398,7 @@ export default function ShopProducts() {
                                 onClose();
                                 handleEditProduct(product);
                             }}
-                            className="bg-[#00007A] hover:bg-[#00007A]/90 text-white"
+                            className="bg-[#00007A] hover:bg-[#00007A]/90 text-white transition-colors"
                         >
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Product
@@ -379,7 +411,6 @@ export default function ShopProducts() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
@@ -391,15 +422,14 @@ export default function ShopProducts() {
                 </div>
             </div>
 
-            {/* Main Category Tabs */}
             <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
                 {categories.map((category) => (
                     <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${selectedCategory === category.id
-                            ? "bg-[#00007A] text-white"
-                            : "bg-transparent text-blue-600 hover:bg-blue-50"
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${selectedCategory === category.id
+                            ? "bg-[#00007A] text-white shadow-sm"
+                            : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-900"
                             }`}
                     >
                         {category.label}
@@ -407,30 +437,32 @@ export default function ShopProducts() {
                 ))}
             </div>
 
-            {/* Search and Actions */}
             <div className="flex items-center space-x-2 bg-white border-none">
                 <div className="relative flex-1 border-none">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search by Name, SKU, BID, Price, Status"
-                        className="pl-8"
+                        className="pl-8 transition-shadow focus:ring-1 focus:ring-[#00007A]"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Import File
+                <Button
+                    variant="outline"
+                    onClick={handleExportToXLSX}
+                    className="hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    Export File
                 </Button>
                 <Button
                     onClick={() => setShowAddProduct(true)}
-                    style={{ backgroundColor: "#00007A", color: "white" }}
+                    className="bg-[#00007A] hover:bg-[#00007A]/90 text-white transition-colors"
                 >
                     <Plus className="mr-2 h-4 w-4" />Add Product
                 </Button>
             </div>
 
-            {/* Products Table */}
             <Card className="bg-white border-none shadow-md">
                 <CardHeader>
                     <CardTitle>Products</CardTitle>
@@ -441,7 +473,7 @@ export default function ShopProducts() {
                 <CardContent>
                     {loading ? (
                         <div className="flex items-center justify-center py-8">
-                            <div className="text-muted-foreground">
+                            <div className="animate-pulse text-muted-foreground">
                                 Loading products...
                             </div>
                         </div>
@@ -453,58 +485,41 @@ export default function ShopProducts() {
                         </div>
                     ) : (
                         <div className="rounded-md border border-gray-200 shadow-md p-6">
-                            <Table className="b">
+                            <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-12">
-                                            No
-                                        </TableHead>
-                                        <TableHead className="w-20">
-                                            Thumbnail
-                                        </TableHead>
+                                        <TableHead className="w-12">No</TableHead>
+                                        <TableHead className="w-20">Thumbnail</TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Price Range (KES)</TableHead>
                                         <TableHead>SKU</TableHead>
                                         <TableHead>BID</TableHead>
-                                        <TableHead className="w-32">
-                                            Actions
-                                        </TableHead>
+                                        <TableHead className="w-32">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredProducts?.map((product, index) => (
-                                        <TableRow key={product.id}>
+                                    {currentProducts.map((product, index) => (
+                                        <TableRow key={product.id} className="hover:bg-gray-50 transition-colors">
                                             <TableCell className="font-medium">
-                                                {index + 1}
+                                                {indexOfFirstItem + index + 1}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                                    {product.images &&
-                                                        product.images.length >
-                                                        0 ? (
+                                                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                                                    {product.images && product.images.length > 0 ? (
                                                         <img
-                                                            src={
-                                                                product
-                                                                    .images[0]
-                                                            }
+                                                            src={product.images[0]}
                                                             alt={product.name}
-                                                            className="w-full h-full object-cover rounded-lg"
+                                                            className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300"
                                                         />
                                                     ) : (
-                                                        <div className="text-gray-400 text-xs">
-                                                            No img
-                                                        </div>
+                                                        <div className="text-gray-400 text-xs">No img</div>
                                                     )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div>
-                                                    <div className="font-medium">
-                                                        {product.name}
-                                                    </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {product.category}
-                                                    </div>
+                                                    <div className="font-medium">{product.name}</div>
+                                                    <div className="text-sm text-muted-foreground">{product.category}</div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -526,25 +541,19 @@ export default function ShopProducts() {
                                                 </div>
                                                 {product.customPrice && (
                                                     <div className="text-sm text-muted-foreground">
-                                                        Custom:{" "}
-                                                        {formatPrice(
-                                                            product.customPrice
-                                                        )}
+                                                        Custom: {formatPrice(product.customPrice)}
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {product.sku || "Not set"}
-                                            </TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {product.bId || "Not set"}
-                                            </TableCell>
+                                            <TableCell className="font-mono text-sm">{product.sku || "Not set"}</TableCell>
+                                            <TableCell className="font-mono text-sm">{product.bId || "Not set"}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center space-x-2">
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => handleViewProduct(product)}
+                                                        className="hover:bg-gray-100 hover:text-blue-600 border-gray-200"
                                                     >
                                                         <Eye className="h-3 w-3 mr-1" />
                                                         View
@@ -552,23 +561,19 @@ export default function ShopProducts() {
                                                     <Button
                                                         size="sm"
                                                         onClick={() => handleEditProduct(product)}
-                                                        style={{
-                                                            backgroundColor: "#00007A",
-                                                            color: "white"
-                                                        }}
+                                                        className="bg-[#00007A] hover:bg-[#00007A]/90 text-white transition-colors"
                                                     >
                                                         <Edit className="h-3 w-3 mr-1" />
                                                         Edit
                                                     </Button>
 
-                                                    {/* Single Toggle Button */}
                                                     <Button
                                                         size="sm"
-                                                        onClick={() => product.active ? handleApproveProduct(product.id) : handleApproveProduct(product.id)}
-                                                        style={{
-                                                            backgroundColor: product.active ? "#f59e0b" : "#10b981",
-                                                            color: "white"
-                                                        }}
+                                                        onClick={() => handleApproveProduct(product.id)}
+                                                        className={`transition-colors text-white ${product.active
+                                                            ? "bg-amber-500 hover:bg-amber-600"
+                                                            : "bg-emerald-500 hover:bg-emerald-600"
+                                                            }`}
                                                     >
                                                         {product.active ? (
                                                             <>
@@ -586,10 +591,7 @@ export default function ShopProducts() {
                                                     <Button
                                                         size="sm"
                                                         onClick={() => deleteProduct(product.id)}
-                                                        style={{
-                                                            backgroundColor: "#dc2626",
-                                                            color: "white"
-                                                        }}
+                                                        className="bg-red-600 hover:bg-red-700 text-white transition-colors"
                                                     >
                                                         <Trash2 className="h-3 w-3 mr-1" />
                                                         Delete
@@ -606,32 +608,54 @@ export default function ShopProducts() {
             </Card>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                 <div className="flex items-center space-x-2">
                     <span className="text-sm text-muted-foreground">
                         Rows per page:
                     </span>
-                    <select className="border rounded px-2 py-1 text-sm">
+                    <select
+                        className="border rounded px-2 py-1 text-sm bg-white hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00007A] transition-colors"
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                            setItemsPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                        }}
+                    >
                         <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="20">20</option>
                         <option value="50">50</option>
                     </select>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                        Prev
-                    </Button>
+                <div className="flex items-center space-x-4">
                     <span className="text-sm text-muted-foreground">
-                        Page 1 of 0
+                        Page {currentPage} of {totalPages === 0 ? 1 : totalPages}
                     </span>
-                    <Button variant="outline" size="sm" disabled>
-                        Next
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1 || filteredProducts?.length === 0}
+                            className="hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Prev
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages || filteredProducts?.length === 0}
+                            className="hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* Product Detail Modal */}
             <ProductDetailModal
                 product={selectedProduct}
                 isOpen={showProductModal}

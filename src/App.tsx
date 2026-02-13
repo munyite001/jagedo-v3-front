@@ -3,11 +3,11 @@ import React, { Suspense } from "react";
 import RouteLoading from "@/components/RouteLoading";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { GlobalProvider } from "@/context/GlobalProvider";
+import { RolePermissionProvider } from "@/context/RolePermissionProvider";
 import Unauthorized from "@/pages/Unauthorized.js";
 import { Toaster } from "react-hot-toast";
 import { CartProvider } from "./context/CartContext";
 import NotFound from "@/pages/NotFound.js";
-import { NotificationProvider } from "./context/NotificationContext";
 import TermsOfService from "@/pages/TermsOfService"
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import DetailReceiptPage from "@/pages/DetailReceiptPage"
@@ -238,642 +238,723 @@ const BidAwarded = React.lazy(
 );
 
 const ProtectedRoutesLayout = () => (
-    <NotificationProvider>
-        <Outlet />
-    </NotificationProvider>
+    <Outlet />
 );
 
 function App() {
     return (
         <Router>
             <GlobalProvider>
-                <CartProvider>
-                    <Suspense fallback={<RouteLoading />}>
-                        <Routes>
-                            {/* ========================================================== */}
-                            {/* PUBLIC ROUTES                                            */}
-                            {/* ========================================================== */}
-                            <Route path="/" element={<Home />} />
-                            <Route path="/about-us" element={<AboutUs />} />
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/receipts/:id" element={<DetailReceiptPage />} />
-                            <Route path="/termsOfService" element={<TermsOfService />} />
-                            <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
-                            <Route
-                                path="/forgot-password"
-                                element={<ForgotPassword />}
-                            />
-                            <Route
-                                path="/reset-password"
-                                element={<ResetToken />}
-                            />
-
-                            {/* SIGN UP ROUTES */}
-                            <Route
-                                path="/signup/customer"
-                                element={<CustomerSignup />}
-                            />
-                            <Route
-                                path="/signup/fundi"
-                                element={<FundiSignup />}
-                            />
-                            <Route
-                                path="/signup/contractor"
-                                element={<ContractorSignup />}
-                            />
-                            <Route
-                                path="/signup/hardware"
-                                element={<HardwareSignup />}
-                            />
-                            <Route
-                                path="/signup/professional"
-                                element={<ProfessionalSignup />}
-                            />
-
-                            <Route element={<ProtectedRoutesLayout />}>
+                <RolePermissionProvider>
+                    <CartProvider>
+                        <Suspense fallback={<RouteLoading />}>
+                            <Routes>
                                 {/* ========================================================== */}
-                                {/* SHARED PROTECTED ROUTES                                  */}
+                                {/* PUBLIC ROUTES                                            */}
                                 {/* ========================================================== */}
-
-                                {/* --- Profile Route (accessible by any logged-in user) --- */}
+                                <Route path="/" element={<Home />} />
+                                <Route path="/about-us" element={<AboutUs />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/receipts/:id" element={<DetailReceiptPage />} />
+                                <Route path="/termsOfService" element={<TermsOfService />} />
+                                <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
                                 <Route
-                                    element={<ProtectedRoute allowedRoles={[]} />}
-                                >
-                                    <Route path="/profile" element={<Profile />} />
-                                    <Route
-                                        path="/dashboard/profile/:id/:role"
-                                        element={<Profile2 />}
-                                    />
-                                </Route>
-
-                                {/* --- Sales Route (grouped by admin approval requirement) --- */}
+                                    path="/forgot-password"
+                                    element={<ForgotPassword />}
+                                />
                                 <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={[
-                                                "FUNDI",
-                                                "PROFESSIONAL",
-                                                "CONTRACTOR",
-                                                "HARDWARE"
-                                            ]}
-                                            requireAdminApproved={true}
-                                        />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/sales"
-                                        element={<Sales />}
-                                    />
-                                </Route>
+                                    path="/reset-password"
+                                    element={<ResetToken />}
+                                />
 
-                                {/* ========================================================== */}
-                                {/* ROLE-SPECIFIC DASHBOARD ROUTES                           */}
-                                {/* ========================================================== */}
+                                {/* SIGN UP ROUTES */}
+                                <Route
+                                    path="/signup/customer"
+                                    element={<CustomerSignup />}
+                                />
+                                <Route
+                                    path="/signup/fundi"
+                                    element={<FundiSignup />}
+                                />
+                                <Route
+                                    path="/signup/contractor"
+                                    element={<ContractorSignup />}
+                                />
+                                <Route
+                                    path="/signup/hardware"
+                                    element={<HardwareSignup />}
+                                />
+                                <Route
+                                    path="/signup/professional"
+                                    element={<ProfessionalSignup />}
+                                />
 
-                                {/* --- CUSTOMER DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={["CUSTOMER"]}
-                                        />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/customer"
-                                        element={<CustomerDashboard />}
-                                    />
-                                    <Route
-                                        path="/customer/receipts"
-                                        element={<Receipts />}
-                                    />
-                                    <Route
-                                        path="/customer/checkout"
-                                        element={<CheckoutPage />}
-                                    />
-                                    <Route
-                                        path="/customer/cart"
-                                        element={<CartPage />}
-                                    />
-                                    <Route
-                                        path="/customer/hardware_shop"
-                                        element={<ShopApp />}
-                                    />
-                                    <Route
-                                        path="/customer/new/job/:id"
-                                        element={<CustomerNewJobRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/customer/draft/job/:id"
-                                        element={<CustomerDraftJobRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/customer/bid/job/:id"
-                                        element={<CustomerBidsJobRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/customer/active/job/:id"
-                                        element={
-                                            <ActiveCustomerJobsPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/customer/complete/job/:id"
-                                        element={<PastJobPageContainer />}
-                                    />
-                                    <Route
-                                        path="/customer/new/order/:id"
-                                        element={<NewCustomerOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/customer/draft/order/:id"
-                                        element={
-                                            <DraftCustomerOrderPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/customer/bid/order/:id"
-                                        element={<BidsCustomerOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/customer/active/order/:id"
-                                        element={
-                                            <ActiveCustomerOrderPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/customer/complete/order/:id"
-                                        element={<PastCustomerOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/customer/bid/job/:id/bid_awarded"
-                                        element={<BidAwarded />}
-                                    />
-                                </Route>
+                                <Route element={<ProtectedRoutesLayout />}>
+                                    {/* ========================================================== */}
+                                    {/* SHARED PROTECTED ROUTES                                  */}
+                                    {/* ========================================================== */}
 
-                                {/* --- FUNDI DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={["FUNDI"]}
-                                            requireAdminApproved={true}
-                                        />
-                                    }
-                                >
+                                    {/* --- Profile Route (accessible by any logged-in user) --- */}
                                     <Route
-                                        path="/dashboard/fundi"
-                                        element={<FundiDashboard />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/new/job/:id"
-                                        element={<JobRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/active/job/:id"
-                                        element={<ActiveJobPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/complete/job/:id"
-                                        element={<PastJobsPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/new/order/:id"
-                                        element={<NewOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/draft/order/:id"
-                                        element={<DraftOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/bid/order/:id"
-                                        element={<BidsOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/active/order/:id"
-                                        element={<ActiveOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/fundi-portal/complete/order/:id"
-                                        element={<PastOrderPageContainer />}
-                                    />
-                                </Route>
-
-                                {/* --- PROFESSIONAL DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={["PROFESSIONAL"]}
-                                            requireAdminApproved={true}
-                                        />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/professional"
-                                        element={<ProfessionalDashboard />}
-                                    />
-                                    <Route
-                                        path="/professional/new/job/:id"
-                                        element={<JobProffRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/professional/bid/job/:id"
-                                        element={<BidProffPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/active/job/:id"
-                                        element={<ActiveProffJobsPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/complete/job/:id"
-                                        element={<PastProffJobsPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/draft/job/:id"
-                                        element={<DraftJobProffRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/professional/new/order/:id"
-                                        element={<NewProffOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/draft/order/:id"
-                                        element={<DraftProffPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/bid/order/:id"
-                                        element={<ProffBidsOrdersPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/active/order/:id"
-                                        element={<ProffActiveOrdersPageContainer />}
-                                    />
-                                    <Route
-                                        path="/professional/complete/order/:id"
-                                        element={<PastProffOrderPageContainer />}
-                                    />
-                                </Route>
-
-                                {/* --- HARDWARE DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={["HARDWARE"]}
-                                            requireAdminApproved={true}
-                                        />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/hardware"
-                                        element={<HardwareDashboard />}
-                                    />
-                                    <Route
-                                        path="/hardware/new/order/:id"
-                                        element={<NewHardwareOrderPageContainer />}
-                                    />
-                                    <Route
-                                        path="/hardware/draft/order/:id"
-                                        element={<DraftHardwarePageContainer />}
-                                    />
-                                    <Route
-                                        path="/hardware/quotations/order/:id"
-                                        element={
-                                            <HardwareQuotationsOrdersPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/hardware/active/order/:id"
-                                        element={
-                                            <HardwareActiveOrdersPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/hardware/complete/order/:id"
-                                        element={<PastHardwareOrderPageContainer />}
-                                    />
-                                </Route>
-
-                                {/* --- CONTRACTOR DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute
-                                            allowedRoles={["CONTRACTOR"]}
-                                            requireAdminApproved={true}
-                                        />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/contractor"
-                                        element={<ContractorDashboard />}
-                                    />
-                                    <Route
-                                        path="/contractor/new/job/:id"
-                                        element={<JobContractorRequestDetails />}
-                                    />
-                                    <Route
-                                        path="/contractor/bid/job/:id"
-                                        element={<BidJobPageContainer />}
-                                    />
-                                    <Route
-                                        path="/contractor/active/job/:id"
-                                        element={
-                                            <ActiveContractorJobsPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/complete/job/:id"
-                                        element={
-                                            <PastContractorJobsPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/draft/job/:id"
-                                        element={
-                                            <DraftJobContractorRequestDetails />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/new/order/:id"
-                                        element={
-                                            <NewContractorOrderPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/draft/order/:id"
-                                        element={<DraftContractorPageContainer />}
-                                    />
-                                    <Route
-                                        path="/contractor/bid/order/:id"
-                                        element={
-                                            <ContractorBidsOrdersPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/active/order/:id"
-                                        element={
-                                            <ContractorActiveOrdersPageContainer />
-                                        }
-                                    />
-                                    <Route
-                                        path="/contractor/complete/order/:id"
-                                        element={
-                                            <PastContractorOrderPageContainer />
-                                        }
-                                    />
-                                </Route>
-                                {/* */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute allowedRoles={["CONTRACTOR", "PROFESSIONAL", "CUSTOMER"]} />
-                                    }
-                                >
-                                    <Route path="/job-progress/:id/:milestoneId" element={<ProgressComponent />} />
-                                    <Route path="/bill-details/:id/:billid" element={<BillDetails />} />
-                                </Route>
-
-                                {/* --- ADMIN DASHBOARD --- */}
-                                <Route
-                                    element={
-                                        <ProtectedRoute allowedRoles={["ADMIN"]} />
-                                    }
-                                >
-                                    <Route
-                                        path="/dashboard/admin"
-                                        element={<AdminRootLayout />}
+                                        element={<ProtectedRoute allowedRoles={[]} />}
                                     >
+                                        <Route path="/profile" element={<Profile />} />
                                         <Route
-                                            index
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/index"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="analytics"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/Analytics"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/jobs"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/job-detail"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/active/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/fundi/Active/jobs/index"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="professional/active/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/professional/Active/jobs/index"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/fundi/complete/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/fundi/Complete/jobs/index"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/bid/complete/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/professional/Complete/jobs/index"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/bid/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/bid"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="jobs/quote/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/quoteBreakdown"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="orders"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/orders"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="orders/:id"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/order-detail"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="register"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/register"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="settings"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/settings"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="shop/products"
-                                            element={<ShopProducts />}
-                                        />
-                                        <Route
-                                            path="shop/customer-view"
-                                            element={<ShopCustomerView />}
-                                        />
-                                        <Route
-                                            path="shop/categories"
-                                            element={<ShopCategories />}
-                                        />
-                                        <Route
-                                            path="shop/attributes"
-                                            element={<ShopAttributes />}
-                                        />
-                                        <Route
-                                            path="shop/regions"
-                                            element={<ShopRegions />}
-                                        />
-                                        <Route
-                                            path="shop/prices"
-                                            element={<ShopPrices />}
-                                        />
-                                        <Route
-                                            path="builders"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/registers/builders"
-                                                        )
-                                                )
-                                            )}
-                                        />
-                                        <Route
-                                            path="customers"
-                                            element={React.createElement(
-                                                React.lazy(
-                                                    () =>
-                                                        import(
-                                                            "@/pages/dashboard/admin/registers/customers"
-                                                        )
-                                                )
-                                            )}
+                                            path="/dashboard/profile/:id/:role"
+                                            element={<Profile2 />}
                                         />
                                     </Route>
-                                </Route>
-                            </Route>
 
-                            {/* ========================================================== */}
-                            {/* FALLBACK ROUTES                                          */}
-                            {/* ========================================================== */}
-                            <Route path="/403" element={<Unauthorized />} />
-                            <Route path="*" element={<NotFound />} />
-                        </Routes>
-                    </Suspense>
-                    <Toaster
-                        position="top-center"
-                        reverseOrder={false}
-                        gutter={8}
-                        containerStyle={{ zIndex: 9999 }}
-                        toastOptions={{
-                            duration: 4000,  // Global default for non-loading toasts
-                            style: {
-                                background: "#363636",
-                                color: "#fff",
-                                zIndex: 9999
-                            },
-                            success: {
-                                style: { background: "#10b981", color: "#fff" }
-                            },
-                            error: {
-                                style: { background: "#ef4444", color: "#fff" }
-                            },
-                            loading: {
-                                duration: Infinity  // No auto-dismiss for loading toasts
-                            }
-                        }}
-                    />
-                </CartProvider>
+                                    {/* --- Sales Route (grouped by admin approval requirement) --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={[
+                                                    "FUNDI",
+                                                    "PROFESSIONAL",
+                                                    "CONTRACTOR",
+                                                    "HARDWARE"
+                                                ]}
+                                                requireAdminApproved={true}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/sales"
+                                            element={<Sales />}
+                                        />
+                                    </Route>
+
+                                    {/* ========================================================== */}
+                                    {/* ROLE-SPECIFIC DASHBOARD ROUTES                           */}
+                                    {/* ========================================================== */}
+
+                                    {/* --- CUSTOMER DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={["CUSTOMER"]}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/customer"
+                                            element={<CustomerDashboard />}
+                                        />
+                                        <Route
+                                            path="/customer/receipts"
+                                            element={<Receipts />}
+                                        />
+                                        <Route
+                                            path="/customer/checkout"
+                                            element={<CheckoutPage />}
+                                        />
+                                        <Route
+                                            path="/customer/cart"
+                                            element={<CartPage />}
+                                        />
+                                        <Route
+                                            path="/customer/hardware_shop"
+                                            element={<ShopApp />}
+                                        />
+                                        <Route
+                                            path="/customer/new/job/:id"
+                                            element={<CustomerNewJobRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/customer/draft/job/:id"
+                                            element={<CustomerDraftJobRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/customer/bid/job/:id"
+                                            element={<CustomerBidsJobRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/customer/active/job/:id"
+                                            element={
+                                                <ActiveCustomerJobsPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/customer/complete/job/:id"
+                                            element={<PastJobPageContainer />}
+                                        />
+                                        <Route
+                                            path="/customer/new/order/:id"
+                                            element={<NewCustomerOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/customer/draft/order/:id"
+                                            element={
+                                                <DraftCustomerOrderPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/customer/bid/order/:id"
+                                            element={<BidsCustomerOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/customer/active/order/:id"
+                                            element={
+                                                <ActiveCustomerOrderPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/customer/complete/order/:id"
+                                            element={<PastCustomerOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/customer/bid/job/:id/bid_awarded"
+                                            element={<BidAwarded />}
+                                        />
+                                    </Route>
+
+                                    {/* --- FUNDI DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={["FUNDI"]}
+                                                requireAdminApproved={true}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/fundi"
+                                            element={<FundiDashboard />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/new/job/:id"
+                                            element={<JobRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/active/job/:id"
+                                            element={<ActiveJobPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/complete/job/:id"
+                                            element={<PastJobsPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/new/order/:id"
+                                            element={<NewOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/draft/order/:id"
+                                            element={<DraftOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/bid/order/:id"
+                                            element={<BidsOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/active/order/:id"
+                                            element={<ActiveOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/fundi-portal/complete/order/:id"
+                                            element={<PastOrderPageContainer />}
+                                        />
+                                    </Route>
+
+                                    {/* --- PROFESSIONAL DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={["PROFESSIONAL"]}
+                                                requireAdminApproved={true}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/professional"
+                                            element={<ProfessionalDashboard />}
+                                        />
+                                        <Route
+                                            path="/professional/new/job/:id"
+                                            element={<JobProffRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/professional/bid/job/:id"
+                                            element={<BidProffPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/active/job/:id"
+                                            element={<ActiveProffJobsPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/complete/job/:id"
+                                            element={<PastProffJobsPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/draft/job/:id"
+                                            element={<DraftJobProffRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/professional/new/order/:id"
+                                            element={<NewProffOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/draft/order/:id"
+                                            element={<DraftProffPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/bid/order/:id"
+                                            element={<ProffBidsOrdersPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/active/order/:id"
+                                            element={<ProffActiveOrdersPageContainer />}
+                                        />
+                                        <Route
+                                            path="/professional/complete/order/:id"
+                                            element={<PastProffOrderPageContainer />}
+                                        />
+                                    </Route>
+
+                                    {/* --- HARDWARE DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={["HARDWARE"]}
+                                                requireAdminApproved={true}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/hardware"
+                                            element={<HardwareDashboard />}
+                                        />
+                                        <Route
+                                            path="/hardware/new/order/:id"
+                                            element={<NewHardwareOrderPageContainer />}
+                                        />
+                                        <Route
+                                            path="/hardware/draft/order/:id"
+                                            element={<DraftHardwarePageContainer />}
+                                        />
+                                        <Route
+                                            path="/hardware/quotations/order/:id"
+                                            element={
+                                                <HardwareQuotationsOrdersPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/hardware/active/order/:id"
+                                            element={
+                                                <HardwareActiveOrdersPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/hardware/complete/order/:id"
+                                            element={<PastHardwareOrderPageContainer />}
+                                        />
+                                    </Route>
+
+                                    {/* --- CONTRACTOR DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute
+                                                allowedRoles={["CONTRACTOR"]}
+                                                requireAdminApproved={true}
+                                            />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/contractor"
+                                            element={<ContractorDashboard />}
+                                        />
+                                        <Route
+                                            path="/contractor/new/job/:id"
+                                            element={<JobContractorRequestDetails />}
+                                        />
+                                        <Route
+                                            path="/contractor/bid/job/:id"
+                                            element={<BidJobPageContainer />}
+                                        />
+                                        <Route
+                                            path="/contractor/active/job/:id"
+                                            element={
+                                                <ActiveContractorJobsPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/complete/job/:id"
+                                            element={
+                                                <PastContractorJobsPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/draft/job/:id"
+                                            element={
+                                                <DraftJobContractorRequestDetails />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/new/order/:id"
+                                            element={
+                                                <NewContractorOrderPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/draft/order/:id"
+                                            element={<DraftContractorPageContainer />}
+                                        />
+                                        <Route
+                                            path="/contractor/bid/order/:id"
+                                            element={
+                                                <ContractorBidsOrdersPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/active/order/:id"
+                                            element={
+                                                <ContractorActiveOrdersPageContainer />
+                                            }
+                                        />
+                                        <Route
+                                            path="/contractor/complete/order/:id"
+                                            element={
+                                                <PastContractorOrderPageContainer />
+                                            }
+                                        />
+                                    </Route>
+                                    {/* */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute allowedRoles={["CONTRACTOR", "PROFESSIONAL", "CUSTOMER", "ADMIN"]} />
+                                        }
+                                    >
+                                        <Route path="/job-progress/:id/:milestoneId" element={<ProgressComponent />} />
+                                        <Route path="/bill-details/:id/:billid" element={<BillDetails />} />
+                                    </Route>
+
+                                    {/* --- ADMIN DASHBOARD --- */}
+                                    <Route
+                                        element={
+                                            <ProtectedRoute allowedRoles={["ADMIN"]} />
+                                        }
+                                    >
+                                        <Route
+                                            path="/dashboard/admin"
+                                            element={<AdminRootLayout />}
+                                        >
+                                            <Route
+                                                index
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="analytics"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/Analytics"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="user-management"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/users-management"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="bulk-sms"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/bulk-sms"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/jobs"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/job-detail"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/active/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/orders/Active/orders/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/bid/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/orders/Bid/orders/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/complete/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/orders/Complete/orders/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/draft/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/orders/Draft/orders/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/new/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/order-detail"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/active/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/fundi/Active/jobs/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="professional/active/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/professional/Active/jobs/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/fundi/complete/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/fundi/Complete/jobs/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/bid/complete/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/professional/Complete/jobs/index"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/bid/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/bid"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="jobs/quote/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/quoteBreakdown"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/orders"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="orders/:id"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/order-detail"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="register"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/register"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="settings"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/settings"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="shop/products"
+                                                element={<ShopProducts />}
+                                            />
+                                            <Route
+                                                path="shop/customer-view"
+                                                element={<ShopCustomerView />}
+                                            />
+                                            <Route
+                                                path="shop/categories"
+                                                element={<ShopCategories />}
+                                            />
+                                            <Route
+                                                path="shop/attributes"
+                                                element={<ShopAttributes />}
+                                            />
+                                            <Route
+                                                path="shop/regions"
+                                                element={<ShopRegions />}
+                                            />
+                                            <Route
+                                                path="shop/prices"
+                                                element={<ShopPrices />}
+                                            />
+                                            <Route
+                                                path="builders"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/registers/builders"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                            <Route
+                                                path="customers"
+                                                element={React.createElement(
+                                                    React.lazy(
+                                                        () =>
+                                                            import(
+                                                                "@/pages/dashboard/admin/registers/customers"
+                                                            )
+                                                    )
+                                                )}
+                                            />
+                                        </Route>
+                                    </Route>
+                                </Route>
+
+                                {/* ========================================================== */}
+                                {/* FALLBACK ROUTES                                          */}
+                                {/* ========================================================== */}
+                                <Route path="/403" element={<Unauthorized />} />
+                                <Route path="*" element={<NotFound />} />
+                            </Routes>
+                        </Suspense>
+                        <Toaster
+                            position="top-center"
+                            reverseOrder={false}
+                            gutter={8}
+                            containerStyle={{ zIndex: 9999 }}
+                            toastOptions={{
+                                duration: 4000,
+                                style: {
+                                    background: "#363636",
+                                    color: "#fff",
+                                    zIndex: 9999,
+                                    maxWidth: "500px",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis"
+                                },
+                                success: {
+                                    style: { background: "#10b981", color: "#fff" }
+                                },
+                                error: {
+                                    style: { background: "#ef4444", color: "#fff" }
+                                },
+                                loading: {
+                                    duration: Infinity
+                                }
+                            }}
+                        />
+                    </CartProvider>
+                </RolePermissionProvider>
             </GlobalProvider>
         </Router >
     );

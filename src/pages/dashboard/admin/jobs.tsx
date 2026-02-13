@@ -90,13 +90,15 @@ function Jobs() {
         const fetchAllJobRequests = async () => {
             try {
                 const response = await getAdminJobRequests(axiosInstance);
-                if (response.success) setJobRequests(response.hashSet);
-                else throw new Error(response.message);
-            } catch (error) {
-                alert(
-                    error.response?.data?.message ||
-                        "Failed to fetch job requests"
-                );
+                if (response.success) {
+                    setJobRequests(response.hashSet || response.data || []);
+                } else {
+                    setJobRequests([]);
+                }
+            } catch (error: any) {
+                console.error("Failed to fetch job requests:", error);
+                // Silently fail - don't show alert to user
+                setJobRequests([]);
             }
         };
         fetchAllJobRequests();
@@ -124,10 +126,25 @@ function Jobs() {
                     (item.category || "")
                         .toLowerCase()
                         .includes(searchQuery.toLowerCase()) ||
+                    (item.jobType || "")
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
                     (item.location || "")
                         .toLowerCase()
                         .includes(searchQuery.toLowerCase()) ||
                     (item.managedBy || "")
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                    (item.type || "")
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                    (item.status || "")
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                    (item.stage || "")
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                    (item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : "")
                         .toLowerCase()
                         .includes(searchQuery.toLowerCase())
             );
@@ -192,7 +209,7 @@ function Jobs() {
                             onClick={() => setActiveTab(tab.key)}
                             className={`flex justify-center items-center w-full px-2 py-2 sm:py-1 rounded-md font-medium transition-all duration-200 space-x-2 text-sm sm:text-base ${
                                 activeTab === tab.key
-                                    ? "bg-blue-800 text-white shadow-md"
+                                    ? "bg-blue-900 text-white shadow-md"
                                     : "bg-blue-100 text-blue-900 hover:bg-blue-200"
                             }`}
                         >
@@ -220,7 +237,7 @@ function Jobs() {
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="w-full md:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-md"
+                        className="w-full md:w-auto px-4 py-3 bg-blue-900 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-md"
                     >
                         <Filter className="w-5 h-5" />
                         <span>Filters</span>
@@ -410,7 +427,7 @@ function Jobs() {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 bg-blue-600 text-white rounded-md py-2.5 font-medium hover:bg-blue-700 transition-colors"
+                                        className="flex-1 bg-blue-900 text-white rounded-md py-2.5 font-medium hover:bg-blue-700 transition-colors"
                                         onClick={() => {
                                             setShowFilters(false);
                                             setCurrentPage(1);

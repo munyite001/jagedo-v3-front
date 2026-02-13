@@ -22,7 +22,13 @@ const JobDetail = () => {
     const [customer, setCustomer] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [method, setMethod] = useState("Restricted");
+    const [method, setMethod] = useState(() => {
+        if (id) {
+            const savedMethod = localStorage.getItem(`assignmentMethod-${id}`);
+            return savedMethod || "Restricted";
+        }
+        return "Restricted";
+    });
     const methods = ["Restricted", "Competitive"];
     const [adminNotes, setAdminNotes] = useState("");
     const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -36,6 +42,12 @@ const JobDetail = () => {
     const [jobIsAssigned, setJobIsAssigned] = useState(false);
 
     const buttonRef = useRef(null);
+
+    useEffect(() => {
+        if (id) {
+            localStorage.setItem(`assignmentMethod-${id}`, method);
+        }
+    }, [method, id]);
 
     const fetchJob = async () => {
         setLoading(true);
@@ -161,10 +173,9 @@ const JobDetail = () => {
     const handleBottomButtonClick = async () => {
         if (method.toLowerCase() === "competitive") {
             try {
-                // Example: procurementMethod from method, providerIds from job or selection (here, just [0] as placeholder)
                 const payload = {
                     procurementMethod: method,
-                    providerIds: job?.providerIds || [] // Replace with actual provider IDs as needed
+                    providerIds: [job?.providerIds]
                 };
                 await axiosInstance.post(
                     `/api/job-requests/${job.id}/assign`,
@@ -177,7 +188,7 @@ const JobDetail = () => {
                 );
             } catch (error) {
                 console.error("Error submitting competitive job:", error);
-                toast.error("Failed to submit job for competitive selection.");
+                toast.error("No service providers of the type are available");
             }
         } else {
             // Navigate to register page for restricted method
@@ -301,7 +312,7 @@ const JobDetail = () => {
                                     First Name:
                                 </span>
                                 <span className="text-gray-700">
-                                    {customer.firstName}
+                                    {customer.firstName || customer?.contactFirstName}
                                 </span>
                             </div>
                             <div className="flex items-center bg-gray-50 p-3 rounded-lg">
@@ -309,7 +320,7 @@ const JobDetail = () => {
                                     Last Name:
                                 </span>
                                 <span className="text-gray-700">
-                                    {customer.lastName}
+                                    {customer.lastName || customer?.contactLastName}
                                 </span>
                             </div>
                             <div className="flex items-center bg-gray-50 p-3 rounded-lg">
@@ -757,26 +768,64 @@ const JobDetail = () => {
                 </button>)}
                 {/* Confirm Modal (Card-style) */}
                 {showConfirm && (
-                    <div className="absolute top-12 right-0 bg-white border border-gray-200 rounded-md shadow-md w-64 p-4 z-10">
-                        <h2 className="text-sm font-semibold mb-3">
-                            Are you sure you want to close the job?
-                        </h2>
-                        <div className="flex justify-end space-x-2">
-                            <button
-                                onClick={() => setShowConfirm(false)}
-                                className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowConfirm(false);
-                                    setShowReason(true);
-                                }}
-                                className="text-sm px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                            >
-                                Yes
-                            </button>
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-md shadow-md w-80 p-6 mx-4">
+                            <h2 className="text-lg font-semibold mb-4">
+                                Are you sure you want to close the job?
+                            </h2>
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setShowConfirm(false)}
+                                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowConfirm(false);
+                                        setShowReason(true);
+                                    }}
+                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                                >
+                                    Yes, Close Job
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showReason && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+                        <div className="bg-white rounded-md shadow-md w-96 p-6 mx-4">
+                            <h2 className="text-lg font-semibold mb-3">
+                                Reason for closing the job
+                            </h2>
+                            <textarea
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                rows={4}
+                                placeholder="Please provide a reason for closing this job..."
+                                className="w-full text-sm border border-gray-300 rounded p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowReason(false);
+                                        setReason("");
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCloseJob}
+                                    disabled={!reason.trim() || isClosingJob}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isClosingJob ? "Closing..." : "Submit & Close"}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

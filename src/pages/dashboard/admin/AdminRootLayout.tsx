@@ -8,11 +8,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
+import { Bell, LogOut, Menu, UserCircle, Lock } from "lucide-react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { getNotifications } from "@/api/notifications.api";
 import { NotificationsModal } from "@/components/NotificationsModal";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { AdminRouteGuard } from "@/components/AdminRouteGuard";
 import { toast } from "react-hot-toast";
 
 export default function AdminRootLayout() {
@@ -24,6 +26,7 @@ export default function AdminRootLayout() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
   const [notificationsPopoverOpen, setNotificationsPopoverOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -42,6 +45,7 @@ export default function AdminRootLayout() {
                 text = parsed.text || text;
               }
             } catch (e) {
+              console.log("Notification message is not JSON:", e);
               if (text.includes("Signup")) title = "New User Signup";
               else if (text.includes("profile")) title = "Profile Update";
               else if (text.includes("approved")) title = "Account Approved";
@@ -109,7 +113,7 @@ export default function AdminRootLayout() {
           <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md shadow-sm border-b">
             <div className="flex h-16 items-center justify-between px-4 sm:px-6">
                 <div className="flex items-center gap-2 lg:hidden">
-                    <Link to="/admin/dashboard" className="flex items-center gap-2">
+                    <Link to="/dashboard/admin" className="flex items-center gap-2">
                         <img src="/jagedologo.png" alt="JAGEDO Logo" width={150} height={40} className="relative rounded-lg" />
                     </Link>
                 </div>
@@ -160,6 +164,7 @@ export default function AdminRootLayout() {
                       <DropdownMenuLabel>My Account</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}><UserCircle className="mr-2 h-4 w-4" /><span>My Profile</span></DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => setIsChangePasswordOpen(true)}><Lock className="mr-2 h-4 w-4" /><span>Change Password</span></DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}><LogOut className="mr-2 h-4 w-4" /><span>Log out</span></DropdownMenuItem>
                     </DropdownMenuContent>
@@ -170,12 +175,22 @@ export default function AdminRootLayout() {
 
           <main className="flex-1 overflow-auto bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <Outlet />
+            
+                <Outlet />
+          
             </div>
           </main>
         </div>
 
         <NotificationsModal isOpen={notificationsModalOpen} onClose={() => setNotificationsModalOpen(false)} notifications={notifications} onNotificationClick={handleNotificationClick} onMarkAsRead={handleMarkAsRead} onMarkAllAsRead={handleMarkAllAsRead} />
+
+        <ChangePasswordDialog
+          isOpen={isChangePasswordOpen}
+          onOpenChange={setIsChangePasswordOpen}
+          onSuccess={() => {
+            setIsChangePasswordOpen(false);
+          }}
+        />
       </div>
     </TooltipProvider>
   );
