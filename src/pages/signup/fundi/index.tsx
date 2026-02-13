@@ -53,7 +53,7 @@ export default function FundiSignup() {
 
 
 
-    
+
     const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
@@ -120,25 +120,25 @@ export default function FundiSignup() {
     };
 
     const handleSubmit = async () => {
-        
+
         const registrationPayload = {
             email: formData.email,
             password: formData.password,
         };
 
         try {
-            
+
             const response = await handleCompleteRegistration(registrationPayload);
 
             if (response.data.success) {
                 toast.success("Account created successfully. Please complete your profile.");
 
-                
+
                 const userData = response.data.user;
                 localStorage.setItem("token", response.data.accessToken || response.data.token);
                 localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
-                
+
                 setRegisteredUser(userData);
                 setShowProfileCompletionModal(true);
             } else {
@@ -153,7 +153,7 @@ export default function FundiSignup() {
 
     const handleProfileComplete = async (profileData: any) => {
         try {
-            
+
             const completeProfilePayload = {
                 email: registeredUser.email,
                 firstName: profileData.firstName || "",
@@ -166,20 +166,16 @@ export default function FundiSignup() {
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
             };
 
-            
+
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                
-                const updatedUser = {
-                    ...registeredUser,
-                    ...profileData,
-                    profileCompleted: true
-                };
+                // Use the user object returned from backend as source of truth
+                const finalUser = response.data.user;
 
-                
-                localStorage.setItem("user", JSON.stringify(updatedUser));
-                setUser(updatedUser);
+                // Sync with localStorage and Global Context
+                localStorage.setItem("user", JSON.stringify(finalUser));
+                setUser(finalUser);
                 setIsLoggedIn(true);
 
                 toast.success("Profile completed! Redirecting to dashboard...");

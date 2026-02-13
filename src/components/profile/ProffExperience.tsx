@@ -65,6 +65,7 @@ const ProffExperience = ({ data, refreshData }: any) => {
                     // ProfessionalProject has { projectFile: string, referenceLetterFile: string } usually
                     // OR files array if generic. Adapting to receive specific fields or array.
                     const files: FileItem[] = [];
+                    if (p.fileUrl) files.push({ file: null, previewUrl: p.fileUrl, fileName: "Project File" });
                     if (p.projectFile) files.push({ file: null, previewUrl: p.projectFile, fileName: "Project File" });
                     if (p.referenceLetterFile) files.push({ file: null, previewUrl: p.referenceLetterFile, fileName: "Reference Letter" });
 
@@ -134,32 +135,24 @@ const ProffExperience = ({ data, refreshData }: any) => {
 
                 for (const fItem of row.files) {
                     if (fItem.file) {
-                        const url = await uploadFile(fItem.file);
-                        uploadedUrls.push(url);
+                        const uploaded = await uploadFile(fItem.file);
+                        uploadedUrls.push(uploaded.url);
                     } else {
                         uploadedUrls.push(fItem.previewUrl);
                     }
                 }
 
-                // Map to API structure: projectFile & referenceLetterFile
-                // First file -> Project File, Second -> Reference Letter (if exists)
                 return {
                     projectName: row.projectName,
-                    projectFile: uploadedUrls[0] || "",
-                    referenceLetterFile: uploadedUrls[1] || "" // Handle if only 1 file is uploaded
+                    fileUrl: uploadedUrls[0] || ""
                 };
             }));
 
             // 2. Build Payload
             const payload = {
-                professionalCategories: [
-                    {
-                        category: category,
-                        specialization: specialization,
-                        categoryClass: level, // Mapping level to 'class' as per schema implies
-                        yearsOfExperience: experience
-                    }
-                ],
+                profession: category,
+                level: level,
+                yearsOfExperience: experience,
                 professionalProjects: processedProjects
             };
 

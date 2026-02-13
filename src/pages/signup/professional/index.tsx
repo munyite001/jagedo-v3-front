@@ -49,7 +49,7 @@ export default function ProfessionalSignup() {
         agreeToTerms: false
     });
 
-    
+
     const totalSteps = 6;
 
     const updateFormData = (data: Partial<typeof formData>) => {
@@ -91,25 +91,25 @@ export default function ProfessionalSignup() {
 
 
     const handleSubmit = async () => {
-        
+
         const registrationPayload = {
             email: formData.email,
             password: formData.password,
         };
 
         try {
-            
+
             const response = await handleCompleteRegistration(registrationPayload);
 
             if (response.data.success) {
                 toast.success("Account created successfully. Please complete your profile.");
 
-                
+
                 const userData = response.data.user;
                 localStorage.setItem("token", response.data.accessToken || response.data.token);
                 localStorage.setItem("otpDeliveryMethod", formData.otpMethod);
 
-                
+
                 setRegisteredUser(userData);
                 setShowProfileCompletionModal(true);
             } else {
@@ -124,7 +124,7 @@ export default function ProfessionalSignup() {
 
     const handleProfileComplete = async (profileData: any) => {
         try {
-            
+
             const completeProfilePayload = {
                 email: registeredUser.email,
                 firstName: profileData.firstName || "",
@@ -137,27 +137,23 @@ export default function ProfessionalSignup() {
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
             };
 
-            
+
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                
-                const updatedUser = {
-                    ...registeredUser,
-                    ...profileData,
-                    profileCompleted: true
-                };
 
-                
-                localStorage.setItem("user", JSON.stringify(updatedUser));
-                setUser(updatedUser);
+                const finalUser = response.data.user;
+
+
+                localStorage.setItem("user", JSON.stringify(finalUser));
+                setUser(finalUser);
                 setIsLoggedIn(true);
 
                 toast.success("Profile completed! Redirecting to dashboard...");
                 setShowProfileCompletionModal(false);
 
                 setTimeout(() => {
-                    navigate("/dashboard/fundi");
+                    navigate("/dashboard/professional");
                 }, 1500);
             } else {
                 toast.error(response.data.message || "Failed to complete profile");

@@ -6,19 +6,13 @@ import { getAuthHeaders } from "@/utils/auth";
 
 export interface ProfessionalProject {
     projectName: string;
-    projectFile: string;
-    referenceLetterFile: string;
-}
-
-export interface ProfessionalCategory {
-    category: string;
-    specialization: string;
-    categoryClass: string;
-    yearsOfExperience: string;
+    fileUrl: string;
 }
 
 export interface ProfessionalExperience {
-    professionalCategories: ProfessionalCategory[];
+    profession: string;
+    level: string;
+    yearsOfExperience: string;
     professionalProjects: ProfessionalProject[];
 }
 

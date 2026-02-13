@@ -147,7 +147,7 @@ const ContractorExperience = ({ data, refreshData }: any) => {
     if (categories.some(c => !c.category || !c.categoryClass || !c.yearsOfExperience)) {
       return toast.error("Please fill in all required fields for categories.");
     }
-    
+
     if (projects.some(p => !p.projectName)) {
       return toast.error("Please ensure all projects have names.");
     }
@@ -164,14 +164,16 @@ const ContractorExperience = ({ data, refreshData }: any) => {
 
           // Handle Project File
           if (proj.projectFile instanceof File) {
-            projectFileUrl = await uploadFile(proj.projectFile);
+            const uploaded = await uploadFile(proj.projectFile);
+            projectFileUrl = uploaded.url;
           } else if (typeof proj.projectFile === "string") {
             projectFileUrl = proj.projectFile;
           }
 
           // Handle Reference Letter
           if (proj.referenceLetterFile instanceof File) {
-            referenceLetterUrl = await uploadFile(proj.referenceLetterFile);
+            const uploaded = await uploadFile(proj.referenceLetterFile);
+            referenceLetterUrl = uploaded.url;
           } else if (typeof proj.referenceLetterFile === "string") {
             referenceLetterUrl = proj.referenceLetterFile;
           }
@@ -179,20 +181,21 @@ const ContractorExperience = ({ data, refreshData }: any) => {
           return {
             projectName: proj.projectName,
             projectFile: projectFileUrl,
-            referenceLetterFile: referenceLetterUrl,
+            referenceLetterUrl: referenceLetterUrl // Changed from referenceLetterFile to match backend DTO
           };
         })
       );
 
       // 2. Prepare Payload
       const payload = {
-        contractorCategories: categories.map(c => ({
+        categories: categories.map(c => ({
           category: c.category,
-          specialization: c.specialization,
           categoryClass: c.categoryClass,
-          yearsOfExperience: c.yearsOfExperience
+          yearsOfExperience: c.yearsOfExperience,
+          certificate: null,
+          license: null
         })),
-        contractorProjects: uploadedProjects
+        projects: uploadedProjects
       };
 
       // 3. Send to API

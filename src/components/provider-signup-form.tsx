@@ -872,6 +872,7 @@ export function ProviderSignupForm({
                         type="submit"
                         className={`${isLastStep ? "bg-[#00a63e]" : "bg-[#00007a]"} hover:bg-opacity-90 min-w-[120px] text-white`}
                         disabled={isSubmitting ||
+                            (currentStep === 2 && emailStatus === 'checking') ||
                             (currentStep === 2 && emailStatus === 'taken') ||
                             (currentStep === 3 && (!formData.phone)) ||
                             (isLastStep && (!formData.password || !formData.agreeToTerms))}

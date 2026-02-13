@@ -66,44 +66,75 @@ function ProfilePage() {
 
     const completionStatus = useMemo(() => {
         const userType = user?.userType?.toLowerCase() || '';
+        // Prioritize providerData from API, fallback to user.userProfile
+        const up = (providerData && providerData.userProfile) ? providerData.userProfile : user?.userProfile;
 
         const getRequiredDocuments = () => {
             const accountType = user?.accountType?.toLowerCase() || '';
-            if (accountType === 'individual' && userType === 'customer') {
-                return ['idFront', 'idBack', 'kraPIN'];
+            // If it's a customer and individual, they need ID docs
+            if (userType === 'customer' && accountType === 'individual') {
+                return ['idFrontUrl', 'idBackUrl', 'kraPIN'];
             }
-            const docMap: any = {
+
+            const docMap: Record<string, string[]> = {
                 customer: ['businessPermit', 'certificateOfIncorporation', 'kraPIN'],
                 fundi: ['idFrontUrl', 'idBackUrl', 'certificateUrl', 'kraPIN'],
-                professional: ['idFrontUrl', 'idBackUrl', 'academicCertificateUrl', 'cvUrl', 'kraPIN'],
+                professional: ['idFrontUrl', 'idBackUrl', 'academicCertificateUrl', 'cvUrl', 'kraPIN', 'practiceLicense'],
                 contractor: ['businessRegistration', 'businessPermit', 'kraPIN', 'companyProfile'],
                 hardware: ['businessRegistration', 'kraPIN', 'singleBusinessPermit', 'companyProfile'],
             };
             return docMap[userType] || [];
         };
 
-        const uploadedDocs = JSON.parse(localStorage.getItem(`uploads_demo_${user?.id}`) || '{}');
         const requiredDocs = getRequiredDocuments();
+        let uploadsComplete = false;
 
-        let uploadsComplete = requiredDocs.length === 0 || requiredDocs.every(doc => uploadedDocs[doc]);
-
-        // Enhance check using providerData if available
-        if (providerData?.userProfile) {
-            // If the API says it's complete, trust it
-            if (providerData.userProfile.complete) {
+        if (up) {
+            // Priority 1: Check the 'complete' flag from backend
+            if (up.complete === true) {
                 uploadsComplete = true;
+            } else {
+                // Priority 2: Manual check of required documents
+                uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
+                    const value = up[key];
+                    return value !== null && value !== undefined && value !== '';
+                });
+
+                // If there are no required docs for this type (shouldn't happen for providers), mark as complete
+                if (requiredDocs.length === 0) uploadsComplete = true;
             }
         }
 
         let experienceComplete = false;
-        if (userType !== 'customer' && userType !== 'hardware') {
-            const up = providerData?.userProfile || user?.userProfile;
-            const hasGrade = up?.grade;
-            const hasExperience = up?.experience;
-            const hasProjects = up?.previousJobPhotoUrls && up.previousJobPhotoUrls.length > 0;
-            experienceComplete = hasGrade && hasExperience && hasProjects;
-        } else {
+        if (up?.complete === true) {
             experienceComplete = true;
+        } else if (userType === 'fundi') {
+            const hasGrade = !!up?.grade;
+            const hasExperience = !!up?.experience;
+            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+            const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
+
+            const grade = up?.grade || "";
+            const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
+
+            // Re-calculate based on what's actually in the response
+            experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
+        } else if (userType === 'professional') {
+            const hasProfession = !!up?.profession;
+            const hasLevel = !!up?.professionalLevel;
+            const hasExperience = !!up?.yearsOfExperience;
+            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+
+            const level = up?.professionalLevel || "";
+            const isStudent = level.toLowerCase().includes("student");
+
+            experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
+        } else if (userType === 'contractor') {
+            const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
+            const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
+            experienceComplete = hasExperiences && hasProjects;
+        } else {
+            experienceComplete = true; // Customer & Hardware
         }
 
         return {

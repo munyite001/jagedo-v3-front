@@ -164,23 +164,19 @@ export default function ContractorSignup() {
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                // Update user with profile data
-                const updatedUser = {
-                    ...registeredUser,
-                    ...profileData,
-                    profileCompleted: true
-                };
+                // Use the user object returned from backend as source of truth
+                const finalUser = response.data.user;
 
-                // Login the user
-                localStorage.setItem("user", JSON.stringify(updatedUser));
-                setUser(updatedUser);
+                // Sync with localStorage and Global Context
+                localStorage.setItem("user", JSON.stringify(finalUser));
+                setUser(finalUser);
                 setIsLoggedIn(true);
 
                 toast.success("Profile completed! Redirecting to dashboard...");
                 setShowProfileCompletionModal(false);
 
                 setTimeout(() => {
-                    navigate("/dashboard/fundi");
+                    navigate("/dashboard/contractor");
                 }, 1500);
             } else {
                 toast.error(response.data.message || "Failed to complete profile");
