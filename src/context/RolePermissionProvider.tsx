@@ -34,6 +34,7 @@ const DEFAULT_ADMIN_MENU_ITEMS: MenuItem[] = [
   { id: "registers-customers", title: "Customers", category: "Management - Registers" },
   { id: "registers-builders", title: "Builders", category: "Management - Registers" },
   { id: "analytics", title: "Analytics", category: "Management" },
+  { id: "configuration", title: "Configuration", category: "Configurations" },
 ];
 
 export const RolePermissionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

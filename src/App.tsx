@@ -237,6 +237,10 @@ const BidAwarded = React.lazy(
     () => import("@/pages/dashboard/customer/Bid/jobs/awarded")
 );
 
+const BuilderConfiguration = React.lazy(
+    () => import("@/pages/dashboard/admin/BuildersConfigurations")
+);
+
 const ProtectedRoutesLayout = () => (
     <Outlet />
 );
@@ -893,6 +897,10 @@ function App() {
                                                 path="shop/prices"
                                                 element={<ShopPrices />}
                                             />
+                                             <Route
+                                            path="configuration"
+                                            element={<BuilderConfiguration />}
+                                        />
                                             <Route
                                                 path="builders"
                                                 element={React.createElement(

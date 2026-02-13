@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChartNoAxesCombined,
   Mails,
+  ShovelIcon,
 } from "lucide-react";
 import { useRolePermissions } from "@/context/RolePermissionProvider";
 import { useGlobalContext } from "@/context/GlobalProvider";
@@ -30,7 +31,13 @@ export const sidebarItems = [
   {
     title: "Overview",
     items: [
-      { id: "home", title: "Home", icon: Home, href: "/dashboard/admin", color: "#2B7FFF" },
+      {
+        id: "home",
+        title: "Home",
+        icon: Home,
+        href: "/dashboard/admin",
+        color: "#2B7FFF",
+      },
     ],
   },
   {
@@ -135,6 +142,18 @@ export const sidebarItems = [
         href: "/dashboard/admin/analytics",
         color: "#FB3C47",
       },
+      {
+        title: "Configurations",
+        icon: Settings,
+        color: "#9B59B6",
+        submenu: [
+          {
+            title: "Builders Configurations",
+            icon: ShovelIcon,
+            href: "/dashboard/admin/configuration",
+          },
+        ],
+      },
     ],
   },
 ];
@@ -146,50 +165,41 @@ export function AdminSidebar({ expanded, setExpanded }) {
 
   // Filter items based on user permissions
   const getAccessibleItems = () => {
-    // If permissions are still loading but we have some permissions, show them
-    // If we have permissions, show them regardless of loading state
-    if (userMenuPermissions && userMenuPermissions.length > 0) {
-      const filtered = sidebarItems
-        .map((section) => ({
-          ...section,
-          items: section.items
-            .map((item) => {
-              if (!item.submenu) {
-                return item;
-              }
-              // Filter submenu items
-              return {
-                ...item,
-                submenu: item.submenu.filter((subItem) =>
-                  userMenuPermissions.some((perm) => perm.id === subItem.id)
-                ),
-              };
-            })
-            .filter((item) => {
-              // Show parent menu if:
-              // 1. It's a single item (no submenu), and user has permission
-              // 2. It has a submenu and user has permission to any child
-              const hasSubmenuWithAccess = item.submenu && item.submenu.length > 0;
-              const hasDirectAccess = userMenuPermissions.some((perm) => perm.id === item.id);
-              
-              if (hasSubmenuWithAccess) {
-                return true; // Parent menu with accessible children
-              }
-              return hasDirectAccess;
-            }),
-        }))
-        .filter((section) => section.items.length > 0);
-      
-      return filtered;
-    }
-
-    // If loading and no permissions yet, show all items (loading state)
+    // While loading → show skeleton (or all items)
     if (isLoadingPermissions) {
       return sidebarItems;
     }
 
-    // If not loading and no permissions, show nothing
-    return [];
+    // If no permissions returned → fallback to full menu (super admin case)
+    if (!userMenuPermissions || userMenuPermissions.length === 0) {
+      return sidebarItems;
+    }
+
+    return sidebarItems
+      .map((section) => ({
+        ...section,
+        items: section.items
+          .map((item) => {
+            if (!item.submenu) {
+              const hasAccess = userMenuPermissions.some(
+                (perm) => perm.id === item.id,
+              );
+              return hasAccess ? item : null;
+            }
+
+            const filteredSubmenu = item.submenu.filter((subItem) =>
+              userMenuPermissions.some((perm) => perm.id === subItem.id),
+            );
+
+            if (filteredSubmenu.length > 0) {
+              return { ...item, submenu: filteredSubmenu };
+            }
+
+            return null;
+          })
+          .filter(Boolean),
+      }))
+      .filter((section) => section.items.length > 0);
   };
 
   const isActive = (href) => location.pathname === href;
@@ -212,6 +222,7 @@ export function AdminSidebar({ expanded, setExpanded }) {
 
   // Log whenever permissions change
   useEffect(() => {
+    getAccessibleItems(); // Recalculate accessible items when permissions change
     // Permissions updated
   }, [userMenuPermissions, isLoadingPermissions]);
 
@@ -316,11 +327,13 @@ export function AdminSidebar({ expanded, setExpanded }) {
               <div
                 className={`fixed rounded-md px-3 py-2 bg-indigo-100 text-indigo-800 text-sm invisible opacity-20 transition-all z-50 group-hover:visible group-hover:opacity-100 whitespace-nowrap pointer-events-none`}
                 style={{
-                  left: 'calc(5rem + 1.5rem)',
-                  top: 'calc(100vh - 5rem)',
+                  left: "calc(5rem + 1.5rem)",
+                  top: "calc(100vh - 5rem)",
                 }}
               >
-                <div className="font-semibold text-sm">{user?.firstName} {user?.lastName}</div>
+                <div className="font-semibold text-sm">
+                  {user?.firstName} {user?.lastName}
+                </div>
                 <div className="text-xs">{user?.email}</div>
               </div>
             )}
