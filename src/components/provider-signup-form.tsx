@@ -85,29 +85,21 @@ export function ProviderSignupForm({
         }
 
         const checkTimeout = setTimeout(async () => {
-            setEmailStatus('checking');
-            try {
+              setEmailStatus('checking');
+              try {
                 const response = await verifyEmail({ email: formData.email });
-
-                const message = response.data.message?.toLowerCase() || "";
-
-                if (message.includes("not found") || message.includes("does not exist") || (response.data.success === false && message.includes("user"))) {
-                    setEmailStatus('available');
-                } else if (response.data.success && !message.includes("not found")) {
-                    setEmailStatus('taken');
+                const available = response.data.available
+                if (available) {
+                  setEmailStatus('available');
                 } else {
-                    setEmailStatus('taken');
+                  setEmailStatus('taken');
                 }
-
-            } catch (error: any) {
-                if (error.response && error.response.status === 404) {
-                    setEmailStatus('available');
-                } else {
-                    console.error("Email check failed", error);
-                    setEmailStatus('idle');
-                }
-            }
-        }, 800);
+        
+              } catch (error: any) {
+                console.error(error)
+                setEmailStatus('idle');
+              }
+            }, 800);
 
         return () => clearTimeout(checkTimeout);
     }, [formData.email]);
