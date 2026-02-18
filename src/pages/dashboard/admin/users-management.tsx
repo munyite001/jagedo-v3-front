@@ -86,8 +86,8 @@ const UserManagement = () => {
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserFirstName, setNewUserFirstName] = useState("");
-  const [newUserLastName, setNewUserLastName] = useState("");
+  const [newUserfirstName, setNewUserfirstName] = useState("");
+  const [newUserlastName, setNewUserlastName] = useState("");
   const [newUserPhone, setNewUserPhone] = useState("");
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
 
@@ -161,7 +161,7 @@ const UserManagement = () => {
   const handleCreateAdminUser = async () => {
     if (
       !newUserEmail.trim() ||
-      !newUserFirstName.trim() ||
+      !newUserfirstName.trim() ||
       selectedRoleIds.length === 0
     ) {
       toast.error("Email, first name, and role are required");
@@ -174,8 +174,8 @@ const UserManagement = () => {
         // Update existing user - call update endpoint
         const payload = {
           email: newUserEmail,
-          firstName: newUserFirstName,
-          lastName: newUserLastName,
+          firstName: newUserfirstName,
+          lastName: newUserlastName,
           phoneNumber: newUserPhone,
           roleIds: selectedRoleIds,
         };
@@ -186,8 +186,8 @@ const UserManagement = () => {
         // Create new user
         await createAdminUser({
           email: newUserEmail,
-          firstName: newUserFirstName,
-          lastName: newUserLastName,
+          firstName: newUserfirstName,
+          lastName: newUserlastName,
           phoneNumber: newUserPhone,
           roleIds: selectedRoleIds,
         });
@@ -210,8 +210,8 @@ const UserManagement = () => {
   const handleEditUser = (user: any) => {
     setEditingUser(user);
     setNewUserEmail(user.email);
-    setNewUserFirstName(user.firstName);
-    setNewUserLastName(user.lastName);
+    setNewUserfirstName(user.firstName);
+    setNewUserlastName(user.lastName);
     setNewUserPhone(user.phoneNumber);
     
     // Extract role IDs from user's roles
@@ -335,8 +335,8 @@ const UserManagement = () => {
 
   const resetUserForm = () => {
     setNewUserEmail("");
-    setNewUserFirstName("");
-    setNewUserLastName("");
+    setNewUserfirstName("");
+    setNewUserlastName("");
     setNewUserPhone("");
     setSelectedRoleIds([]);
     setEditingUser(null);
@@ -552,8 +552,8 @@ const UserManagement = () => {
                     <Input
                       id="firstName"
                       placeholder="John"
-                      value={newUserFirstName}
-                      onChange={(e) => setNewUserFirstName(e.target.value)}
+                      value={newUserfirstName}
+                      onChange={(e) => setNewUserfirstName(e.target.value)}
                     />
                   </div>
 
@@ -562,8 +562,8 @@ const UserManagement = () => {
                     <Input
                       id="lastName"
                       placeholder="Doe"
-                      value={newUserLastName}
-                      onChange={(e) => setNewUserLastName(e.target.value)}
+                      value={newUserlastName}
+                      onChange={(e) => setNewUserlastName(e.target.value)}
                     />
                   </div>
 
@@ -674,7 +674,7 @@ const UserManagement = () => {
                     onClick={handleCreateAdminUser}
                     disabled={
                       !newUserEmail.trim() ||
-                      !newUserFirstName.trim() ||
+                      !newUserfirstName.trim() ||
                       selectedRoleIds.length === 0 ||
                       isCreatingUser
                     }
