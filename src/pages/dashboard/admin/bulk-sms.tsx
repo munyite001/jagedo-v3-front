@@ -174,7 +174,7 @@ const BulkSMS = () => {
   // Get unique filter options from dynamic data with safe access
   const builderTypes = useMemo(() => {
     if (!builders || !Array.isArray(builders)) return [];
-    return [...new Set(builders.map((b) => b.user_type).filter(Boolean))].filter(
+    return [...new Set(builders.map((b) => b.userType).filter(Boolean))].filter(
       (type) => type && type.toUpperCase() !== 'ADMIN'
     );
   }, [builders]);
@@ -225,12 +225,12 @@ const BulkSMS = () => {
       if (!builder) return false;
 
       // Exclude ADMIN users
-      if (builder.user_type && builder.user_type.toUpperCase() === 'ADMIN') {
+      if (builder.userType && builder.userType.toUpperCase() === 'ADMIN') {
         return false;
       }
 
       const matchesType =
-        builderTypeFilter === "all" || builder.user_type === builderTypeFilter;
+        builderTypeFilter === "all" || builder.userType === builderTypeFilter;
       const matchesCounty =
         builderCountyFilter === "all" || builder.county === builderCountyFilter;
       const matchesSearch =
@@ -894,7 +894,7 @@ const BulkSMS = () => {
                               </div>
                               <div className="flex gap-1 mt-1">
                                 <Badge variant="outline" className="text-xs">
-                                  {builder.user_type || "Unknown"}
+                                  {builder.userType || "Unknown"}
                                 </Badge>
                                 {builder.skills && (
                                   <Badge

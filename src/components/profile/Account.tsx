@@ -58,7 +58,7 @@ function AccountInfo({ data, refreshData }) {
         lastName: data.lastName || "",
         email: data.email || "",
         phone: data.phone || "",
-        user_type: data.user_type,
+        userType: data.userType,
         type: data.accountType, // e.g., ORGANIZATION
         organizationName: data.organizationName || "",
         contactPerson: `${data.contactfirstName || ""} ${data.contactlastName || ""}`.trim(),

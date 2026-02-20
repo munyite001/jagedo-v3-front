@@ -10,7 +10,7 @@ export interface BulkSmsRequest {
   phoneNumbers?: string[];
   filters?: {
     builders?: {
-      user_type?: string;
+      userType?: string;
       county?: string;
       searchTerm?: string;
     };

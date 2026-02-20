@@ -66,7 +66,7 @@ export default function HardwareSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            user_type: "HARDWARE",
+            userType: "HARDWARE",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -90,7 +90,7 @@ export default function HardwareSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            user_type: "HARDWARE",
+            userType: "HARDWARE",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -156,6 +156,7 @@ export default function HardwareSignup() {
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
+                subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
@@ -229,7 +230,7 @@ export default function HardwareSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={"HARDWARE" as any}
-                user_type="HARDWARE"
+                userType="HARDWARE"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

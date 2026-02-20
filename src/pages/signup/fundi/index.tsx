@@ -70,7 +70,7 @@ export default function FundiSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            user_type: "FUNDI",
+            userType: "FUNDI",
             accountType: formData.accountType,
             email: formData.email,
             nationalId: formData.nationalId,
@@ -95,7 +95,7 @@ export default function FundiSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            user_type: "FUNDI",
+            userType: "FUNDI",
             accountType: formData.accountType,
             email: formData.email,
             nationalId: formData.nationalId,
@@ -161,6 +161,7 @@ export default function FundiSignup() {
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
+                subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
@@ -233,7 +234,7 @@ export default function FundiSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
-                user_type="FUNDI"
+                userType="FUNDI"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />

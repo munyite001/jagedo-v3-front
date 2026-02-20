@@ -141,8 +141,8 @@ function BidsOrderPageContainer() {
       );
     }
     if (orderData && ActiveComponent) {
-      // Pass user_type to the active component
-      return <ActiveComponent orderData={orderData} user_type={user?.user_type} />;
+      // Pass userType to the active component
+      return <ActiveComponent orderData={orderData} userType={user?.userType} />;
     }
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500 text-lg">

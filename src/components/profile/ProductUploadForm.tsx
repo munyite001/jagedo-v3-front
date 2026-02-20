@@ -71,7 +71,7 @@ const ProductUploadForm = ({ onCancel }) => {
                     getAllRegions(axiosInstance)
                 ]);
 
-                const categoriesRes = categoriesResponse.hashSet.filter((cat: any) => cat.type === user.user_type.toLowerCase())
+                const categoriesRes = categoriesResponse.hashSet.filter((cat: any) => cat.type === user.userType.toLowerCase())
                 // Based on the provided structures
                 setCategories(categoriesRes || []);
                 setRegions(regionsResponse.hashSet || []);
@@ -202,7 +202,7 @@ const ProductUploadForm = ({ onCancel }) => {
             const payload = {
                 name: formData.name,
                 description: productDesc,
-                type: user.user_type,
+                type: user.userType,
                 category: formData.category,
                 sellerId: user.id,
                 bId: formData.bid,

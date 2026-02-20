@@ -9,7 +9,7 @@ interface ProfileCompletionModalProps {
   onClose?: () => void;
   user: any;
   accountType: "INDIVIDUAL" | "ORGANIZATION" | "CONTRACTOR" | "HARDWARE";
-  user_type?: "CUSTOMER" | "CONTRACTOR" | "FUNDI" | "PROFESSIONAL" | "HARDWARE";
+  userType?: "CUSTOMER" | "CONTRACTOR" | "FUNDI" | "PROFESSIONAL" | "HARDWARE";
   onComplete: (data: any) => void;
 }
 
@@ -18,7 +18,7 @@ export function ProfileCompletionModal({
   onClose,
   user,
   accountType,
-  user_type,
+  userType,
   onComplete
 }: ProfileCompletionModalProps) {
   return (
@@ -28,7 +28,7 @@ export function ProfileCompletionModal({
           <ProfileCompletion
             user={user}
             accountType={accountType}
-            user_type={user_type}
+            userType={userType}
             onComplete={onComplete}
             onCancel={onClose}
             isModal={true}

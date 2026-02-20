@@ -258,11 +258,11 @@ const Home = () => {
     setShowSignupDropdown(!showSignupDropdown);
   };
 
-  const handleSignupOptionClick = (user_type) => {
+  const handleSignupOptionClick = (userType) => {
     setShowSignupDropdown(false);
     setShowMobileSignupDropdown(false);
     setShowSignupSection(false);
-    navigate(`/signup/${user_type.toLowerCase()}`);
+    navigate(`/signup/${userType.toLowerCase()}`);
   };
 
   const handleMobileSignupClick = () => {

@@ -12,7 +12,7 @@ interface FundiData {
     id: number,
     email: string,
     phoneNumber: string,
-    user_type: string,
+    userType: string,
     accountType: string,
     firstName: string,
     lastName: string,

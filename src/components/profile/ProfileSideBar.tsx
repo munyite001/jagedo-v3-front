@@ -64,11 +64,11 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
     icon: <FaClock className="h-5 w-5 text-red-600" />,
   };
 
-  const user_type = user?.user_type?.toLowerCase();
+  const userType = user?.userType?.toLowerCase();
   const verified = user?.adminApproved;
 
   const filteredBaseNavItems = baseNavItems.filter(
-    (item) => !(user_type === "admin" && item.id === "Account Uploads")
+    (item) => !(userType === "admin" && item.id === "Account Uploads")
   );
 
   const finalNavItems = [];
@@ -78,14 +78,14 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
     filteredBaseNavItems.find(i => i.id === "Address"),
   );
 
-  if (user_type !== "customer" && user_type !== "hardware" && user_type !== "admin") {
+  if (userType !== "customer" && userType !== "hardware" && userType !== "admin") {
     finalNavItems.push(experienceItem);
   }
 
   const uploadsItem = filteredBaseNavItems.find(i => i.id === "Account Uploads");
   if (uploadsItem) finalNavItems.push(uploadsItem);
 
-  if ((user_type === "professional" || user_type === "fundi") && verified) {
+  if ((userType === "professional" || userType === "fundi") && verified) {
     finalNavItems.push(productsItem);
   }
 

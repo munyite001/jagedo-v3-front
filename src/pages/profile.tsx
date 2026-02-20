@@ -56,23 +56,23 @@ function ProfilePage() {
 
     useEffect(() => {
         if (!user) return;
-        const user_type = user?.user_type?.toUpperCase();
+        const userType = user?.userType?.toUpperCase();
         const serviceProviderTypes = ["FUNDI", "CONTRACTOR", "PROFESSIONAL", "HARDWARE"];
 
-        if (serviceProviderTypes.includes(user_type) && !user?.userProfile?.complete) {
+        if (serviceProviderTypes.includes(userType) && !user?.userProfile?.complete) {
             setActiveComponent("Account Info");
         }
     }, [user]);
 
     const completionStatus = useMemo(() => {
-        const user_type = user?.user_type?.toLowerCase() || '';
+        const userType = user?.userType?.toLowerCase() || '';
         // Prioritize providerData from API, fallback to user.userProfile
         const up = (providerData && providerData.userProfile) ? providerData.userProfile : user?.userProfile;
 
         const getRequiredDocuments = () => {
             const accountType = user?.accountType?.toLowerCase() || '';
             // If it's a customer and individual, they need ID docs
-            if (user_type === 'customer' && accountType === 'individual') {
+            if (userType === 'customer' && accountType === 'individual') {
                 return ['idFrontUrl', 'idBackUrl', 'kraPIN'];
             }
 
@@ -83,7 +83,7 @@ function ProfilePage() {
                 contractor: ['businessRegistration', 'businessPermit', 'kraPIN', 'companyProfile'],
                 hardware: ['businessRegistration', 'kraPIN', 'singleBusinessPermit', 'companyProfile'],
             };
-            return docMap[user_type] || [];
+            return docMap[userType] || [];
         };
 
         const requiredDocs = getRequiredDocuments();
@@ -108,7 +108,7 @@ function ProfilePage() {
         let experienceComplete = false;
         if (up?.complete === true) {
             experienceComplete = true;
-        } else if (user_type === 'fundi') {
+        } else if (userType === 'fundi') {
             const hasGrade = !!up?.grade;
             const hasExperience = !!up?.experience;
             const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
@@ -119,7 +119,7 @@ function ProfilePage() {
 
             // Re-calculate based on what's actually in the response
             experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
-        } else if (user_type === 'professional') {
+        } else if (userType === 'professional') {
             const hasProfession = !!up?.profession;
             const hasLevel = !!up?.professionalLevel;
             const hasExperience = !!up?.yearsOfExperience;
@@ -129,7 +129,7 @@ function ProfilePage() {
             const isStudent = level.toLowerCase().includes("student");
 
             experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
-        } else if (user_type === 'contractor') {
+        } else if (userType === 'contractor') {
             const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
             const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
             experienceComplete = hasExperiences && hasProjects;
@@ -145,14 +145,14 @@ function ProfilePage() {
             'Products': 'incomplete',
             'Activities': 'complete',
         };
-    }, [user?.id, user?.accountType, user?.user_type, user?.userProfile, providerData, rerender]);
+    }, [user?.id, user?.accountType, user?.userType, user?.userProfile, providerData, rerender]);
 
     const progressPercentage = useMemo(() => {
         const relevantKeys = Object.keys(completionStatus).filter(key => key !== 'Activities');
 
-        const user_type = user?.user_type?.toLowerCase();
+        const userType = user?.userType?.toLowerCase();
         const finalKeys = relevantKeys.filter(key => {
-            if (key === 'Products' && (user_type === 'customer' || user_type === 'contractor' || user_type === 'hardware')) return false;
+            if (key === 'Products' && (userType === 'customer' || userType === 'contractor' || userType === 'hardware')) return false;
             return true;
         });
 
@@ -162,7 +162,7 @@ function ProfilePage() {
 
     // 2. Prop Drill 'data' to children
     const renderContent = () => {
-        const user_type = (user?.user_type || '').toLowerCase();
+        const userType = (user?.userType || '').toLowerCase();
 
         // Common props passed to all relevant components
         const props = {
@@ -178,12 +178,12 @@ function ProfilePage() {
             case "Account Uploads":
                 return <AccountUploads {...props} />;
             case "Experience":
-                if (user_type === 'fundi') return <FundiExperience {...props} />;
-                if (user_type === 'professional') return <ProffExperience {...props} />;
-                if (user_type === 'contractor') return <ContractorExperience {...props} />;
+                if (userType === 'fundi') return <FundiExperience {...props} />;
+                if (userType === 'professional') return <ProffExperience {...props} />;
+                if (userType === 'contractor') return <ContractorExperience {...props} />;
                 return <AccountInfo {...props} />;
             case "Products":
-                if (user_type === 'customer') return <AccountInfo {...props} />;
+                if (userType === 'customer') return <AccountInfo {...props} />;
                 return <ShopAppPage {...props} />;
             case "Activities":
                 return <Activity {...props} />;
@@ -202,10 +202,10 @@ function ProfilePage() {
     }
 
     const isServiceProvider =
-        user?.user_type === "FUNDI" ||
-        user?.user_type === "CONTRACTOR" ||
-        user?.user_type === "PROFESSIONAL" ||
-        user?.user_type === "HARDWARE";
+        user?.userType === "FUNDI" ||
+        user?.userType === "CONTRACTOR" ||
+        user?.userType === "PROFESSIONAL" ||
+        user?.userType === "HARDWARE";
 
     return (
         <div className="min-h-screen bg-gray-50">

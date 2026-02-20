@@ -40,8 +40,8 @@ const Submissions = () => {
 
     const { user } = useGlobalContext();
 
-    const isAdmin = user?.user_type === "ADMIN";
-    const isFundi = user?.user_type === "FUNDI";
+    const isAdmin = user?.userType === "ADMIN";
+    const isFundi = user?.userType === "FUNDI";
 
     // Effect to fetch initial job data
     useEffect(() => {

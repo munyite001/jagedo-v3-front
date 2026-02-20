@@ -15,7 +15,7 @@ const OrderSummary = () => {
   const { id } = useParams<{ id: string }>();
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const { user } = useGlobalContext();
-  const user_type = user.user_type;
+  const userType = user.userType;
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ const OrderSummary = () => {
     const fetchOrderSummary = async () => {
       try {
         setLoading(true);
-        const fetchApi = user_type?.toLowerCase() === 'customer'
+        const fetchApi = userType?.toLowerCase() === 'customer'
           ? getOrderRequestsById
           : getProvierOrderRequestsById;
         const response = await fetchApi(axiosInstance, id);
@@ -55,7 +55,7 @@ const OrderSummary = () => {
     };
 
     fetchOrderSummary();
-  }, [id, user_type]); // Added axiosInstance to dependency array
+  }, [id, userType]); // Added axiosInstance to dependency array
 
   const formatCurrency = (amount: number | string | null | undefined) => {
     if (typeof amount !== 'number') {

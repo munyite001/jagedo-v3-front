@@ -14,7 +14,7 @@ const Activity = ({ data: profileData }) => {
     const [requestData, setRequestData] = useState(null);
     const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
     const { user } = useGlobalContext();
-    const user_type = user?.user_type?.toLowerCase();
+    const userType = user?.userType?.toLowerCase();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,7 +34,7 @@ const Activity = ({ data: profileData }) => {
 
     useEffect(() => {
         if (data) {
-            switch (user_type) {
+            switch (userType) {
                 case 'fundi':
                     setRequestData({
                         title: 'Fundi Requests',
@@ -61,7 +61,7 @@ const Activity = ({ data: profileData }) => {
                     ]);
             }
         }
-    }, [data, user_type]);
+    }, [data, userType]);
 
     if (loading && !profileData) {
         return (

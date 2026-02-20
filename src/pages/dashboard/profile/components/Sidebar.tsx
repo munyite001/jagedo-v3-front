@@ -3,7 +3,7 @@ import { User, Home, Upload, Briefcase, Package, ArrowLeft, CheckCircle2, AlertC
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  user_type: string;
+  userType: string;
   completionStatus?: { [key: string]: 'complete' | 'incomplete' };  // ← ADD THIS LINE
 }
 
@@ -39,14 +39,14 @@ const productsItem = {
   color: 'text-indigo-600',
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user_type, completionStatus = {} }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userType, completionStatus = {} }) => {
   // Determine which navigation items to show based on user type
   const getNavigationItems = () => {
-    if (user_type === 'CUSTOMER') {
+    if (userType === 'CUSTOMER') {
       return [...baseNavigationItems, uploadsItem];
     }
 
-    if (user_type === 'HARDWARE') {
+    if (userType === 'HARDWARE') {
       return [...baseNavigationItems, uploadsItem, productsItem];
     }
 
@@ -55,8 +55,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user_type, co
 
   const navigationItems = getNavigationItems();
 
-  const getuser_typeLabel = () => {
-    switch (user_type) {
+  const getuserTypeLabel = () => {
+    switch (userType) {
       case 'FUNDI': return 'Fundi Profile';
       case 'PROFESSIONAL': return 'Professional Profile';
       case 'CONTRACTOR': return 'Contractor Profile';
@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user_type, co
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <h1 className="text-xl font-semibold text-gray-900 mb-2">
-          {getuser_typeLabel()}
+          {getuserTypeLabel()}
         </h1>
         <p className="text-sm text-gray-600 leading-relaxed">
           Manage your account settings and preferences
@@ -101,12 +101,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user_type, co
         <div className="mt-3">
           <span
             className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              user_type === 'CUSTOMER'
+              userType === 'CUSTOMER'
                 ? 'bg-blue-100 text-blue-800'
                 : 'bg-green-100 text-green-800'
             }`}
           >
-            {user_type}
+            {userType}
           </span>
         </div>
       </div>
@@ -177,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, user_type, co
       {/* Footer */}
       <div className="p-4 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          {user_type === 'CUSTOMER'
+          {userType === 'CUSTOMER'
             ? 'Customer Dashboard'
             : 'Service Provider Dashboard'}
         </p>

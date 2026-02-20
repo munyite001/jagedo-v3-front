@@ -8,11 +8,11 @@ import Products from './tabs/Products';
 
 interface MainContentProps {
   activeTab: string;
-  user_type: string;
+  userType: string;
   userData?: any;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, user_type, userData }) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
@@ -23,17 +23,17 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, user_type, userDat
         return <AccountUploads userData={userData}/>;
       case 'experience':
         // Only show for builders, not customers
-        if (user_type === 'CUSTOMER') {
+        if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} />;
         }
         return <Experience userData={userData}/>;
       case 'products':
         // Only show for builders, not customers
-        if (user_type === 'CUSTOMER') {
+        if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} />;
         }
         //@ts-nocheck
-        return <Products userData={userData} user_type={user_type} />;
+        return <Products userData={userData} userType={userType} />;
       default:
         return <AccountInfo userData={userData} />;
     }

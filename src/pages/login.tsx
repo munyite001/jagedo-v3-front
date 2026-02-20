@@ -182,7 +182,7 @@ export default function Login() {
      */
 
     const user = {
-      user_type: "customer",
+      userType: "customer",
       email: googleUser.email,
       name: googleUser.name,
       avatar: googleUser.picture,
@@ -246,7 +246,7 @@ export default function Login() {
   };
 
   const redirectUser = (user) => {
-    const role = user.user_type.toLowerCase();
+    const role = user.userType.toLowerCase();
 
     let path = "/dashboard/customer";
 

@@ -6,7 +6,7 @@
 // import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 // interface ProviderProfileSectionProps {
-//     user_type: string;
+//     userType: string;
 //     user: Partial<FundiProfile | ProfessionalContractorProfile | HardwareProfile>;
 // }
 
@@ -126,9 +126,9 @@
 //     { key: "contactEmail", label: "Contact Email", type: "email" },
 // ];
 
-// function getFields(user_type: string): FieldDefinition[] {
-//     if (!user_type) return [];
-//     const type = user_type.toLowerCase();
+// function getFields(userType: string): FieldDefinition[] {
+//     if (!userType) return [];
+//     const type = userType.toLowerCase();
 //     if (type === "fundi") return fundiFields;
 //     if (type === "professional" || type === "contractor") return professionalContractorFields;
 //     if (type === "hardware") return hardwareFields;
@@ -137,8 +137,8 @@
 
 
 
-// function getInitialState(user_type: string, user: Partial<FundiProfile | ProfessionalContractorProfile | HardwareProfile>) {
-//     const fields = getFields(user_type);
+// function getInitialState(userType: string, user: Partial<FundiProfile | ProfessionalContractorProfile | HardwareProfile>) {
+//     const fields = getFields(userType);
 //     const state: Record<string, any> = {};
 
 //     fields.forEach(({ key, type }) => {
@@ -152,9 +152,9 @@
 //     return state;
 // }
 
-// const ProviderProfileSection: React.FC<ProviderProfileSectionProps> = ({ user_type, user }) => {
+// const ProviderProfileSection: React.FC<ProviderProfileSectionProps> = ({ userType, user }) => {
 //     const axiosInstance = useAxiosWithAuth(import.meta.env.VITER_SERVER_URL)
-//     const [form, setForm] = useState(() => getInitialState(user_type, user));
+//     const [form, setForm] = useState(() => getInitialState(userType, user));
 //     const [loading, setLoading] = useState<Record<string, boolean>>({});
 //     const [isSubmitting, setIsSubmitting] = useState(false);
 //     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -162,7 +162,7 @@
 //     // Attachments state for file/image fields (by key)
 //     const [attachments, setAttachments] = useState<Record<string, { url: string; name: string } | null>>({ idFrontUrl: form.idFrontUrl ? { url: form.idFrontUrl, name: "Uploaded" } : null });
 
-//     const fields = getFields(user_type);
+//     const fields = getFields(userType);
 
 
 //     console.log("Form: ", form)
@@ -292,12 +292,12 @@
 
 //         try {
 //             setIsSubmitting(true)
-//             const data = user_type.toLowerCase() == "fundi" ? {
+//             const data = userType.toLowerCase() == "fundi" ? {
 //                 ...form,
 //                 //@ts-ignore
 //                 userId: user?.id
 //             } : { ...form };
-//             const response = await updateProviderProfile(axiosInstance, data, user_type);
+//             const response = await updateProviderProfile(axiosInstance, data, userType);
 //             if (response.success) { toast.success("Provider profile saved successfully!"); } else {
 //                 toast.error("Error Updating Provider Profile. Please try again.")
 //             }

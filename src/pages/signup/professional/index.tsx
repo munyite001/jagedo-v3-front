@@ -66,7 +66,7 @@ export default function ProfessionalSignup() {
 
     const handleInitiateRegistration = async () => {
         const data = {
-            user_type: "PROFESSIONAL",
+            userType: "PROFESSIONAL",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -132,6 +132,7 @@ export default function ProfessionalSignup() {
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
+                subCounty: profileData.subCounty || "",
                 townCity: profileData.town || "",
                 estateVillage: profileData.estate || "",
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
@@ -167,7 +168,7 @@ export default function ProfessionalSignup() {
 
     const handleResendProviderOtp = async () => {
         const data = {
-            user_type: "PROFESSIONAL",
+            userType: "PROFESSIONAL",
             accountType: formData.accountType,
             email: formData.email,
             phone: formData.phone,
@@ -230,7 +231,7 @@ export default function ProfessionalSignup() {
                 isOpen={showProfileCompletionModal}
                 user={registeredUser}
                 accountType={formData.accountType as any}
-                user_type="PROFESSIONAL"
+                userType="PROFESSIONAL"
                 onComplete={handleProfileComplete}
                 onClose={() => setShowProfileCompletionModal(false)}
             />
