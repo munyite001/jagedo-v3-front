@@ -231,6 +231,13 @@ export default function Login() {
       return;
     }
 
+    // Normalize user data for consistency
+    if (user && typeof user === 'object' && user.userType) {
+      const typeUpper = String(user.userType).toUpperCase();
+      user.userType = typeUpper;
+      user.isSuperAdmin = typeUpper === 'SUPER_ADMIN';
+      user.isAdmin = typeUpper === 'ADMIN' || user.isSuperAdmin;
+    }
 
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("token", accessToken);
@@ -252,6 +259,7 @@ export default function Login() {
 
     switch (role) {
       case "admin":
+      case "super_admin":
         path = "/dashboard/admin";
         break;
 

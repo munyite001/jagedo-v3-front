@@ -631,7 +631,7 @@ function App() {
                                     {/* */}
                                     <Route
                                         element={
-                                            <ProtectedRoute allowedRoles={["CONTRACTOR", "PROFESSIONAL", "CUSTOMER", "ADMIN"]} />
+                                            <ProtectedRoute allowedRoles={["CONTRACTOR", "PROFESSIONAL", "CUSTOMER", "ADMIN", "SUPER_ADMIN"]} />
                                         }
                                     >
                                         <Route path="/job-progress/:id/:milestoneId" element={<ProgressComponent />} />

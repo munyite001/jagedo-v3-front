@@ -38,8 +38,8 @@ export const ProtectedAdminRoute = ({
   }
 
   // Check if user is admin
-  const isAdmin =
-    user.userType === "ADMIN";
+  const userType = String(user?.userType || "").toUpperCase();
+  const isAdmin = userType === "ADMIN" || userType === "SUPER_ADMIN";
 
   if (!isAdmin) {
     return (
@@ -93,12 +93,12 @@ export const useAdminPermission = (requiredMenu = null, requiredOperation = "VIE
 
   const hasAccess = requiredMenu
     ? hasMenuAccess(userMenuPermissions, requiredMenu) &&
-      (requiredOperation === "NONE" ||
-        canPerformOperation(
-          userMenuPermissions,
-          requiredMenu,
-          requiredOperation
-        ))
+    (requiredOperation === "NONE" ||
+      canPerformOperation(
+        userMenuPermissions,
+        requiredMenu,
+        requiredOperation
+      ))
     : true;
 
   return {
