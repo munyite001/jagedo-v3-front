@@ -34,8 +34,7 @@ export default function HardwareSignup() {
         lastName: "",
         gender: "male",
         organizationName: "",
-        contactfirstName: "",
-        contactlastName: "",
+        contactFullName: "",
         contactPhone: "",
         contactEmail: "",
         country: "Kenya",
@@ -151,8 +150,7 @@ export default function HardwareSignup() {
 
             const completeProfilePayload = {
                 email: registeredUser.email,
-                firstName: profileData.firstName || "",
-                lastName: profileData.lastName || "",
+                contactFullName: profileData.contactFullName || "",
                 organizationName: profileData.organizationName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",

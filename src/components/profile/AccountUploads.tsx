@@ -248,9 +248,10 @@ const AccountUploads = ({ data, refreshData }) => {
       } else if (userType === 'hardware') {
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
+          businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
-          singleBusinessPermit: updatedUrls.singleBusinessPermit || null,
-          companyProfile: updatedUrls.companyProfile || null
+          ownerIdFront: updatedUrls.ownerIdFront || null,
+          ownerIdBack: updatedUrls.ownerIdBack || null
         };
         response = await uploadHardwareDocuments(axiosInstance, payload);
       }
@@ -294,9 +295,10 @@ const AccountUploads = ({ data, refreshData }) => {
       ],
       hardware: [
         { label: "Business Registration", key: "businessRegistration" },
+        { label: "Business Permit", key: "businessPermit" },
         { label: "KRA PIN", key: "krapin" },
-        { label: "Single Business Permit", key: "singleBusinessPermit" },
-        { label: "Company Profile", key: "companyProfile" },
+        { label: "Owner ID Front", key: "idFrontUrl" },
+        { label: "Owner ID Back", key: "idBackUrl" },
       ],
     };
 

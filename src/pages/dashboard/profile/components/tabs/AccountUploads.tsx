@@ -113,10 +113,11 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
         }
       } else if (type === "hardware") {
         payload = {
-          certificateOfIncorporation: updatedDocs.certificateOfIncorporation?.url || "",
+          businessRegistration: updatedDocs.businessRegistration?.url || "",
           businessPermit: updatedDocs.businessPermit?.url || "",
-          krapin: updatedDocs.kraPIN?.url || "",
-          companyProfile: updatedDocs.companyProfile?.url || "",
+          krapin: updatedDocs.kraPIN?.url || updatedDocs.krapin?.url || "",
+          ownerIdFront: updatedDocs.ownerIdFront?.url || "",
+          ownerIdBack: updatedDocs.ownerIdBack?.url || "",
         };
       }
 
@@ -402,7 +403,13 @@ const AccountUploads = ({ userData, isAdmin = true }: AccountUploadsProps) => {
 
     // Hardware (Organization builder)
     if (userType === "hardware") {
-      return organizationBaseDocs;
+      return [
+        { key: "businessRegistration", name: "Business Registration", category: "business" },
+        { key: "businessPermit", name: "Business Permit", category: "business" },
+        { key: "krapin", name: "KRA PIN Certificate", category: "certification" },
+        { key: "ownerIdFront", name: "Owner ID - Front", category: "id" },
+        { key: "ownerIdBack", name: "Owner ID - Back", category: "id" },
+      ];
     }
 
     return [];
