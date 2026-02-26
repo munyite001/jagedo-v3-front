@@ -195,3 +195,22 @@ export const deleteEvaluationQuestion = async (axiosInstance: any, questionId: s
         throw new Error(error.response?.data?.message || "Failed to delete evaluation question");
     }
 };
+
+export const uploadEvaluationAudio = async (axiosInstance: any, audioFile: File): Promise<string> => {
+    try {
+        const formData = new FormData();
+        formData.append("file", audioFile);
+        
+        const response = await axiosInstance.post("/v1/files/upload-audio", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                Authorization: getAuthHeaders()
+            }
+        });
+        
+        // Return the URL from the response
+        return response.data?.data || response.data?.url || response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to upload audio");
+    }
+};

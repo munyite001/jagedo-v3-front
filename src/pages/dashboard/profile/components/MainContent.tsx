@@ -11,9 +11,10 @@ interface MainContentProps {
   userType: string;
   userData?: any;
   isAdmin?: boolean;
+  refetch?: () => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin }) => {
+const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData, isAdmin, refetch }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'account-info':
@@ -27,7 +28,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeTab, userType, userData
         if (userType === 'CUSTOMER') {
           return <AccountInfo userData={userData} />;
         }
-        return <Experience userData={userData} isAdmin={isAdmin} />;
+        return <Experience userData={userData} isAdmin={isAdmin} refetch={refetch} />;
       case 'products':
         // Only show for builders, not customers
         if (userType === 'CUSTOMER') {

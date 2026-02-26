@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import useAxiosWithAuth from '@/utils/axiosInterceptor';
 import Sidebar from './components/Sidebar';
@@ -22,38 +22,38 @@ function ProfileApp() {
   const completionStatus = useProfileCompletion(user, userType);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!userId) {
-        setError('No user ID provided');
-        setLoading(false);
+  const fetchUserData = useCallback(async () => {
+    if (!userId) {
+      setError('No user ID provided');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await getProviderProfile(axiosInstance, userId);
+      // getProviderProfile returns response.data
+      const fetchedUser = response?.data || response;
+
+      if (!fetchedUser || typeof fetchedUser !== 'object') {
+        setError('User not found');
         return;
       }
 
-      setLoading(true);
-      setError(null);
+      setUser(fetchedUser);
+      setUserType(fetchedUser.userType || type?.toUpperCase() || 'CUSTOMER');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to load user profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
-      try {
-        const response = await getProviderProfile(axiosInstance, userId);
-        // getProviderProfile returns response.data
-        const fetchedUser = response?.data || response;
-
-        if (!fetchedUser || typeof fetchedUser !== 'object') {
-          setError('User not found');
-          return;
-        }
-
-        setUser(fetchedUser);
-        setUserType(fetchedUser.userType || type?.toUpperCase() || 'CUSTOMER');
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Failed to load user profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchUserData();
-  }, [userId, type]);
+  }, [fetchUserData]);
 
   useEffect(() => {
     if (globalUser) {
@@ -105,6 +105,7 @@ function ProfileApp() {
         userType={userType}
         userData={user}
         isAdmin={isAdmin}
+        refetch={fetchUserData}
       />
     </div>
   );

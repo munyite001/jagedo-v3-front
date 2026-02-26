@@ -15,7 +15,7 @@ import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle, FiInfo } from "reac
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
-import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion } from "@/api/experience.api";
+import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio } from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
 
@@ -337,7 +337,7 @@ const resolveSpecialization = (user: any) => {
 // Local storage sync omitted as per requirements.
 
 
-const Experience = ({ userData, isAdmin = false }) => {
+const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   console.log("User Data: ", userData);
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
@@ -377,7 +377,7 @@ const Experience = ({ userData, isAdmin = false }) => {
         setAvailableQuestions(data);
 
         // Map templates to evaluation state if not already prefilled from evaluation results
-        const evaluation = userData?.userProfile?.fundiEvaluation;
+        const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
         if (!PREFILL_STATUSES.includes(status) || !evaluation) {
           const initial = data.map((q: any) => ({
             id: q.id,
@@ -1289,7 +1289,11 @@ const Experience = ({ userData, isAdmin = false }) => {
         await adminResubmitExperience(axiosInstance, userData.id, actionReason);
         toast.success("Resubmission requested");
       }
-      window.location.reload();
+      if (refetch) {
+        refetch();
+      } else {
+        window.location.reload();
+      }
     } catch (error: any) {
       toast.error(error.message || "Action failed");
     } finally {
@@ -1370,6 +1374,67 @@ const Experience = ({ userData, isAdmin = false }) => {
     );
   };
 
+  const renderEvaluationResults = () => {
+    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+    if (!evaluation) return null;
+
+    // Use current questions state which we already prefilled in useEffect
+    // or fallback to evaluation object responses
+    const displayQuestions = questions.length > 0 ? questions : (evaluation.responses || []);
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
+        <div className="bg-blue-900 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-400" />
+            <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
+          </div>
+          <div className="bg-white/10 px-4 py-1 rounded-full border border-white/20">
+            <span className="text-sm font-semibold text-white">
+              Total Score: <span className="text-green-400 text-lg">{evaluation.totalScore}%</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {displayQuestions.map((q, idx) => (
+              <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Question {idx + 1}
+                </p>
+                <h4 className="text-base font-semibold text-gray-800 mb-3">{q.text}</h4>
+                <div className="bg-white p-3 rounded border border-gray-200 mb-2">
+                  <p className="text-sm text-gray-700 italic">
+                    {Array.isArray(q.answer) ? q.answer.join(", ") : (q.answer || "N/A")}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs font-medium text-gray-400">Score</span>
+                  <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    {q.score}/100
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {evaluation.audioUrl && (
+            <div className="mt-8 border-t pt-6">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <LucideInfoIcon className="w-4 h-4 text-blue-500" />
+                Audio Feedback Reference
+              </h4>
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <audio src={evaluation.audioUrl} controls className="w-full" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
   /* -------------------- Status Badge Component -------------------- */
@@ -1436,8 +1501,9 @@ const Experience = ({ userData, isAdmin = false }) => {
     }
 
     // Set audio URL if it exists in evaluation data (same source for all user types)
+    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     const audioUrlFromData =
-      userData?.userProfile?.fundiEvaluation?.audioUrl ||
+      evaluation?.audioUrl ||
       userData?.userProfile?.audioUploadUrl;
 
     if (audioUrlFromData) {
@@ -1474,19 +1540,26 @@ const Experience = ({ userData, isAdmin = false }) => {
     setShowVerificationMessage(false);
   };
 
-  // --- localStorage-based audio upload (using local object URL) ---
-  const handleAudioUpload = (event) => {
+  // --- Real audio upload ---
+  const handleAudioUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     if (!file.type.startsWith("audio/")) {
-      alert("Please upload an audio file");
+      toast.error("Please upload an audio file");
       return;
     }
+
+    const toastId = toast.loading("Uploading audio...");
     setIsUploadingAudio(true);
-    const localUrl = URL.createObjectURL(file);
-    setAudioUrl(localUrl);
-    console.log("Audio stored locally:", localUrl);
-    setIsUploadingAudio(false);
+    try {
+      const remoteUrl = await uploadEvaluationAudio(axiosInstance, file);
+      setAudioUrl(remoteUrl);
+      toast.success("Audio uploaded successfully", { id: toastId });
+    } catch (error: any) {
+      toast.error(error.message || "Audio upload failed", { id: toastId });
+    } finally {
+      setIsUploadingAudio(false);
+    }
   };
 
   // --- localStorage-based evaluation submit ---
@@ -1533,7 +1606,11 @@ const Experience = ({ userData, isAdmin = false }) => {
       await submitEvaluation(axiosInstance, profileId, body);
       setSubmitMessage("Evaluation submitted successfully!");
       toast.success("Evaluation submitted successfully!");
-      window.location.reload();
+      if (refetch) {
+        refetch();
+      } else {
+        window.location.reload();
+      }
     } catch (error: any) {
       setSubmitMessage(error.message || "Failed to submit evaluation");
       toast.error(error.message || "Failed to submit evaluation");
@@ -1637,7 +1714,11 @@ const Experience = ({ userData, isAdmin = false }) => {
         setIsEditingFields(false);
       }
 
-      window.location.reload();
+      if (refetch) {
+        refetch();
+      } else {
+        window.location.reload();
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to save changes", { id: toastId });
       console.error("Save changes error:", error);
@@ -2305,9 +2386,13 @@ const Experience = ({ userData, isAdmin = false }) => {
                 </div>
               </div>
             )}
+            {/* Evaluation Results Summary */}
+            {userType.toLowerCase() === "fundi" &&
+              (userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && renderEvaluationResults()}
+
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              !userData?.userProfile?.fundiEvaluation && (
+              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">
                   {userType} Evaluation Guidelines
                 </h2>
@@ -2315,7 +2400,7 @@ const Experience = ({ userData, isAdmin = false }) => {
 
             {/* Scoring Criteria Description */}
             {userType.toLowerCase() === "fundi" &&
-              !userData?.userProfile?.fundiEvaluation && (
+              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <h3 className="font-semibold text-blue-900 text-sm mb-2">
                     Scoring Criteria:
@@ -2339,7 +2424,7 @@ const Experience = ({ userData, isAdmin = false }) => {
 
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              !userData?.userProfile?.fundiEvaluation && (
+              !(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -2642,250 +2727,6 @@ const Experience = ({ userData, isAdmin = false }) => {
                   </div>
                 </div>
               )}
-
-            {/* Evaluation Results Display */}
-            {userData?.userProfile?.fundiEvaluation && (
-              <div className="bg-white shadow-lg rounded-xl border border-gray-200 p-6 mt-8">
-                <h2 className="text-xl font-semibold mb-6 text-gray-800">
-                  Evaluation Results
-                </h2>
-
-                {/* Total Score Display */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Overall Score
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-2xl font-bold ${userData.userProfile.fundiEvaluation.totalScore >= 90
-                          ? "text-green-600"
-                          : userData.userProfile.fundiEvaluation.totalScore >=
-                            80
-                            ? "text-blue-600"
-                            : userData.userProfile.fundiEvaluation
-                              .totalScore >= 70
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                      >
-                        {userData.userProfile.fundiEvaluation.totalScore}%
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${userData.userProfile.fundiEvaluation.totalScore >= 90
-                          ? "bg-green-100 text-green-800"
-                          : userData.userProfile.fundiEvaluation.totalScore >=
-                            80
-                            ? "bg-blue-100 text-blue-800"
-                            : userData.userProfile.fundiEvaluation
-                              .totalScore >= 70
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                      >
-                        {userData.userProfile.fundiEvaluation.totalScore >= 90
-                          ? "Expert Level"
-                          : userData.userProfile.fundiEvaluation.totalScore >=
-                            80
-                            ? "Advanced Level"
-                            : userData.userProfile.fundiEvaluation.totalScore >=
-                              70
-                              ? "Intermediate Level"
-                              : "Beginner Level"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full transition-all duration-500 ${userData.userProfile.fundiEvaluation.totalScore >= 90
-                          ? "bg-green-500"
-                          : userData.userProfile.fundiEvaluation.totalScore >=
-                            80
-                            ? "bg-blue-500"
-                            : userData.userProfile.fundiEvaluation
-                              .totalScore >= 70
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
-                        style={{
-                          width: `${userData.userProfile.fundiEvaluation.totalScore}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Individual Question Scores */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {/* Question 1: Major Works */}
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">
-                      Major Works Experience
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      "Have you done any major works in the construction
-                      industry?"
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700">
-                        {userData.userProfile.fundiEvaluation.hasMajorWorks ||
-                          "Not provided"}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
-                          .majorWorksScore >= 80
-                          ? "bg-green-100 text-green-800"
-                          : userData.userProfile.fundiEvaluation
-                            .majorWorksScore >= 60
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
-                      >
-                        {userData.userProfile.fundiEvaluation.majorWorksScore}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Question 2: Materials Used */}
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">
-                      Materials Knowledge
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      "State the materials that you have been using mostly for
-                      your jobs"
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation.materialsUsed ||
-                          "Not provided"}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
-                          .materialsUsedScore >= 80
-                          ? "bg-green-100 text-green-800"
-                          : userData.userProfile.fundiEvaluation
-                            .materialsUsedScore >= 60
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
-                      >
-                        {
-                          userData.userProfile.fundiEvaluation
-                            .materialsUsedScore
-                        }
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Question 3: Essential Equipment */}
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">
-                      Equipment Knowledge
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      "Name essential equipment that you have been using for
-                      your job"
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation
-                          .essentialEquipment || "Not provided"}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
-                          .essentialEquipmentScore >= 80
-                          ? "bg-green-100 text-green-800"
-                          : userData.userProfile.fundiEvaluation
-                            .essentialEquipmentScore >= 60
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
-                      >
-                        {
-                          userData.userProfile.fundiEvaluation
-                            .essentialEquipmentScore
-                        }
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Question 4: Quotation Formulation */}
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-gray-800 mb-2">
-                      Quotation Skills
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      "How do you always formulate your quotations?"
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-700 truncate">
-                        {userData.userProfile.fundiEvaluation
-                          .quotationFormulation || "Not provided"}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm font-medium ${userData.userProfile.fundiEvaluation
-                          .quotationFormulaScore >= 80
-                          ? "bg-green-100 text-green-800"
-                          : userData.userProfile.fundiEvaluation
-                            .quotationFormulaScore >= 60
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
-                      >
-                        {
-                          userData.userProfile.fundiEvaluation
-                            .quotationFormulaScore
-                        }
-                        %
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Audio Section */}
-                {userData.userProfile.fundiEvaluation.audioUrl && (
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h4 className="font-medium text-gray-800 mb-3">
-                      Audio Response
-                    </h4>
-                    <audio
-                      controls
-                      src={userData.userProfile.fundiEvaluation.audioUrl}
-                      className="w-full"
-                    >
-                      Your browser does not support the audio element.
-                    </audio>
-                  </div>
-                )}
-
-                {/* Evaluation Date/Status */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>
-                      Evaluation Status:
-                      <span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                        Completed
-                      </span>
-                    </span>
-                    {userData.userProfile.fundiEvaluation.evaluatedAt && (
-                      <span>
-                        Evaluated on:{" "}
-                        {new Date(
-                          userData.userProfile.fundiEvaluation.evaluatedAt,
-                        ).toLocaleDateString("en-GB")}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
           </form>
         </div>
       </div>
