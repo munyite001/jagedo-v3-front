@@ -625,3 +625,31 @@ export const unverifyUser = async (axiosInstance: any, userId: string): Promise<
         throw new Error(error.response?.data?.message || "Failed to suspend user");
     }
 };
+
+/**
+ * Unified admin account status endpoint.
+ * status: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE"
+ */
+export const updateAccountStatus = async (
+    axiosInstance: any,
+    userId: string,
+    status: "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE",
+    reason?: string
+): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(
+            `${import.meta.env.VITE_SERVER_URL}/api/admin/profiles/${userId}/account/status`,
+            { status, ...(reason ? { reason } : {}) },
+            {
+                headers: {
+                    Authorization: getAuthHeaders()
+                }
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        throw new Error(
+            error.response?.data?.message || "Failed to update account status"
+        );
+    }
+};

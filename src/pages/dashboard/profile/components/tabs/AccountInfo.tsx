@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
-import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, blackListUser, whiteListUser, suspendUser, unverifyUser } from "@/api/provider.api";
+import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, updateAccountStatus } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface AccountInfoProps {
@@ -14,9 +14,6 @@ interface AccountInfoProps {
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [askDeleteReason, setAskDeleteReason] = useState(false);
-  const [deleteReason, setDeleteReason] = useState("");
   const [showActionDropdown, setShowActionDropdown] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionReason, setActionReason] = useState("");
@@ -100,25 +97,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }
   };
 
-  const handleDelete = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    setShowDeleteConfirm(false);
-    setAskDeleteReason(true);
-  };
-
-  const handleSubmitReason = () => {
-    if (deleteReason.trim()) {
-      // Replace with actual delete logic
-      alert(`Deleted for reason: ${deleteReason}`);
-      setAskDeleteReason(false);
-      setDeleteReason("");
-    } else {
-      alert("Please enter a reason.");
-    }
-  };
 
   // Edit handlers
   const handleEditStart = (field: string) => {
@@ -240,64 +218,29 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }
   };
 
-  // --- Action handlers using API ---
-  const handleBlackList = async (reason: string) => {
-    try {
-      await blackListUser(axiosInstance, userData.id);
-      Object.assign(userData, { blacklisted: true, blacklistReason: reason });
-      toast.success("User blacklisted successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to blacklist user");
-    }
-  };
-
-  const handleWhiteList = async () => {
-    try {
-      await whiteListUser(axiosInstance, userData.id);
-      Object.assign(userData, { blacklisted: false });
-      toast.success("User whitelisted successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to whitelist user");
-    }
-  };
-
-  const handleSuspend = async (reason: string) => {
-    try {
-      await suspendUser(axiosInstance, userData.id);
-      Object.assign(userData, { suspended: true, suspendReason: reason });
-      toast.success("User suspended successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to suspend user");
-    }
-  };
-
-  const handleUnverifyUser = async (reason: string) => {
-    try {
-      await unverifyUser(axiosInstance, userData.id);
-      Object.assign(userData, { adminApproved: false, approved: false, unverifyReason: reason });
-      toast.success("User unverified successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to unverify user");
-    }
-  };
-
-  // Handle action with reason submission
+  // --- Unified action handler using new account/status endpoint ---
   const handleActionSubmit = async () => {
-    if (!actionReason.trim()) {
+    if (!actionReason.trim() && pendingAction !== "verify") {
       alert("Please enter a reason for this action.");
       return;
     }
 
-    switch (pendingAction) {
-      case "unverify":
-        await handleUnverifyUser(actionReason);
-        break;
-      case "suspend":
-        await handleSuspend(actionReason);
-        break;
-      case "blacklist":
-        await handleBlackList(actionReason);
-        break;
+    const statusMap: Record<string, "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE"> = {
+      verify: "VERIFY",
+      unverify: "UNVERIFY",
+      suspend: "SUSPEND",
+      blacklist: "BLACKLIST",
+      delete: "DELETE",
+    };
+
+    const status = statusMap[pendingAction ?? ""];
+    if (!status) return;
+
+    try {
+      await updateAccountStatus(axiosInstance, userData.id, status, actionReason || undefined);
+      toast.success(`User ${getActionLabel(pendingAction ?? "")}d successfully`);
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${getActionLabel(pendingAction ?? "").toLowerCase()} user`);
     }
 
     setPendingAction(null);
@@ -306,9 +249,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   const getActionLabel = (action: string) => {
     switch (action) {
+      case "verify": return "Verify";
       case "unverify": return "Unverify";
       case "suspend": return "Suspend";
       case "blacklist": return "Blacklist";
+      case "delete": return "Delete";
       default: return action;
     }
   };
@@ -729,23 +674,37 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 )}
               </div>
             </div>
-            {showVerificationMessage && (
-              <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
-                {/* Actions button aligned to start */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowActionDropdown(!showActionDropdown)}
-                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                  >
-                    Actions
-                    <FiChevronDown
-                      className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
-                      size={16}
-                    />
-                  </button>
-                  {showActionDropdown && (
-                    <div className="absolute left-0 mt-2 w-44 bg-white border rounded shadow-lg z-50">
+            {/* Actions dropdown — always visible for admins */}
+            <div className="mt-6">
+              <div className="relative inline-block">
+                <button
+                  type="button"
+                  onClick={() => setShowActionDropdown(!showActionDropdown)}
+                  className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                >
+                  Actions
+                  <FiChevronDown
+                    className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
+                    size={16}
+                  />
+                </button>
+                {showActionDropdown && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                    {/* Verify — only shown when user is NOT yet verified */}
+                    {!showVerificationMessage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingAction("verify");
+                          setShowActionDropdown(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
+                      >
+                        Verify
+                      </button>
+                    )}
+                    {/* Unverify — only shown when user IS verified */}
+                    {showVerificationMessage && (
                       <button
                         type="button"
                         onClick={() => {
@@ -756,60 +715,74 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                       >
                         Unverify
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingAction("suspend");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                      >
-                        Suspend
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingAction("blacklist");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                      >
-                        Blacklist
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {/* Delete button aligned to end */}
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
-                >
-                  Delete
-                </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("suspend");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-yellow-700"
+                    >
+                      Suspend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("blacklist");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
+                    >
+                      Blacklist
+                    </button>
+                    <div className="border-t my-1" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("delete");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Action Reason Modal */}
             {pendingAction && (
-              <div className="bg-blue-50 border border-blue-300 text-blue-800 px-4 py-4 rounded mt-4">
+              <div className={`border px-4 py-4 rounded mt-4 ${pendingAction === "delete" || pendingAction === "blacklist"
+                  ? "bg-red-50 border-red-300 text-red-800"
+                  : pendingAction === "verify"
+                    ? "bg-green-50 border-green-300 text-green-800"
+                    : "bg-blue-50 border-blue-300 text-blue-800"
+                }`}>
                 <p className="font-medium mb-2">
-                  Please provide a reason for {getActionLabel(pendingAction).toLowerCase()}ing this user:
+                  {pendingAction === "verify"
+                    ? "Confirm verification of this user?"
+                    : `Please provide a reason for ${getActionLabel(pendingAction).toLowerCase()}ing this user:`}
                 </p>
-                <textarea
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
-                  className="w-full mt-2 p-3 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
+                {pendingAction !== "verify" && (
+                  <textarea
+                    value={actionReason}
+                    onChange={(e) => setActionReason(e.target.value)}
+                    placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
+                    className="w-full mt-2 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                )}
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={handleActionSubmit}
-                    className={`text-white px-4 py-2 rounded transition ${pendingAction === "blacklist"
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-blue-600 hover:bg-blue-700"
+                    className={`text-white px-4 py-2 rounded transition ${pendingAction === "delete" || pendingAction === "blacklist"
+                        ? "bg-red-600 hover:bg-red-700"
+                        : pendingAction === "verify"
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "bg-blue-600 hover:bg-blue-700"
                       }`}
                   >
                     Confirm {getActionLabel(pendingAction)}
@@ -827,56 +800,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 </div>
               </div>
             )}
-            {showDeleteConfirm && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
-                <p>Are you sure you want to delete?</p>
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <button
-                    type="button"
-                    onClick={handleConfirmDelete}
-                    className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="bg-gray-300 text-black px-4 py-1 rounded hover:bg-gray-400"
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-            {askDeleteReason && (
-              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mt-4">
-                <p>Please provide a reason for deletion:</p>
-                <textarea
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  className="w-full mt-2 p-2 border rounded"
-                />
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <button
-                    type="button"
-                    onClick={handleSubmitReason}
-                    className="bg-yellow-600 text-white px-4 py-1 rounded hover:bg-yellow-700"
-                  >
-                    Submit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAskDeleteReason(false);
-                      setDeleteReason("");
-                    }}
-                    className="bg-gray-300 text-black px-4 py-1 rounded hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+
           </section>
         </div>
       </div>
