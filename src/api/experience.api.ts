@@ -149,3 +149,49 @@ export const adminResubmitExperience = async (axiosInstance: any, userId: string
         throw new Error(error.response?.data?.message || "Failed to request experience resubmission");
     }
 };
+
+// Evaluation Questions CRUD
+export const getEvaluationQuestions = async (axiosInstance: any, category?: string): Promise<any> => {
+    try {
+        const url = category ? `/api/questions?category=${category}` : "/api/questions";
+        const response = await axiosInstance.get(url, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to fetch evaluation questions");
+    }
+};
+
+export const createEvaluationQuestion = async (axiosInstance: any, payload: any): Promise<any> => {
+    try {
+        const response = await axiosInstance.post("/api/questions", payload, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to create evaluation question");
+    }
+};
+
+export const updateEvaluationQuestion = async (axiosInstance: any, questionId: string | number, payload: any): Promise<any> => {
+    try {
+        const response = await axiosInstance.put(`/api/questions/${questionId}`, payload, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to update evaluation question");
+    }
+};
+
+export const deleteEvaluationQuestion = async (axiosInstance: any, questionId: string | number): Promise<any> => {
+    try {
+        const response = await axiosInstance.delete(`/api/questions/${questionId}`, {
+            headers: { Authorization: getAuthHeaders() }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to delete evaluation question");
+    }
+};
