@@ -12,7 +12,6 @@ import { toast, Toaster } from "sonner"
 import { verifyOtp, verifyEmail } from "@/api/auth.api"
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { cn } from "@/lib/utils";
-import { startupSnapshot } from "node:v8"
 interface CustomerSignupFormProps {
   currentStep: number
   formData: any
@@ -461,8 +460,8 @@ export function CustomerSignupForm({
 
                 <div
                   className={cn(
-                    "flex h-10 items-center w-[70%] mx-auto rounded-md border bg-white px-3 shadow-sm transition-all duration-200",
-                    "focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-[rgb(0,0,122)]/20",
+                    "flex h-10 items-center w-[70%] mx-auto rounded-md border bg-white px-3 shadow-sm transition-all duration-200 overflow-hidden",
+                    "focus-within:border-[rgb(0,0,122)] focus-within:ring-2 focus-within:ring-inset focus-within:ring-[rgb(0,0,122)]/10",
                     errors.phone ? "border-red-500 focus-within:ring-red-500/20" : "border-gray-300"
                   )}
                 >
@@ -477,7 +476,7 @@ export function CustomerSignupForm({
                     id="phone"
                     type="tel"
                     placeholder="7XX XXX XXX"
-                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none min-w-0"
                     value={formData.phone}
                     onChange={(e) => {
                       const value = e.target.value;
