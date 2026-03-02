@@ -18,7 +18,10 @@ import {
 import { UserManagementSection } from "./user-management-section";
 import { RoleManagementSection } from "./role-management-section";
 import { UserStatsCards } from "./user-stats-cards";
-import { useAdminPermission, AdminPageGuard } from "@/components/ProtectedAdminRoute";
+import {
+  useAdminPermission,
+  AdminPageGuard,
+} from "@/components/ProtectedAdminRoute";
 import { useRolePermissions } from "@/context/RolePermissionProvider";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { canPerformOperation } from "@/utils/adminPermissions";
@@ -34,33 +37,90 @@ const UserManagement = () => {
 
   // Get current user info
   const { user } = useGlobalContext();
-
-  // Check if current user is SUPER_ADMIN
+  
   // Use isSuperAdmin flag from backend if available, otherwise check userType
-  const isSuperAdmin = 
-    user?.isSuperAdmin === true ||
-    (user?.userType && String(user.userType).toUpperCase() === 'SUPER_ADMIN') ||
-    // Also check roles array if it exists (fallback for older data)
-    (user?.roles &&
-      Array.isArray(user.roles) &&
-      user.roles.some((r: any) => {
-        if (typeof r === "string") return r?.toUpperCase?.() === "SUPER_ADMIN";
-        return r?.name?.toUpperCase?.() === "SUPER_ADMIN" || r?.isSuperAdmin === true;
-      }));
+  const isSuperAdmin = (() => {
+    if (!user) return false;
 
+ 
+    if (
+      user.isSuperAdmin === true 
+    ) {
+      return true;
+    }
+
+    
+    if (
+      user.userType &&
+      String(user.userType).toUpperCase() === "SUPER_ADMIN"
+    ) {
+      return true;
+    }
+
+  
+    if (Array.isArray(user.roles)) {
+      return user.roles.some((r: any) => {
+        if (!r) return false;
+
+        // Role is string
+        if (typeof r === "string") {
+          return r.toUpperCase() === "SUPER_ADMIN";
+        }
+
+        // Role is object
+        return (
+          r.name?.toUpperCase?.() === "SUPER_ADMIN" ||
+          r.isSuperAdmin === true ||
+          r.is_super_admin === true
+        );
+      });
+    }
+
+    return false;
+  })();
   // Check permissions for user-management menu
-  const { hasAccess, isLoading: permissionsLoading } = useAdminPermission('user-management', 'VIEW');
+  const { hasAccess, isLoading: permissionsLoading } = useAdminPermission(
+    "user-management",
+    "VIEW",
+  );
   const { userMenuPermissions } = useRolePermissions();
 
-
   // Check specific user-management operations
-  const canView = canPerformOperation(userMenuPermissions, 'user-management', 'VIEW');
-  const canCreate = canPerformOperation(userMenuPermissions, 'user-management', 'CREATE');
-  const canUpdate = canPerformOperation(userMenuPermissions, 'user-management', 'UPDATE');
-  const canDelete = canPerformOperation(userMenuPermissions, 'user-management', 'DELETE');
-  const canApprove = canPerformOperation(userMenuPermissions, 'user-management', 'APPROVE');
-  const canVerify = canPerformOperation(userMenuPermissions, 'user-management', 'VERIFY');
-  const canSuspend = canPerformOperation(userMenuPermissions, 'user-management', 'SUSPEND');
+  const canView = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "VIEW",
+  );
+  const canCreate = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "CREATE",
+  );
+  const canUpdate = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "UPDATE",
+  );
+  const canDelete = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "DELETE",
+  );
+  const canApprove = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "APPROVE",
+  );
+  const canVerify = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "VERIFY",
+  );
+  const canSuspend = canPerformOperation(
+    userMenuPermissions,
+    "user-management",
+    "SUSPEND",
+  );
 
   // Handle loading state
   if (permissionsLoading) {
@@ -122,8 +182,11 @@ const UserManagement = () => {
         menuItems: role.menuItems || [],
         userCount: role.userCount || 0,
       });
-
       const transformedRoles = (rolesData || []).map(transformRole);
+      const superAdminRole = transformedRoles.find(
+        (role: any) => role.isSuperAdmin === true,
+      );
+     
       setRoles(transformedRoles);
       setMenuItems(menuItemsData || []);
       setUsers(usersData || []);
@@ -140,7 +203,9 @@ const UserManagement = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              User Management
+            </h1>
             <p className="text-muted-foreground mt-1">
               Manage users, roles, and permissions
             </p>
@@ -189,7 +254,8 @@ const UserManagement = () => {
             {!canCreate && !canUpdate && !canDelete && !canSuspend && (
               <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-yellow-800">
-                  You have read-only access to this section. Contact an administrator to request edit permissions.
+                  You have read-only access to this section. Contact an
+                  administrator to request edit permissions.
                 </p>
               </div>
             )}
@@ -209,7 +275,8 @@ const UserManagement = () => {
             ) : (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-red-800">
-                  <strong>Access Denied:</strong> Role and permission management is restricted to Super Admin users only.
+                  <strong>Access Denied:</strong> Role and permission management
+                  is restricted to Super Admin users only.
                 </p>
               </div>
             )}
@@ -233,7 +300,9 @@ const UserManagement = () => {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+                onClick={() =>
+                  setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+                }
                 disabled={confirmDialog.isLoading}
               >
                 Cancel

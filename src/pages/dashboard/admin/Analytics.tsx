@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ReactGA from "react-ga4";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,33 +11,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  ShoppingCart,
-  Briefcase,
+  Download,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react";
-import {
-  CustomersSection,
-  BuildersSection,
-  RequestsSection,
-  SalesSection,
-} from "./components/AnalyticsSections";
+
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+  "#FF6B6B",
+  "#4ECDC4",
+];
+
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
-import { getSalesRequests, getSalesAnalytics } from "@/api/sales.api";
+import { SummarySection } from "@/pages/dashboard/admin/components/Analytics/SummarySection";
+import {
+  getSalesRequests,
+  getSalesAnalytics,
+  exportAnalyticsReport,
+  logFeatureUsage,
+} from "@/api/analytics.api";
 import { filterDataByTimePeriod } from "@/utils/dateFilter";
+import { CustomersSection } from "./components/Analytics/CustomersSection";
+import { BuildersSection } from "./components/Analytics/BuildersSection";
+import { RequestsSection } from "./components/Analytics/RequestsSection";
+import { SalesSection } from "./components/Analytics/SalesSection";
+import { UserSection } from "./components/Analytics/UserSection";
+import { ProductSection } from "./components/Analytics/ProductSection";
+import { EngagementSection } from "./components/Analytics/EngagementSection";
+import {
+  handleExportResponse,
+  getExportFilename,
+} from "@/utils/exportUtils";
 
 // Initialize Google Analytics
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
@@ -51,49 +55,12 @@ if (GA_MEASUREMENT_ID) {
   ReactGA.initialize(GA_MEASUREMENT_ID);
 }
 
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  change: string;
-  trend: "up" | "down";
-  icon: React.ReactNode;
-}
-
-const MetricCard: React.FC<MetricCardProps> = ({
-  title,
-  value,
-  change,
-  trend,
-  icon,
-}) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
-      <p
-        className={`text-xs flex items-center ${trend === "up" ? "text-green-600" : "text-red-600"
-          }`}
-      >
-        {trend === "up" ? (
-          <TrendingUp className="h-4 w-4 mr-1" />
-        ) : (
-          <TrendingDown className="h-4 w-4 mr-1" />
-        )}
-        {change}
-      </p>
-    </CardContent>
-  </Card>
-);
-
 const TimePeriodSelector: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => (
   <Select value={value} onValueChange={onChange}>
-    <SelectTrigger className="w-[180px]">
+    <SelectTrigger className="w-45">
       <SelectValue placeholder="Select period" />
     </SelectTrigger>
     <SelectContent>
@@ -108,259 +75,27 @@ const TimePeriodSelector: React.FC<{
   </Select>
 );
 
-// Summary Section
-const SummarySection: React.FC<{ timePeriod: string }> = ({ timePeriod }) => {
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [salesActivities, setSalesActivities] = useState<any | null>(null);
-  const [requestsData, setRequestsData] = useState<any | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<any | null>(null);
-  const [rawRequestsData, setRawRequestsData] = useState<any | null>(null);
-  const [rawAnalyticsData, setRawAnalyticsData] = useState<any | null>(null);
-
-  // Loading states for each API call
-  const [loadingRequests, setLoadingRequests] = useState<boolean>(true);
-  const [loadingAnalytics, setLoadingAnalytics] = useState<boolean>(true);
-
-  // Error states for each API call
-  const [errorRequests, setErrorRequests] = useState<string | null>(null);
-  const [errorAnalytics, setErrorAnalytics] = useState<string | null>(null);
-
-  // const [timePeriod, setTimePeriod] = useState("");
-
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch requests data (has job status info)
-        setLoadingRequests(true);
-        setErrorRequests(null);
-        const requestsResponse = await getSalesRequests(axiosInstance, timePeriod);
-        const requestsAnalytics =
-          requestsResponse.data?.data || requestsResponse.data;
-        setRawRequestsData(requestsAnalytics);
-        setRequestsData(requestsAnalytics);
-
-        // Fetch analytics data (has user/customer/builder info)
-        setLoadingAnalytics(true);
-        setErrorAnalytics(null);
-        const analyticsResponse = await getSalesAnalytics(axiosInstance, timePeriod);
-        const analytics =
-          analyticsResponse.data?.data || analyticsResponse.data;
-        setRawAnalyticsData(analytics);
-        setAnalyticsData(analytics);
-      } catch (error: any) {
-        setErrorRequests(error.message || "Failed to load data");
-        setErrorAnalytics(error.message || "Failed to load data");
-      } finally {
-        setLoadingRequests(false);
-        setLoadingAnalytics(false);
-      }
-    };
-
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Filter data when timePeriod changes
-  useEffect(() => {
-    if (!rawRequestsData && !rawAnalyticsData) return;
-
-    // Filter requests data
-    if (rawRequestsData) {
-      const filtered = filterDataByTimePeriod(rawRequestsData, timePeriod);
-      setRequestsData(filtered);
-    }
-
-    // Filter analytics data
-    if (rawAnalyticsData) {
-      const filtered = filterDataByTimePeriod(rawAnalyticsData, timePeriod);
-      setAnalyticsData(filtered);
-    }
-  }, [timePeriod, rawRequestsData, rawAnalyticsData]);
-
-  // Transform job status data for visualization
-  const jobStatusData = [
-    { name: "Active", value: requestsData?.activeAll || 0, color: "#10b981" },
-    { name: "New", value: requestsData?.newAll || 0, color: "#3b82f6" },
-    { name: "Draft", value: requestsData?.draftAll || 0, color: "#f59e0b" },
-    {
-      name: "Completed",
-      value: requestsData?.completedAll || 0,
-      color: "#8b5cf6",
-    },
-    {
-      name: "Under Quotation",
-      value: requestsData?.allUnderQuotation || 0,
-      color: "#ef4444",
-    },
-    {
-      name: "Reviewed",
-      value: requestsData?.reviewedAll || 0,
-      color: "#06b6d4",
-    },
-  ].filter((item) => item.value > 0);
-
-  // Job management distribution
-  const managementData = [
-    {
-      name: "Managed by JaGedo",
-      value: requestsData?.managedByJaGedo || 0,
-      percentage: requestsData?.managedByJaGedoPercentage || 0,
-    },
-    {
-      name: "Managed by Self",
-      value: requestsData?.managedBySelf || 0,
-      percentage: requestsData?.managedBySelfPercentage || 0,
-    },
-  ].filter((item) => item.value > 0);
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <MetricCard
-          title="Total Users"
-          value={analyticsData?.totalUsers || "0"}
-          change="10%"
-          trend="up"
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
-        />
-        <MetricCard
-          title="Total Customers"
-          value={analyticsData?.totalCustomers || "0"}
-          change="20%"
-          trend="up"
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
-        />
-        <MetricCard
-          title="Total Builders"
-          value={analyticsData?.totalBuilders || "0"}
-          change="10%"
-          trend="up"
-          icon={<Briefcase className="h-4 w-4 text-muted-foreground" />}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <MetricCard
-          title="Total Requests"
-          value={requestsData?.totalRequests || "0"}
-          change="30%"
-          trend="up"
-          icon={<ShoppingCart className="h-4 w-4 text-muted-foreground" />}
-        />
-        <MetricCard
-          title="Total Jobs"
-          value={requestsData?.totalJobs || "0"}
-          change="5%"
-          trend="up"
-          icon={<Briefcase className="h-4 w-4 text-muted-foreground" />}
-        />
-        <MetricCard
-          title="Total Orders"
-          value={requestsData?.totalOrders || "0"}
-          change="10%"
-          trend="up"
-          icon={<ShoppingCart className="h-4 w-4 text-muted-foreground" />}
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Management</CardTitle>
-            <CardDescription>
-              Jobs managed by JaGedo vs Self-managed
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={managementData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Overview Statistics</CardTitle>
-            <CardDescription>Key metrics summary</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span>Total Jobs & Orders</span>
-              <span className="font-bold text-lg">
-                {(requestsData?.totalJobs || 0) +
-                  (requestsData?.totalOrders || 0)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span>Total Jobs</span>
-              <span className="font-bold text-lg">
-                {requestsData?.totalJobs || 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span>Total Orders</span>
-              <span className="font-bold text-lg">
-                {requestsData?.totalOrders || 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-              <span>Jobs %</span>
-              <span className="font-bold text-lg text-blue-600">
-                {requestsData?.jobsPercentage || 0}%
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-              <span>Orders %</span>
-              <span className="font-bold text-lg">
-                {requestsData?.ordersPercentage || 0}%
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Job Status Distribution</CardTitle>
-          <CardDescription>Breakdown of all jobs by status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={jobStatusData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {jobStatusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-
 export default function Analytics() {
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [timePeriod, setTimePeriod] = useState("");
-  console.log(timePeriod)
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"csv" | "json" | "xlsx">(
+    "csv",
+  );
+  const [notification, setNotification] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const [activeTab, setActiveTab] = useState("summary");
+
+  // cached data to avoid refetching when tabs unmount/mount
+  const [cachedRequestsData, setCachedRequestsData] = useState<any | null>(
+    null,
+  );
+  const [cachedAnalyticsData, setCachedAnalyticsData] = useState<any | null>(
+    null,
+  );
 
   useEffect(() => {
     // Track page view
@@ -369,25 +104,176 @@ export default function Analytics() {
     }
   }, []);
 
+  // log feature usage whenever the tab changes
+  useEffect(() => {
+    if (activeTab) {
+      logFeatureUsage(axiosInstance, `analytics_tab_${activeTab}`).catch(
+        () => {},
+      );
+    }
+  }, [activeTab]);
+
+  // fetch requests & analytics once on mount
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      try {
+        const reqResp = await getSalesRequests(axiosInstance);
+        setCachedRequestsData(reqResp.data?.data || reqResp.data);
+      } catch (err) {
+        console.error("Error fetching cached requests data", err);
+      }
+
+      try {
+        const analyticsResp = await getSalesAnalytics(axiosInstance);
+        setCachedAnalyticsData(analyticsResp.data?.data || analyticsResp.data);
+      } catch (err) {
+        console.error("Error fetching cached analytics data", err);
+      }
+    };
+    fetchSalesData();
+  }, [axiosInstance]);
+
+  // Auto-hide notification after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const handleExportReport = async (
+    type: "builders" | "customers" | "sales",
+    format: "csv" | "json" | "xlsx" = "csv",
+  ) => {
+    try {
+      setExporting(true);
+      const period = timePeriod !== "All" ? timePeriod : undefined;
+      const data = await exportAnalyticsReport(
+        axiosInstance,
+        type,
+        format,
+        period,
+      );
+
+      // Use the export utility to handle the response
+      handleExportResponse(data, type, format);
+
+      setNotification({
+        type: "success",
+        message: `Successfully exported ${type} report as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      console.error("Error exporting report:", error);
+      setNotification({
+        type: "error",
+        message: `Failed to export ${type} report: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
+      {/* Notification Banner */}
+      {notification && (
+        <div
+          className={`flex items-center gap-3 p-4 rounded-lg mb-4 ${
+            notification.type === "success"
+              ? "bg-green-50 border border-green-200"
+              : "bg-red-50 border border-red-200"
+          }`}
+        >
+          {notification.type === "success" ? (
+            <CheckCircle className="h-5 w-5 text-green-600" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-red-600" />
+          )}
+          <p
+            className={`text-sm font-medium ${
+              notification.type === "success"
+                ? "text-green-800"
+                : "text-red-800"
+            }`}
+          >
+            {notification.message}
+          </p>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Analytics</h1>
-        <TimePeriodSelector value={timePeriod} onChange={setTimePeriod} />
+        <div className="flex items-center gap-4">
+          <TimePeriodSelector value={timePeriod} onChange={setTimePeriod} />
+          <Select
+            value={exportFormat}
+            onValueChange={(value: any) => setExportFormat(value)}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="csv">CSV</SelectItem>
+              <SelectItem value="xlsx">Excel</SelectItem>
+              <SelectItem value="json">JSON</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExportReport("builders", exportFormat)}
+              disabled={exporting}
+              title="Export builders dashboard data"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Builders
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExportReport("customers", exportFormat)}
+              disabled={exporting}
+              title="Export customers dashboard data"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Customers
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExportReport("sales", exportFormat)}
+              disabled={exporting}
+              title="Export sales analytics data"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Sales
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="summary">Summary</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="builders">Builders</TabsTrigger>
           <TabsTrigger value="requests">Requests</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="engagement">Engagement</TabsTrigger>
           {/* <TabsTrigger value="web">Web</TabsTrigger> */}
           <TabsTrigger value="sales">Sales</TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary" className="space-y-6">
-          <SummarySection timePeriod={timePeriod} />
+          <SummarySection
+            timePeriod={timePeriod}
+            initialRequestsData={cachedRequestsData}
+            initialAnalyticsData={cachedAnalyticsData}
+          />
         </TabsContent>
 
         <TabsContent value="customers" className="space-y-6">
@@ -399,15 +285,32 @@ export default function Analytics() {
         </TabsContent>
 
         <TabsContent value="requests" className="space-y-6">
-          <RequestsSection timePeriod={timePeriod} />
+          <RequestsSection
+            timePeriod={timePeriod}
+            initialData={cachedRequestsData}
+          />
         </TabsContent>
-
         {/* <TabsContent value="web" className="space-y-6">
           <WebSection timePeriod={timePeriod} />
         </TabsContent> */}
 
         <TabsContent value="sales" className="space-y-6">
-          <SalesSection timePeriod={timePeriod} />
+          <SalesSection
+            timePeriod={timePeriod}
+            initialData={cachedAnalyticsData}
+          />
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <UserSection timePeriod={timePeriod} />
+        </TabsContent>
+
+        <TabsContent value="products" className="space-y-6">
+          <ProductSection timePeriod={timePeriod} />
+        </TabsContent>
+
+        <TabsContent value="engagement" className="space-y-6">
+          <EngagementSection timePeriod={timePeriod} />
         </TabsContent>
       </Tabs>
     </div>

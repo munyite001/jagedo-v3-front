@@ -224,7 +224,6 @@ export default function Login() {
 
   const completeLoginWithApiResponse = (response) => {
     const { user, accessToken } = response;
-
     if (!user || !accessToken) {
       toast.error("Invalid response from server");
       setIsLoading(false);
@@ -235,7 +234,10 @@ export default function Login() {
     if (user && typeof user === 'object' && user.userType) {
       const typeUpper = String(user.userType).toUpperCase();
       user.userType = typeUpper;
-      user.isSuperAdmin = typeUpper === 'SUPER_ADMIN';
+      // Preserve isSuperAdmin from backend, default to false if not provided
+      if (user.isSuperAdmin === undefined || user.isSuperAdmin === null) {
+        user.isSuperAdmin = typeUpper === 'SUPER_ADMIN';
+      }
       user.isAdmin = typeUpper === 'ADMIN' || user.isSuperAdmin;
     }
 

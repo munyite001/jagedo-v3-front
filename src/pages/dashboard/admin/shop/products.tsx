@@ -46,6 +46,7 @@ import {
     approveProduct,
     deleteProduct as deleteProductAPI
 } from "@/api/products.api";
+import { logProductView } from "@/api/analytics.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface Price {
@@ -123,9 +124,15 @@ export default function ShopProducts() {
         setShowAddProduct(true);
     };
 
-    const handleViewProduct = (product: Product) => {
+    const handleViewProduct = async (product: Product) => {
         setSelectedProduct(product);
         setShowProductModal(true);
+        // record analytics event (ignore errors)
+        try {
+            await logProductView(axiosInstance, product.id.toString());
+        } catch (e) {
+            console.warn('Failed to log product view', e);
+        }
     };
 
     const deleteProduct = async (productId: number) => {
