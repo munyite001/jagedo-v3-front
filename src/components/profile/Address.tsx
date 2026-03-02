@@ -27,8 +27,8 @@ const Address = ({ data, refreshData }) => {
         country: data.country || "Kenya",
         county: data.county || "",
         subCounty: data.subCounty || "",
-        city: data.city || data.townCity || data.town || "",
-        estate: data.estate || data.estateVillage || "",
+        city: data.city || "",
+        estate: data.estate || "",
       });
       setLoading(false);
     }
@@ -133,14 +133,14 @@ const Address = ({ data, refreshData }) => {
 
         {/* City */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">City/Town</label>
+          <label className="block text-sm font-medium text-gray-700">Town / City</label>
           {isEditing ? (
             <input
               type="text"
               value={address.city}
               onChange={(e) => setAddress({ ...address, city: e.target.value })}
-              placeholder="Enter City or Town"
               className="w-full px-4 py-2 border rounded-md"
+              placeholder="Enter town or city"
             />
           ) : (
             <input
@@ -161,6 +161,7 @@ const Address = ({ data, refreshData }) => {
               value={address.estate}
               onChange={(e) => setAddress({ ...address, estate: e.target.value })}
               className="w-full px-4 py-2 border rounded-md"
+              placeholder="Enter estate"
             />
           ) : (
             <input

@@ -13,9 +13,11 @@ import {
   uploadIndividualCustomerDocuments,
   uploadOrganizationCustomerDocuments
 } from "@/api/uploads.api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 import { uploadFile } from "@/utils/fileUpload";
 
-const DocumentCard = ({ label, url, onReplace, isUploading }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -31,21 +33,23 @@ const DocumentCard = ({ label, url, onReplace, isUploading }) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <label className="flex-1 cursor-pointer">
-            <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition">
-              <Upload className="w-4 h-4" />
-              Upload
-            </div>
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*,.pdf"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onReplace(file);
-              }}
-            />
-          </label>
+          {!disabled && (
+            <label className="flex-1 cursor-pointer">
+              <div className="flex items-center justify-center gap-2 py-2 px-4 border border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition">
+                <Upload className="w-4 h-4" />
+                Upload
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onReplace(file);
+                }}
+              />
+            </label>
+          )}
         </div>
       </div>
     );
@@ -89,22 +93,24 @@ const DocumentCard = ({ label, url, onReplace, isUploading }) => {
             </a>
           </>
         )}
-        <label className={`flex-1 cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="flex items-center justify-center gap-1 py-2 px-2 border border-blue-200 rounded-lg text-blue-600 text-xs font-medium hover:bg-blue-50 transition">
-            <Upload className="w-3.5 h-3.5" />
-            {url ? "Replace" : "Upload"}
-          </div>
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*,.pdf"
-            disabled={isUploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onReplace(file);
-            }}
-          />
-        </label>
+        {!disabled && (
+          <label className={`flex-1 cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="flex items-center justify-center gap-1 py-2 px-2 border border-blue-200 rounded-lg text-blue-600 text-xs font-medium hover:bg-blue-50 transition">
+              <Upload className="w-3.5 h-3.5" />
+              {url ? "Replace" : "Upload"}
+            </div>
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*,.pdf"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onReplace(file);
+              }}
+            />
+          </label>
+        )}
       </div>
     </div>
   );
@@ -121,26 +127,47 @@ const AccountUploads = ({ data, refreshData }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
 
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.documentStatus);
+
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      // Use userProfile if it exists, otherwise use data itself (for customers)
-      const up = data.userProfile || data;
-      const mapped = { ...up };
+      // Create a flat map for documents
+      const docsMap = { ...data };
 
-      // Map potential backend keys to frontend state keys for consistency
-      if (up.idFront && !up.idFrontUrl) mapped.idFrontUrl = up.idFront;
-      if (up.idBack && !up.idBackUrl) mapped.idBackUrl = up.idBack;
-      if (up.certificate && !up.certificateUrl) mapped.certificateUrl = up.certificate;
-      if (up.academicCertificate && !up.academicCertificateUrl) mapped.academicCertificateUrl = up.academicCertificate;
-      if (up.krapin && !up.kraPIN) mapped.kraPIN = up.krapin;
+      const catNames = [];
+      if (userType === 'contractor') {
+        const contractorExperiences = data.contractorExperiences || [];
 
-      setDocuments(mapped);
+        if (contractorExperiences.length > 0) {
+          contractorExperiences.forEach(exp => {
+            catNames.push(exp.category);
 
-      if (userType === 'contractor' && up.contractorExperiences) {
-        const catNames = up.contractorExperiences.map(exp => exp.category);
-        setCategories(catNames);
+            // Flatten certificates and licenses into docsMap
+            const categoryKey = exp.category.toUpperCase().replace(/\s+/g, '_');
+            const certKey = `${categoryKey}_CERTIFICATE`;
+            const licenseKey = `${categoryKey}_LICENSE`;
+
+            if (exp.certificate) docsMap[certKey] = exp.certificate;
+            if (exp.license) docsMap[licenseKey] = exp.license;
+          });
+        } else if (data.contractorTypes) {
+          const SLUG_MAP = {
+            "building-works": "Building Works",
+            "electrical-works": "Electrical Works",
+            "mechanical-works": "Mechanical Works",
+            "road-works": "Road Works",
+            "water-works": "Water Works",
+          };
+          data.contractorTypes.split(',').forEach(slug => {
+            const name = SLUG_MAP[slug.trim()];
+            if (name) catNames.push(name);
+          });
+        }
       }
+
+      setDocuments(docsMap);
+      setCategories(catNames);
     }
   }, [data, userType]);
 
@@ -178,14 +205,14 @@ const AccountUploads = ({ data, refreshData }) => {
           const payload = {
             idFrontUrl: updatedUrls.idFrontUrl || null,
             idBackUrl: updatedUrls.idBackUrl || null,
-            kraPIN: updatedUrls.kraPIN || null
+            krapin: updatedUrls.krapin || null
           };
           response = await uploadIndividualCustomerDocuments(axiosInstance, payload);
         } else {
           const payload = {
             businessPermit: updatedUrls.businessPermit || null,
             certificateOfIncorporation: updatedUrls.certificateOfIncorporation || null,
-            kraPIN: updatedUrls.kraPIN || null
+            krapin: updatedUrls.krapin || null
           };
           response = await uploadOrganizationCustomerDocuments(axiosInstance, payload);
         }
@@ -194,7 +221,7 @@ const AccountUploads = ({ data, refreshData }) => {
           idFront: updatedUrls.idFrontUrl || null,
           idBack: updatedUrls.idBackUrl || null,
           certificate: updatedUrls.certificateUrl || null,
-          krapin: updatedUrls.kraPIN || null
+          krapin: updatedUrls.krapin || null
         };
         response = await uploadFundiDocuments(axiosInstance, payload);
       } else if (userType === 'professional') {
@@ -203,24 +230,36 @@ const AccountUploads = ({ data, refreshData }) => {
           idBack: updatedUrls.idBackUrl || null,
           academicCertificate: updatedUrls.academicCertificateUrl || null,
           cvUrl: updatedUrls.cvUrl || null,
-          kraPIN: updatedUrls.kraPIN || null,
+          krapin: updatedUrls.krapin || null,
           practiceLicense: updatedUrls.practiceLicense || null
         };
         response = await uploadProfessionalDocuments(axiosInstance, payload);
       } else if (userType === 'contractor') {
+        // Base payload
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
           businessPermit: updatedUrls.businessPermit || null,
-          kraPIN: updatedUrls.kraPIN || null,
+          krapin: updatedUrls.krapin || null,
           companyProfile: updatedUrls.companyProfile || null
         };
+
+        // Add dynamic category fields
+        categories.forEach(cat => {
+          const categoryKey = cat.toUpperCase().replace(/\s+/g, '_');
+          const certKey = `${categoryKey}_CERTIFICATE`;
+          const licenseKey = `${categoryKey}_LICENSE`;
+          payload[certKey] = updatedUrls[certKey] || null;
+          payload[licenseKey] = updatedUrls[licenseKey] || null;
+        });
+
         response = await uploadContractorDocuments(axiosInstance, payload);
       } else if (userType === 'hardware') {
         const payload = {
           businessRegistration: updatedUrls.businessRegistration || null,
-          kraPIN: updatedUrls.kraPIN || null,
-          singleBusinessPermit: updatedUrls.singleBusinessPermit || null,
-          companyProfile: updatedUrls.companyProfile || null
+          businessPermit: updatedUrls.businessPermit || null,
+          krapin: updatedUrls.krapin || null,
+          ownerIdFront: updatedUrls.ownerIdFront || null,
+          ownerIdBack: updatedUrls.ownerIdBack || null
         };
         response = await uploadHardwareDocuments(axiosInstance, payload);
       }
@@ -243,32 +282,32 @@ const AccountUploads = ({ data, refreshData }) => {
         ? [
           { label: "ID Front", key: "idFrontUrl" },
           { label: "ID Back", key: "idBackUrl" },
-          { label: "KRA PIN", key: "kraPIN" },
+          { label: "KRA PIN", key: "krapin" },
         ]
         : [
           { label: "Business Permit", key: "businessPermit" },
           { label: "Certificate of Incorporation", key: "certificateOfIncorporation" },
-          { label: "KRA PIN", key: "kraPIN" },
+          { label: "KRA PIN", key: "krapin" },
         ],
       fundi: [
         { label: "ID Front", key: "idFrontUrl" },
         { label: "ID Back", key: "idBackUrl" },
         { label: "Certificate", key: "certificateUrl" },
-        { label: "KRA PIN", key: "kraPIN" },
+        { label: "KRA PIN", key: "krapin" },
       ],
       professional: [
         { label: "ID Front", key: "idFrontUrl" },
         { label: "ID Back", key: "idBackUrl" },
         { label: "Academics Certificate", key: "academicCertificateUrl" },
         { label: "CV", key: "cvUrl" },
-        { label: "Practice License", key: "practiceLicense" },
-        { label: "KRA PIN", key: "kraPIN" },
+        { label: "KRA PIN", key: "krapin" },
       ],
       hardware: [
         { label: "Business Registration", key: "businessRegistration" },
-        { label: "KRA PIN", key: "kraPIN" },
-        { label: "Single Business Permit", key: "singleBusinessPermit" },
-        { label: "Company Profile", key: "companyProfile" },
+        { label: "Business Permit", key: "businessPermit" },
+        { label: "KRA PIN", key: "krapin" },
+        { label: "Owner ID Front", key: "idFrontUrl" },
+        { label: "Owner ID Back", key: "idBackUrl" },
       ],
     };
 
@@ -285,6 +324,16 @@ const AccountUploads = ({ data, refreshData }) => {
               </p>
             </div>
 
+            {data?.documentStatusReason && (
+              <Alert variant="destructive" className="mb-6">
+                <InfoIcon className="h-4 w-4 text-red-600" />
+                <AlertTitle>Status Update</AlertTitle>
+                <AlertDescription>
+                  {data.documentStatusReason}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
               {fields.map(f => (
                 <DocumentCard
@@ -298,20 +347,22 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             <div className="flex justify-end">
-              <button
-                onClick={handleSaveDocuments}
-                disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
-                className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Uploads"
-                )}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={handleSaveDocuments}
+                  disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
+                  className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Uploads"
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -322,7 +373,7 @@ const AccountUploads = ({ data, refreshData }) => {
   const generalFields = [
     { label: "Business Registration", key: "businessRegistration" },
     { label: "Business Permit", key: "businessPermit" },
-    { label: "KRA PIN", key: "kraPIN" },
+    { label: "KRA PIN", key: "krapin" },
     { label: "Company Profile", key: "companyProfile" },
   ];
 
@@ -337,6 +388,16 @@ const AccountUploads = ({ data, refreshData }) => {
             </p>
           </div>
 
+          {data?.documentStatusReason && (
+            <Alert variant="destructive" className="mb-6">
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Status Update</AlertTitle>
+              <AlertDescription>
+                {data.documentStatusReason}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-gray-600 mb-4">Company Documents</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -347,26 +408,67 @@ const AccountUploads = ({ data, refreshData }) => {
                   url={documents[f.key]}
                   onReplace={file => replaceDocument(file, f.key)}
                   isUploading={isSubmitting && !!pendingFiles[f.key]}
+                  disabled={isReadOnly}
                 />
               ))}
             </div>
           </div>
 
+          {categories.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-600 mb-4">Category Specific Documents</h3>
+              <div className="space-y-6">
+                {categories.map((cat, idx) => {
+                  const categoryKey = cat.toUpperCase().replace(/\s+/g, '_');
+                  const certKey = `${categoryKey}_CERTIFICATE`;
+                  const licenseKey = `${categoryKey}_LICENSE`;
+
+                  return (
+                    <div key={idx} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                      <h4 className="text-md font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        {cat} Credentials
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <DocumentCard
+                          label={`${cat} Certificate`}
+                          url={documents[certKey]}
+                          onReplace={file => replaceDocument(file, certKey)}
+                          isUploading={isSubmitting && !!pendingFiles[certKey]}
+                          disabled={isReadOnly}
+                        />
+                        <DocumentCard
+                          label={`${cat} Practice License`}
+                          url={documents[licenseKey]}
+                          onReplace={file => replaceDocument(file, licenseKey)}
+                          isUploading={isSubmitting && !!pendingFiles[licenseKey]}
+                          disabled={isReadOnly}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end">
-            <button
-              onClick={handleSaveDocuments}
-              disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
-              className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Uploads"
-              )}
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={handleSaveDocuments}
+                disabled={isSubmitting || Object.keys(pendingFiles).length === 0}
+                className="bg-blue-800 text-white px-8 py-3 rounded-md hover:bg-blue-900 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Uploads"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

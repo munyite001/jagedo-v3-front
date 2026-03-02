@@ -59,93 +59,86 @@ function ProfilePage() {
         const userType = user?.userType?.toUpperCase();
         const serviceProviderTypes = ["FUNDI", "CONTRACTOR", "PROFESSIONAL", "HARDWARE"];
 
-        if (serviceProviderTypes.includes(userType) && !user?.userProfile?.complete) {
+        if (serviceProviderTypes.includes(userType) && !user?.profileComplete) {
             setActiveComponent("Account Info");
         }
     }, [user]);
 
     const completionStatus = useMemo(() => {
         const userType = user?.userType?.toLowerCase() || '';
-        // Prioritize providerData from API, fallback to user.userProfile
-        const up = providerData ? (providerData.userProfile || providerData) : user?.userProfile;
+        // Prioritize providerData from API, fallback to user
+        const up = providerData || user;
 
         const getRequiredDocuments = () => {
             const accountType = user?.accountType?.toLowerCase() || '';
             // If it's a customer and individual, they need ID docs
             if (userType === 'customer' && accountType === 'individual') {
-                return ['idFrontUrl', 'idBackUrl', 'kraPIN'];
+                return ['idFrontUrl', 'idBackUrl', 'krapin'];
             }
 
             const docMap: Record<string, string[]> = {
-                customer: ['businessPermit', 'certificateOfIncorporation', 'kraPIN'],
-                fundi: ['idFrontUrl', 'idBackUrl', 'certificateUrl', 'kraPIN'],
-                professional: ['idFrontUrl', 'idBackUrl', 'academicCertificateUrl', 'cvUrl', 'kraPIN', 'practiceLicense'],
-                contractor: ['businessRegistration', 'businessPermit', 'kraPIN', 'companyProfile'],
-                hardware: ['businessRegistration', 'kraPIN', 'singleBusinessPermit', 'companyProfile'],
+                customer: ['businessPermit', 'certificateOfIncorporation', 'krapin'],
+                fundi: ['idFrontUrl', 'idBackUrl', 'certificateUrl', 'krapin'],
+                professional: ['idFrontUrl', 'idBackUrl', 'academicCertificateUrl', 'cvUrl', 'krapin', 'practiceLicense'],
+                contractor: ['businessRegistration', 'businessPermit', 'krapin', 'companyProfile'],
+                hardware: ['businessRegistration', 'krapin', 'singleBusinessPermit', 'companyProfile'],
             };
             return docMap[userType] || [];
         };
 
-        const requiredDocs = getRequiredDocuments();
-        let uploadsComplete = false;
+        // const requiredDocs = getRequiredDocuments();
+        let uploadsComplete = (providerData?.documentStatus == "VERIFIED" || providerData?.documentStatus == "PENDING");
 
-        if (up) {
-            // Priority 1: Check the 'complete' flag from backend
-            if (up.complete === true) {
-                uploadsComplete = true;
-            } else {
-                // Priority 2: Manual check of required documents
-                uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
-                    const value = up[key];
-                    if (value !== null && value !== undefined && value !== '') return true;
+        // if (up) {
+        //     // Priority 1: Check the 'complete' flag from backend
+        //     if (up.profileComplete === true) {
+        //         uploadsComplete = true;
+        //     } else {
+        //         // Priority 2: Manual check of required documents
+        //         uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
+        //             const value = up[key];
+        //             return value !== null && value !== undefined && value !== '';
+        //         });
 
-                    // Fallback for backend naming inconsistencies (e.g. idFront vs idFrontUrl)
-                    const altKey = key.endsWith('Url') ? key.replace('Url', '') : `${key}Url`;
-                    const altValue = up[altKey];
-                    if (altValue !== null && altValue !== undefined && altValue !== '') return true;
+        //         // If there are no required docs for this type (shouldn't happen for providers), mark as complete
+        //         if (requiredDocs.length === 0) uploadsComplete = true;
+        //     }
+        // }
 
-                    // Fallback for kraPIN/krapin inconsistency
-                    if (key === 'kraPIN' && up['krapin']) return true;
+        let experienceComplete = (providerData?.experienceStatus == "VERIFIED" || providerData?.experienceStatus == "PENDING");
+        // if (up?.profileComplete === true) {
+        //     experienceComplete = true;
+        // } else if (userType === 'fundi') {
+        //     const hasGrade = !!up?.grade;
+        //     const hasExperience = !!up?.experience;
+        //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
+        //     const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
 
-                    return false;
-                });
+        //     const grade = up?.grade || "";
+        //     const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
 
-                // If there are no required docs for this type (shouldn't happen for providers), mark as complete
-                if (requiredDocs.length === 0) uploadsComplete = true;
-            }
-        }
+        //     // Re-calculate based on what's actually in the response
+        //     experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
+        // } else if (userType === 'professional') {
+        //     const hasProfession = !!up?.profession;
+        //     const hasLevel = !!up?.professionalLevel;
+        //     const hasExperience = !!up?.yearsOfExperience;
+        //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
 
-        let experienceComplete = false;
-        if (up?.complete === true) {
-            experienceComplete = true;
-        } else if (userType === 'fundi') {
-            const hasGrade = !!up?.grade;
-            const hasExperience = !!up?.experience;
-            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-            const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
+        //     const level = up?.professionalLevel || "";
+        //     const isStudent = level.toLowerCase().includes("student");
 
-            const grade = up?.grade || "";
-            const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
+        //     experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
+        // } else if (userType === 'contractor') {
+        //     const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
+        //     const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
+        //     experienceComplete = hasExperiences && hasProjects;
+        // } else {
+        //     experienceComplete = true; // Customer & Hardware
+        // }
 
-            // Re-calculate based on what's actually in the response
-            experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
-        } else if (userType === 'professional') {
-            const hasProfession = !!up?.profession;
-            const hasLevel = !!up?.professionalLevel;
-            const hasExperience = !!up?.yearsOfExperience;
-            const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-
-            const level = up?.professionalLevel || "";
-            const isStudent = level.toLowerCase().includes("student");
-
-            experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
-        } else if (userType === 'contractor') {
-            const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
-            const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
-            experienceComplete = hasExperiences && hasProjects;
-        } else {
-            experienceComplete = true; // Customer & Hardware
-        }
+        console.log("Experience Complete: ", experienceComplete)
+        console.log("Uploads Complete: ", uploadsComplete)
 
         return {
             'Account Info': 'complete',
@@ -155,14 +148,15 @@ function ProfilePage() {
             'Products': 'incomplete',
             'Activities': 'complete',
         };
-    }, [user?.id, user?.accountType, user?.userType, user?.userProfile, providerData, rerender]);
+    }, [user?.id, user?.accountType, user?.userType, user?.profileComplete, providerData, rerender]);
 
     const progressPercentage = useMemo(() => {
         const relevantKeys = Object.keys(completionStatus).filter(key => key !== 'Activities');
 
         const userType = user?.userType?.toLowerCase();
         const finalKeys = relevantKeys.filter(key => {
-            if (key === 'Products' && (userType === 'customer' || userType === 'contractor' || userType === 'hardware')) return false;
+            if (key === 'Products') return false;
+            if (key === 'Experience' && (userType === 'customer' || userType === 'hardware')) return false;
             return true;
         });
 
@@ -219,12 +213,12 @@ function ProfilePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {isServiceProvider && (providerData?.adminApproved === false || user?.adminApproved === false) && (
+            {isServiceProvider && (providerData?.status == 'VERIFIED' === false || user?.status == 'VERIFIED' === false) && (
                 <div className="fixed top-12 w-full px-4 sm:px-6 pointer-events-none z-50">
                     <div className="w-[70%] sm:max-w-md mx-auto flex items-start gap-2 bg-yellow-100 rounded-md p-2 sm:p-4 shadow-md">
                         <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5 sm:mt-1 text-yellow-500 flex-shrink-0" />
                         <span className="text-xs sm:text-sm text-yellow-700 leading-tight sm:leading-snug">
-                            {(providerData?.userProfile?.complete || user?.userProfile?.complete)
+                            {(providerData?.profileComplete || user?.profileComplete)
                                 ? "Your profile is complete and awaiting admin approval."
                                 : "Please complete your profile for your account to be approved."
                             }

@@ -61,7 +61,7 @@ function AccountInfo({ data, refreshData }) {
         userType: data.userType,
         type: data.accountType, // e.g., ORGANIZATION
         organizationName: data.organizationName || "",
-        contactPerson: `${data.contactfirstName || ""} ${data.contactlastName || ""}`.trim(),
+        contactFullName: data.contactFullName || "",
         avatar: data.profileImage || null
       };
 
@@ -232,7 +232,7 @@ function AccountInfo({ data, refreshData }) {
       {isOrg ? (
         <>
           <Field label="Organization Name" value={profile.organizationName} />
-          <Field label="Contact Person (Optional)" value={profile.contactPerson} />
+          <Field label="Contact Person (Optional)" value={profile.contactFullName} />
         </>
       ) : (
         <>

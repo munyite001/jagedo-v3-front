@@ -4,28 +4,23 @@ import { useState, useRef, useEffect } from "react";
 import { FiEdit, FiCheck, FiX, FiChevronDown } from "react-icons/fi";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
-import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, blackListUser, whiteListUser, suspendUser, unverifyUser } from "@/api/provider.api";
+import { updateProfileImageAdmin, updateProfileEmailAdmin, updateProfilePhoneNumberAdmin, updateProfileNameAdmin, updateAccountStatus } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 
 interface AccountInfoProps {
   userData: any;
 }
 
-// --- Remove local storage helpers ---
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [askDeleteReason, setAskDeleteReason] = useState(false);
-  const [deleteReason, setDeleteReason] = useState("");
   const [showActionDropdown, setShowActionDropdown] = useState(false);
-  // Action reason modal state
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionReason, setActionReason] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const showVerificationMessage = userData.adminApproved;
+  const showVerificationMessage = userData.status == 'VERIFIED';
   const [avatarSrc, setAvatarSrc] = useState(
-    userData?.userProfile?.profileImage,
+    userData?.profileImage,
   );
 
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -38,9 +33,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     : `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim();
 
   const [editValues, setEditValues] = useState({
-    name: name || "",
+    firstName: userData?.firstName ?? "",
+    lastName: userData?.lastName ?? "",
+    organizationName: userData?.organizationName ?? "",
     email: userData?.email ?? "",
-    phoneNumber: userData?.phoneNumber ?? "",
+    phone: userData?.phone ?? "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -100,42 +97,27 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }
   };
 
-  const handleDelete = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    setShowDeleteConfirm(false);
-    setAskDeleteReason(true);
-  };
-
-  const handleSubmitReason = () => {
-    if (deleteReason.trim()) {
-      // Replace with actual delete logic
-      alert(`Deleted for reason: ${deleteReason}`);
-      setAskDeleteReason(false);
-      setDeleteReason("");
-    } else {
-      alert("Please enter a reason.");
-    }
-  };
 
   // Edit handlers
   const handleEditStart = (field: string) => {
     setEditingField(field);
     setEditValues({
-      name: name || "",
+      firstName: userData?.firstName ?? "",
+      lastName: userData?.lastName ?? "",
+      organizationName: userData?.organizationName ?? "",
       email: userData?.email || "",
-      phoneNumber: userData?.phoneNumber || "",
+      phone: userData?.phone || "",
     });
   };
 
   const handleEditCancel = () => {
     setEditingField(null);
     setEditValues({
-      name: name || "",
+      firstName: userData?.firstName ?? "",
+      lastName: userData?.lastName ?? "",
+      organizationName: userData?.organizationName ?? "",
       email: userData?.email || "",
-      phoneNumber: userData?.phoneNumber || "",
+      phone: userData?.phone || "",
     });
   };
 
@@ -148,7 +130,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   // --- localStorage-based edit save ---
   const handleEditSave = async (field: string) => {
-    if (!editValues[field]?.trim()) {
+    // Validation
+    if (field === "name") {
+      if (isOrganization) {
+        if (!editValues.organizationName?.trim()) {
+          alert("Organization name cannot be empty");
+          return;
+        }
+      } else {
+        if (!editValues.firstName?.trim() || !editValues.lastName?.trim()) {
+          alert("Both first and last name are required");
+          return;
+        }
+      }
+    } else if (!editValues[field as keyof typeof editValues]?.trim()) {
       alert(
         `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
       );
@@ -162,19 +157,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
         case "name": {
           // For organizations, update organizationName; for individuals, update firstName/lastName
           if (isOrganization) {
-            updates.organizationName = editValues.name.trim();
+            updates.organizationName = editValues.organizationName.trim();
           } else {
-            const parts = editValues.name.trim().split(" ");
-            updates.firstName = parts[0] || "";
-            updates.lastName = parts.slice(1).join(" ") || "";
+            updates.firstName = editValues.firstName.trim();
+            updates.lastName = editValues.lastName.trim();
           }
           break;
         }
         case "email":
           updates.email = editValues.email;
           break;
-        case "phoneNumber":
-          updates.phoneNumber = editValues.phoneNumber;
+        case "phone":
+          updates.phone = editValues.phone;
           break;
         default:
           throw new Error("Invalid field");
@@ -187,20 +181,21 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
       // --- Backend Update ---
       try {
         if (field === "name") {
-          const namePayload = {
-            name: editValues.name.trim(),
-            contactName: isOrganization
-              ? `${userData?.firstName || ""} ${userData?.lastName || ""}`.trim()
-              : editValues.name.trim()
-          };
+          const namePayload: any = {};
+          if (isOrganization) {
+            namePayload.organizationName = editValues.organizationName.trim();
+          } else {
+            namePayload.firstName = editValues.firstName.trim();
+            namePayload.lastName = editValues.lastName.trim();
+          }
           await updateProfileNameAdmin(axiosInstance, userData.id, namePayload);
         } else if (field === "email") {
           await updateProfileEmailAdmin(axiosInstance, userData.id, {
             email: editValues.email,
           });
-        } else if (field === "phoneNumber") {
+        } else if (field === "phone") {
           await updateProfilePhoneNumberAdmin(axiosInstance, userData.id, {
-            phone: editValues.phoneNumber,
+            phone: editValues.phone,
           });
         }
         toast.success(
@@ -223,64 +218,29 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
     }
   };
 
-  // --- Action handlers using API ---
-  const handleBlackList = async (reason: string) => {
-    try {
-      await blackListUser(axiosInstance, userData.id);
-      Object.assign(userData, { blacklisted: true, blacklistReason: reason });
-      toast.success("User blacklisted successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to blacklist user");
-    }
-  };
-
-  const handleWhiteList = async () => {
-    try {
-      await whiteListUser(axiosInstance, userData.id);
-      Object.assign(userData, { blacklisted: false });
-      toast.success("User whitelisted successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to whitelist user");
-    }
-  };
-
-  const handleSuspend = async (reason: string) => {
-    try {
-      await suspendUser(axiosInstance, userData.id);
-      Object.assign(userData, { suspended: true, suspendReason: reason });
-      toast.success("User suspended successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to suspend user");
-    }
-  };
-
-  const handleUnverifyUser = async (reason: string) => {
-    try {
-      await unverifyUser(axiosInstance, userData.id);
-      Object.assign(userData, { adminApproved: false, approved: false, unverifyReason: reason });
-      toast.success("User unverified successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to unverify user");
-    }
-  };
-
-  // Handle action with reason submission
+  // --- Unified action handler using new account/status endpoint ---
   const handleActionSubmit = async () => {
-    if (!actionReason.trim()) {
+    if (!actionReason.trim() && pendingAction !== "verify") {
       alert("Please enter a reason for this action.");
       return;
     }
 
-    switch (pendingAction) {
-      case "unverify":
-        await handleUnverifyUser(actionReason);
-        break;
-      case "suspend":
-        await handleSuspend(actionReason);
-        break;
-      case "blacklist":
-        await handleBlackList(actionReason);
-        break;
+    const statusMap: Record<string, "VERIFY" | "UNVERIFY" | "SUSPEND" | "BLACKLIST" | "DELETE"> = {
+      verify: "VERIFY",
+      unverify: "UNVERIFY",
+      suspend: "SUSPEND",
+      blacklist: "BLACKLIST",
+      delete: "DELETE",
+    };
+
+    const status = statusMap[pendingAction ?? ""];
+    if (!status) return;
+
+    try {
+      await updateAccountStatus(axiosInstance, userData.id, status, actionReason || undefined);
+      toast.success(`User ${getActionLabel(pendingAction ?? "")}d successfully`);
+    } catch (err: any) {
+      toast.error(err.message || `Failed to ${getActionLabel(pendingAction ?? "").toLowerCase()} user`);
     }
 
     setPendingAction(null);
@@ -289,9 +249,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
 
   const getActionLabel = (action: string) => {
     switch (action) {
+      case "verify": return "Verify";
       case "unverify": return "Unverify";
       case "suspend": return "Suspend";
       case "blacklist": return "Blacklist";
+      case "delete": return "Delete";
       default: return action;
     }
   };
@@ -358,8 +320,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="text"
-                              value={editValues.name}
-                              onChange={(e) => handleEditChange("name", e.target.value)}
+                              value={editValues.organizationName}
+                              onChange={(e) => handleEditChange("organizationName", e.target.value)}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
@@ -409,19 +371,19 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Phone Number</label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        {editingField === "phoneNumber" ? (
+                        {editingField === "phone" ? (
                           <>
                             <input
                               type="tel"
-                              value={editValues.phoneNumber}
-                              onChange={(e) => handleEditChange("phoneNumber", e.target.value)}
+                              value={editValues.phone}
+                              onChange={(e) => handleEditChange("phone", e.target.value)}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
                             />
                             <div className="flex items-center space-x-2">
                               <button
                                 type="button"
-                                onClick={() => handleEditSave("phoneNumber")}
+                                onClick={() => handleEditSave("phone")}
                                 disabled={isUpdating}
                                 className="text-green-600 hover:text-green-700 disabled:opacity-50"
                               >
@@ -445,13 +407,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="tel"
-                              value={userData?.phoneNumber || "N/A"}
+                              value={userData?.phone || "N/A"}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               readOnly
                             />
                             <button
                               type="button"
-                              onClick={() => handleEditStart("phoneNumber")}
+                              onClick={() => handleEditStart("phone")}
                               className="text-blue-900 cursor-pointer hover:opacity-75"
                             >
                               <FiEdit size={15} />
@@ -523,41 +485,58 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                   <form className="space-y-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium">Name</label>
-                      <div className="flex items-center border-b focus-within:border-blue-900 transition">
+                      <div className="flex flex-col gap-4 border-b pb-4">
                         {editingField === "name" ? (
-                          <>
-                            <input
-                              type="text"
-                              value={editValues.name}
-                              onChange={(e) =>
-                                handleEditChange("name", e.target.value)
-                              }
-                              className="w-full px-4 py-2 outline-none bg-transparent"
-                              disabled={isUpdating}
-                            />
-                            <div className="flex items-center space-x-2">
+                          <div className="space-y-4 w-full">
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</label>
+                              <input
+                                type="text"
+                                value={editValues.firstName}
+                                onChange={(e) =>
+                                  handleEditChange("firstName", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                disabled={isUpdating}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</label>
+                              <input
+                                type="text"
+                                value={editValues.lastName}
+                                onChange={(e) =>
+                                  handleEditChange("lastName", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                disabled={isUpdating}
+                              />
+                            </div>
+                            <div className="flex items-center justify-end space-x-2">
                               <button
                                 type="button"
                                 onClick={() => handleEditSave("name")}
                                 disabled={isUpdating}
-                                className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm font-medium"
                               >
                                 {isUpdating ? (
-                                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
-                                  <FiCheck size={15} />
+                                  <FiCheck size={14} />
                                 )}
+                                Save
                               </button>
                               <button
                                 type="button"
                                 onClick={handleEditCancel}
                                 disabled={isUpdating}
-                                className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 text-sm font-medium"
                               >
-                                <FiX size={15} />
+                                <FiX size={14} />
+                                Cancel
                               </button>
                             </div>
-                          </>
+                          </div>
                         ) : (
                           <>
                             <input
@@ -582,13 +561,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                         Phone Number
                       </label>
                       <div className="flex items-center border-b focus-within:border-blue-900 transition">
-                        {editingField === "phoneNumber" ? (
+                        {editingField === "phone" ? (
                           <>
                             <input
                               type="tel"
-                              value={editValues.phoneNumber}
+                              value={editValues.phone}
                               onChange={(e) =>
-                                handleEditChange("phoneNumber", e.target.value)
+                                handleEditChange("phone", e.target.value)
                               }
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               disabled={isUpdating}
@@ -596,7 +575,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                             <div className="flex items-center space-x-2">
                               <button
                                 type="button"
-                                onClick={() => handleEditSave("phoneNumber")}
+                                onClick={() => handleEditSave("phone")}
                                 disabled={isUpdating}
                                 className="text-green-600 hover:text-green-700 disabled:opacity-50"
                               >
@@ -620,13 +599,13 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                           <>
                             <input
                               type="tel"
-                              value={userData.phoneNumber || ""}
+                              value={userData.phone || ""}
                               className="w-full px-4 py-2 outline-none bg-transparent"
                               readOnly
                             />
                             <button
                               type="button"
-                              onClick={() => handleEditStart("phoneNumber")}
+                              onClick={() => handleEditStart("phone")}
                               className="text-blue-900 cursor-pointer hover:opacity-75"
                             >
                               <FiEdit size={15} />
@@ -695,23 +674,37 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 )}
               </div>
             </div>
-            {showVerificationMessage && (
-              <div className="mt-6 flex justify-between items-center flex-wrap gap-4">
-                {/* Actions button aligned to start */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowActionDropdown(!showActionDropdown)}
-                    className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                  >
-                    Actions
-                    <FiChevronDown
-                      className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
-                      size={16}
-                    />
-                  </button>
-                  {showActionDropdown && (
-                    <div className="absolute left-0 mt-2 w-44 bg-white border rounded shadow-lg z-50">
+            {/* Actions dropdown — always visible for admins */}
+            <div className="mt-6">
+              <div className="relative inline-block">
+                <button
+                  type="button"
+                  onClick={() => setShowActionDropdown(!showActionDropdown)}
+                  className="bg-blue-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                >
+                  Actions
+                  <FiChevronDown
+                    className={`transition-transform ${showActionDropdown ? "rotate-180" : ""}`}
+                    size={16}
+                  />
+                </button>
+                {showActionDropdown && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                    {/* Verify — only shown when user is NOT yet verified */}
+                    {!showVerificationMessage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingAction("verify");
+                          setShowActionDropdown(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-700 font-medium"
+                      >
+                        Verify
+                      </button>
+                    )}
+                    {/* Unverify — only shown when user IS verified */}
+                    {showVerificationMessage && (
                       <button
                         type="button"
                         onClick={() => {
@@ -722,60 +715,74 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                       >
                         Unverify
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingAction("suspend");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                      >
-                        Suspend
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingAction("blacklist");
-                          setShowActionDropdown(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                      >
-                        Blacklist
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {/* Delete button aligned to end */}
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
-                >
-                  Delete
-                </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("suspend");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-yellow-700"
+                    >
+                      Suspend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("blacklist");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
+                    >
+                      Blacklist
+                    </button>
+                    <div className="border-t my-1" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingAction("delete");
+                        setShowActionDropdown(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Action Reason Modal */}
             {pendingAction && (
-              <div className="bg-blue-50 border border-blue-300 text-blue-800 px-4 py-4 rounded mt-4">
+              <div className={`border px-4 py-4 rounded mt-4 ${pendingAction === "delete" || pendingAction === "blacklist"
+                  ? "bg-red-50 border-red-300 text-red-800"
+                  : pendingAction === "verify"
+                    ? "bg-green-50 border-green-300 text-green-800"
+                    : "bg-blue-50 border-blue-300 text-blue-800"
+                }`}>
                 <p className="font-medium mb-2">
-                  Please provide a reason for {getActionLabel(pendingAction).toLowerCase()}ing this user:
+                  {pendingAction === "verify"
+                    ? "Confirm verification of this user?"
+                    : `Please provide a reason for ${getActionLabel(pendingAction).toLowerCase()}ing this user:`}
                 </p>
-                <textarea
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
-                  className="w-full mt-2 p-3 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
+                {pendingAction !== "verify" && (
+                  <textarea
+                    value={actionReason}
+                    onChange={(e) => setActionReason(e.target.value)}
+                    placeholder={`Enter reason for ${getActionLabel(pendingAction).toLowerCase()}...`}
+                    className="w-full mt-2 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                )}
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={handleActionSubmit}
-                    className={`text-white px-4 py-2 rounded transition ${pendingAction === "blacklist"
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-blue-600 hover:bg-blue-700"
+                    className={`text-white px-4 py-2 rounded transition ${pendingAction === "delete" || pendingAction === "blacklist"
+                        ? "bg-red-600 hover:bg-red-700"
+                        : pendingAction === "verify"
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "bg-blue-600 hover:bg-blue-700"
                       }`}
                   >
                     Confirm {getActionLabel(pendingAction)}
@@ -793,56 +800,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData }) => {
                 </div>
               </div>
             )}
-            {showDeleteConfirm && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mt-4">
-                <p>Are you sure you want to delete?</p>
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <button
-                    type="button"
-                    onClick={handleConfirmDelete}
-                    className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="bg-gray-300 text-black px-4 py-1 rounded hover:bg-gray-400"
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-            {askDeleteReason && (
-              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mt-4">
-                <p>Please provide a reason for deletion:</p>
-                <textarea
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  className="w-full mt-2 p-2 border rounded"
-                />
-                <div className="mt-2 flex flex-wrap gap-4">
-                  <button
-                    type="button"
-                    onClick={handleSubmitReason}
-                    className="bg-yellow-600 text-white px-4 py-1 rounded hover:bg-yellow-700"
-                  >
-                    Submit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAskDeleteReason(false);
-                      setDeleteReason("");
-                    }}
-                    className="bg-gray-300 text-black px-4 py-1 rounded hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+
           </section>
         </div>
       </div>

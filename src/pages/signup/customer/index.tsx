@@ -157,6 +157,7 @@ export default function CustomerSignup() {
                 firstName: profileData.firstName || "",
                 lastName: profileData.lastName || "",
                 organizationName: profileData.organizationName || "",
+                contactFullName: profileData.contactFullName || "",
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",

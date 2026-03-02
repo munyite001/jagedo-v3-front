@@ -272,8 +272,8 @@ export function DashboardHeader() {
       if (user?.id) {
         try {
           const profile = await getProviderProfile(axiosInstance, user.id);
-          if (profile.data?.userProfile?.profileImage) {
-            setProfileImage(profile.data.userProfile.profileImage);
+          if (profile.data?.profileImage) {
+            setProfileImage(profile.data.profileImage);
           }
         } catch (error) {
           console.error("Failed to fetch provider profile:", error);

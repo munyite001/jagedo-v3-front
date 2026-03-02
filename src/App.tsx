@@ -241,6 +241,9 @@ const BidAwarded = React.lazy(
 const BuilderConfiguration = React.lazy(
     () => import("@/pages/dashboard/admin/BuildersConfigurations")
 );
+const SystemLogs = React.lazy(
+    () => import("@/pages/dashboard/admin/SystemLogs")
+);
 
 const ProtectedRoutesLayout = () => (
     <Outlet />
@@ -994,6 +997,16 @@ function App() {
                                                                 )
                                                         )
                                                     )}
+                                                />
+                                            </Route>
+
+                                            {/* System Logs */}
+                                            <Route
+                                                element={<ProtectedAdminRoute requiredMenu="system-logs" />}
+                                            >
+                                                <Route
+                                                    path="logs"
+                                                    element={<SystemLogs />}
                                                 />
                                             </Route>
 

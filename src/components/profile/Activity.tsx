@@ -72,8 +72,8 @@ const Activity = ({ data: profileData }) => {
     }
 
     // Use createdAt from profileData if available
-    const activeDuration = profileData?.userProfile?.createdAt
-        ? calculateDuration(profileData.userProfile.createdAt)
+    const activeDuration = profileData?.createdAt
+        ? calculateDuration(profileData.createdAt)
         : (data?.date ? calculateDuration(data.date) : '1y 2m 18d');
 
     return (

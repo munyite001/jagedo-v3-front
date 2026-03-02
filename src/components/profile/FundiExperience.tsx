@@ -1,11 +1,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+//@ts-nocheck
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { XMarkIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { updateFundiExperience } from "@/api/experience.api";
 import { uploadFile } from "@/utils/fileUpload";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface FileItem {
   file: File | null;
@@ -52,63 +55,56 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [skill, setSkill] = useState("Plumber");
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
+  const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE'].includes(data?.experienceStatus);
+
 
   /* ---------- LOAD FROM PROP ---------- */
   useEffect(() => {
     if (data) {
-      const up = data.userProfile || data;
+      const up = data;
       setGrade(up.grade || "G1: Master Fundi");
       setExperience(up.experience || "10+ years");
-      setSpecialization(up.specialization || up.profession || "");
-      setSkill(up.skills || "Plumber");
+      setSpecialization(up.specialization || "");
 
-      // For Fundis, the projects are in previousJobPhotoUrls
-      const rawProjects = up.previousJobPhotoUrls || up.professionalProjects || [];
+      // Fundi projects are in previousJobPhotoUrls, Professional/Contractor usually in professionalProjects
+      const projectSource = up.previousJobPhotoUrls || up.professionalProjects || [];
 
-      if (rawProjects.length > 0) {
-        // Group by project name to fit the attachments structure (up to 3 files per project)
-        const grouped: { [key: string]: { file: null, previewUrl: string }[] } = {};
+      if (projectSource.length > 0) {
+        // If it's previousJobPhotoUrls, it might be a list of { projectName, fileUrl: { url } }
+        // We group them by projectName to fit the UI model
+        const groupedMap = new Map<string, any[]>();
 
-        rawProjects.forEach((p: any) => {
-          const name = p.projectName || "Unnamed Project";
-          if (!grouped[name]) grouped[name] = [];
+        projectSource.forEach((p: any) => {
+          const name = p.projectName || "Unspecified Project";
+          if (!groupedMap.has(name)) groupedMap.set(name, []);
 
           let url = "";
-          // Check if fileUrl is an object (common in backend responses) or a string
-          if (p.fileUrl && typeof p.fileUrl === 'object' && p.fileUrl.url) {
-            url = p.fileUrl.url;
+          if (typeof p.fileUrl === 'object' && p.fileUrl !== null) {
+            url = p.fileUrl.url || "";
           } else if (typeof p.fileUrl === 'string') {
             url = p.fileUrl;
           } else if (p.url) {
             url = p.url;
-          } else if (typeof p === 'string') {
-            url = p;
+          } else if (Array.isArray(p.files)) {
+            // Handle professionalProjects style where files is an array
+            p.files.forEach((f: string) => groupedMap.get(name)?.push({ file: null, previewUrl: f }));
+            return;
           }
 
-          if (url && grouped[name].length < 3) {
-            grouped[name].push({ file: null, previewUrl: url });
+          if (url) {
+            groupedMap.get(name)?.push({ file: null, previewUrl: url });
           }
         });
 
-        const mapped = Object.keys(grouped).map((name, idx) => ({
+        const newAttachments = Array.from(groupedMap.entries()).map(([name, files], idx) => ({
           id: idx + 1,
           projectName: name,
-          files: grouped[name]
+          files: files
         }));
 
-        // Ensure we maintain the 3-row layout for the UI
-        const finalAttachments = [...mapped];
-        if (finalAttachments.length < 3) {
-          for (let i = finalAttachments.length; i < 3; i++) {
-            finalAttachments.push({
-              id: i + 1,
-              projectName: prefilledAttachments[i].projectName,
-              files: []
-            });
-          }
+        if (newAttachments.length > 0) {
+          setAttachments(newAttachments);
         }
-
-        setAttachments(finalAttachments);
       }
       setIsLoadingProfile(false);
     }
@@ -192,6 +188,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
       await updateFundiExperience(axiosInstance, payload);
 
       toast.success("Experience saved successfully!", { id: toastId });
+      setIsSubmitting(false); // Manually set sub to false here otherwise after success it might still stay true
       if (refreshData) refreshData();
     } catch (error: any) {
       console.error(error);
@@ -209,6 +206,16 @@ const FundiExperience = ({ data, refreshData }: any) => {
     <div className="bg-gray-50 min-h-screen w-full p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
         <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
+
+        {data?.experienceStatusReason && (
+          <Alert variant="destructive" className="mb-6">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Status Update</AlertTitle>
+            <AlertDescription>
+              {data.experienceStatusReason}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
           <p className="font-semibold mb-1">Next Steps</p>
@@ -231,6 +238,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={specialization}
                   onChange={e => setSpecialization(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   <option value="">Select</option>
@@ -245,6 +253,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={grade}
                   onChange={e => setGrade(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   {Object.keys(requiredProjectsByGrade).map(g => (
@@ -258,6 +267,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={experience}
                   onChange={e => setExperience(e.target.value)}
+                  disabled={isReadOnly}
                   className={inputStyles}
                 >
                   {["10+ years", "5-10 years", "3-5 years", "1-3 years"].map(exp => (
@@ -286,6 +296,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                         <input
                           value={row.projectName}
                           onChange={e => handleProjectNameChange(row.id, e.target.value)}
+                          disabled={isReadOnly || isSubmitting}
                           placeholder="Project name..."
                           className="w-full p-2 border rounded focus:ring-1 focus:ring-blue-500 outline-none"
                         />
@@ -306,11 +317,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
                             </div>
                           ))}
                         </div>
-                        {row.files.length < 3 && (
+                        {row.files.length < 3 && !isReadOnly && (
                           <input
                             type="file"
                             accept="image/*"
                             onChange={e => handleFileChange(row.id, e.target.files?.[0] || null)}
+                            disabled={isSubmitting}
                             className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           />
                         )}
@@ -322,15 +334,17 @@ const FundiExperience = ({ data, refreshData }: any) => {
             </div>
           )}
 
-          <div className="flex justify-end">
-            <button
-              disabled={isSubmitting}
-              className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
-            >
-              {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-              {isSubmitting ? "Saving..." : "Save Experience"}
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end">
+              <button
+                disabled={isSubmitting}
+                className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                {isSubmitting ? "Saving..." : "Save Experience"}
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

@@ -16,9 +16,7 @@ interface CustomerData {
     email: string;
     firstName: string;
     lastName: string;
-    userProfile: {
-        profileImage?: string | null;
-    };
+    profileImage?: string | null;
 }
 
 export default function CustomerPage() {
@@ -37,7 +35,7 @@ export default function CustomerPage() {
             try {
                 const response = await getJobRequestCustomerDataById(axiosInstance, id);
                 if (response.success && response.data) {
-                   setCustomerData(response.data);
+                    setCustomerData(response.data);
                 } else {
                     console.error("Failed to fetch customer data:", response.message);
                     toast.error(response.message || "Could not load customer details.");
@@ -59,7 +57,7 @@ export default function CustomerPage() {
             </div>
         );
     }
-    
+
     if (!customerData) {
         return (
             <div className="flex justify-center items-center h-screen bg-white text-center">
@@ -75,8 +73,8 @@ export default function CustomerPage() {
     }
 
     const isOrganization = customerData.accountType === 'ORGANIZATION';
-    const displayName = isOrganization 
-        ? customerData.organizationName 
+    const displayName = isOrganization
+        ? customerData.organizationName
         : `${customerData.firstName} ${customerData.lastName}`;
     const contactPerson = `${customerData.contactfirstName || ''} ${customerData.contactlastName || ''}`.trim();
 
@@ -84,9 +82,9 @@ export default function CustomerPage() {
         <div className="flex h-screen bg-white">
             <div className="flex-1 p-10 overflow-y-auto">
                 <div className="bg-white shadow-xl rounded-3xl p-10 flex flex-col items-center justify-center text-center max-w-xl mx-auto border border-gray-200">
-                    
+
                     <img
-                        src={customerData.userProfile?.profileImage || '/profile.jpg'}
+                        src={customerData.profileImage || '/profile.jpg'}
                         alt="Customer Avatar"
                         className="w-60 h-60 rounded-full object-cover shadow-lg border-4 border-green-500 mb-6"
                     />
@@ -101,10 +99,10 @@ export default function CustomerPage() {
 
                     {isOrganization && contactPerson && (
                         <p className="text-2xl text-gray-600 mb-6">
-                           Contact: {contactPerson}
+                            Contact: {contactPerson}
                         </p>
                     )}
-                    
+
                     <div className="w-full space-y-4 text-left mt-6 pt-6 border-t border-gray-200">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-500">Phone</h3>

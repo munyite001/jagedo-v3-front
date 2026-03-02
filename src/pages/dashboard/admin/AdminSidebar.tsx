@@ -21,6 +21,7 @@ import {
   ChartNoAxesCombined,
   Mails,
   ShovelIcon,
+  ShieldCheck,
 } from "lucide-react";
 import { useRolePermissions } from "@/context/RolePermissionProvider";
 import { useGlobalContext } from "@/context/GlobalProvider";
@@ -143,6 +144,13 @@ export const sidebarItems = [
         color: "#FB3C47",
       },
       {
+        id: "system-logs",
+        title: "System Logs",
+        icon: ShieldCheck,
+        href: "/dashboard/admin/logs",
+        color: "#10B981",
+      },
+      {
         title: "Configurations",
         icon: Settings,
         color: "#9B59B6",
@@ -233,27 +241,23 @@ export function AdminSidebar({ expanded, setExpanded }) {
     <>
       <div
         onClick={() => setExpanded(false)}
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-200 ${
-          expanded ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
       />
       <aside
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r shadow-lg z-50 transition-all duration-300 ease-in-out lg:relative lg:shadow-sm overflow-visible ${
-          expanded
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-white border-r shadow-lg z-50 transition-all duration-300 ease-in-out lg:relative lg:shadow-sm overflow-visible ${expanded
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0 lg:w-20"
-        }`}
+          }`}
       >
         <nav className="h-full flex flex-col">
           <div
-            className={`p-4 pb-2 flex items-center ${
-              expanded ? "justify-between" : "justify-center"
-            }`}
+            className={`p-4 pb-2 flex items-center ${expanded ? "justify-between" : "justify-center"
+              }`}
           >
             <div
-              className={`overflow-hidden transition-all ${
-                expanded ? "w-40" : "w-0"
-              }`}
+              className={`overflow-hidden transition-all ${expanded ? "w-40" : "w-0"
+                }`}
             >
               <Link to="/dashboard/admin">
                 <img
@@ -313,9 +317,8 @@ export function AdminSidebar({ expanded, setExpanded }) {
               className="w-10 h-10 rounded-md"
             />
             <div
-              className={`flex justify-between items-center overflow-hidden transition-all ${
-                expanded ? "w-52 ml-3" : "w-0"
-              }`}
+              className={`flex justify-between items-center overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"
+                }`}
             >
               <div className="leading-4">
                 <h4 className="font-semibold text-sm whitespace-nowrap">
@@ -380,9 +383,8 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
       <li
         ref={itemRef}
         onMouseEnter={handleMouseEnter}
-        className={`rounded-md text-sm my-1 group relative ${
-          active ? "bg-indigo-50 text-indigo-800" : "text-gray-600"
-        }`}
+        className={`rounded-md text-sm my-1 group relative ${active ? "bg-indigo-50 text-indigo-800" : "text-gray-600"
+          }`}
       >
         <div
           onClick={handleSubmenuClick}
@@ -390,9 +392,8 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
         >
           {icon}
           <span
-            className={`overflow-hidden transition-all whitespace-nowrap ${
-              expanded ? "w-52 ml-3" : "w-0"
-            }`}
+            className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? "w-52 ml-3" : "w-0"
+              }`}
           >
             {text}
           </span>
@@ -422,11 +423,10 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
                 <li key={index} className="py-1">
                   <Link
                     to={subItem.href}
-                    className={`flex items-center gap-2 rounded-md p-1 transition-colors whitespace-nowrap ${
-                      location.pathname === subItem.href
+                    className={`flex items-center gap-2 rounded-md p-1 transition-colors whitespace-nowrap ${location.pathname === subItem.href
                         ? "text-indigo-600 font-semibold"
                         : "text-gray-700 hover:text-indigo-600"
-                    }`}
+                      }`}
                   >
                     <SubIcon size={18} />
                     <span>{subItem.title}</span>
@@ -445,17 +445,15 @@ export function SidebarItem({ icon, text, href, active, submenu }) {
       <li
         ref={itemRef}
         onMouseEnter={handleMouseEnter}
-        className={`relative flex items-center py-2 px-3 my-1 font-medium rounded-md cursor-pointer transition-colors group text-sm ${
-          active
+        className={`relative flex items-center py-2 px-3 my-1 font-medium rounded-md cursor-pointer transition-colors group text-sm ${active
             ? "bg-gradient-to-tr from-indigo-200 to-indigo-100 text-indigo-800"
             : "hover:bg-indigo-50 text-gray-600"
-        }`}
+          }`}
       >
         {icon}
         <span
-          className={`overflow-hidden transition-all whitespace-nowrap ${
-            expanded ? "w-52 ml-3" : "w-0"
-          }`}
+          className={`overflow-hidden transition-all whitespace-nowrap ${expanded ? "w-52 ml-3" : "w-0"
+            }`}
         >
           {text}
         </span>

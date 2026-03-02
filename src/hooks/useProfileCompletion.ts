@@ -55,23 +55,23 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
 
       // Individual customer needs: ID Front, ID Back, KRA PIN
       if (accountType === 'individual' && userTypeLC === 'customer') {
-        return ['idFront', 'idBack', 'kraPIN'];
+        return ['idFront', 'idBack', 'krapin'];
       }
 
       // Map of required documents per user type
       const docMap: any = {
-        customer: ['businessPermit', 'certificateOfIncorporation', 'kraPIN'],
-        fundi: ['idFront', 'idBack', 'certificate', 'kraPIN'],
-        professional: ['idFront', 'idBack', 'academicCertificate', 'cv', 'kraPIN', 'practiceLicense'],
-        contractor: ['businessRegistration', 'businessPermit', 'kraPIN', 'companyProfile'],
-        hardware: ['certificateOfIncorporation', 'kraPIN', 'singleBusinessPermit', 'companyProfile'],
+        customer: ['businessPermit', 'certificateOfIncorporation', 'krapin'],
+        fundi: ['idFront', 'idBack', 'certificate', 'krapin'],
+        professional: ['idFront', 'idBack', 'academicCertificate', 'cv', 'krapin', 'practiceLicense'],
+        contractor: ['businessRegistration', 'businessPermit', 'krapin', 'companyProfile'],
+        hardware: ['certificateOfIncorporation', 'krapin', 'singleBusinessPermit', 'companyProfile'],
       };
 
       return docMap[userTypeLC] || [];
     };
 
     // Check if ALL required documents are uploaded in the actual profile data
-    const profile = userData?.userProfile || {};
+    const profile = userData || {};
     const requiredDocs = getRequiredDocuments();
 
     // Mapping of internal document keys to profile property names
@@ -79,7 +79,7 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
       switch (key) {
         case 'idFront': return !!profile.idFrontUrl;
         case 'idBack': return !!profile.idBackUrl;
-        case 'kraPIN': return !!profile.kraPIN;
+        case 'krapin': return !!profile.krapin;
         case 'certificate': return !!profile.certificateUrl;
         case 'academicCertificate': return !!profile.academicCertificateUrl;
         case 'cv': return !!profile.cvUrl;
@@ -96,8 +96,9 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
       }
     };
 
-    const uploadsComplete = requiredDocs.length === 0 ||
-      requiredDocs.every(doc => checkDocument(doc));
+    const uploadsComplete =
+      (profile.documentStatus === 'PENDING' || profile.documentStatus === 'VERIFIED') ||
+      (requiredDocs.length === 0 || requiredDocs.every(doc => checkDocument(doc)));
 
     // ============================================
     // EXPERIENCE COMPLETION
@@ -106,39 +107,41 @@ export const useProfileCompletion = (userData: any, userType: string): { [key: s
     let experienceComplete = false;
     const userTypeUpper = userType.toUpperCase();
 
-    if (userTypeUpper === 'CUSTOMER') {
+    if (userData?.experienceStatus === 'PENDING' || userData?.experienceStatus === 'VERIFIED') {
+      experienceComplete = true;
+    } else if (userTypeUpper === 'CUSTOMER') {
       // CUSTOMER doesn't have experience section
       experienceComplete = true;
     } else if (userTypeUpper === 'FUNDI') {
       // FUNDI: needs grade, experience, and previousJobPhotoUrls
-      const hasGrade = userData?.userProfile?.grade;
-      const hasExperience = userData?.userProfile?.experience;
-      const hasProjects = userData?.userProfile?.previousJobPhotoUrls &&
-        userData.userProfile.previousJobPhotoUrls.length > 0;
+      const hasGrade = userData?.grade;
+      const hasExperience = userData?.experience;
+      const hasProjects = userData?.previousJobPhotoUrls &&
+        userData.previousJobPhotoUrls.length > 0;
       experienceComplete = !!(hasGrade && hasExperience && hasProjects);
     } else if (userTypeUpper === 'PROFESSIONAL') {
       // PROFESSIONAL: needs profession, professionalLevel, yearsOfExperience, and professionalProjects
-      const hasProfession = userData?.userProfile?.profession;
-      const hasLevel = userData?.userProfile?.professionalLevel;
-      const hasExperience = userData?.userProfile?.yearsOfExperience;
-      const hasProjects = userData?.userProfile?.professionalProjects &&
-        userData.userProfile.professionalProjects.length > 0;
+      const hasProfession = userData?.profession;
+      const hasLevel = userData?.levelOrClass;
+      const hasExperience = userData?.yearsOfExperience;
+      const hasProjects = userData?.professionalProjects &&
+        userData.professionalProjects.length > 0;
       experienceComplete = !!(hasProfession && hasLevel && hasExperience && hasProjects);
     } else if (userTypeUpper === 'CONTRACTOR') {
       // CONTRACTOR: needs contractorType, licenseLevel, contractorExperiences, and contractorProjects
-      const hasType = userData?.userProfile?.contractorType;
-      const hasLevel = userData?.userProfile?.licenseLevel;
-      const hasExperience = userData?.userProfile?.contractorExperiences;
-      const hasProjects = userData?.userProfile?.contractorProjects &&
-        userData.userProfile.contractorProjects.length > 0;
+      const hasType = userData?.contractorType;
+      const hasLevel = userData?.licenseLevel;
+      const hasExperience = userData?.contractorExperiences;
+      const hasProjects = userData?.contractorProjects &&
+        userData.contractorProjects.length > 0;
       experienceComplete = !!(hasType && hasLevel && hasExperience && hasProjects);
     } else if (userTypeUpper === 'HARDWARE') {
       // HARDWARE: needs hardwareType, businessType, experience, and hardwareProjects
-      const hasType = userData?.userProfile?.hardwareType;
-      const hasBusinessType = userData?.userProfile?.businessType;
-      const hasExperience = userData?.userProfile?.experience;
-      const hasProjects = userData?.userProfile?.hardwareProjects &&
-        userData.userProfile.hardwareProjects.length > 0;
+      const hasType = userData?.hardwareType;
+      const hasBusinessType = userData?.businessType;
+      const hasExperience = userData?.experience;
+      const hasProjects = userData?.hardwareProjects &&
+        userData.hardwareProjects.length > 0;
       experienceComplete = !!(hasType && hasBusinessType && hasExperience && hasProjects);
     }
 

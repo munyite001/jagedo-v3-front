@@ -12,9 +12,7 @@ interface ServiceProvider {
     firstName: string;
     lastName: string;
     organizationName: string;
-    userProfile?: { 
-        profileImage?: string;
-    };
+    profileImage?: string;
 }
 
 export default function Builder() {
@@ -78,8 +76,8 @@ export default function Builder() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="w-full max-w-xl bg-white shadow-xl rounded-lg p-6 md:p-10 flex flex-col items-center text-center border border-gray-200">
-               <img
-                    src={providerData?.userProfile?.profileImage || "/logo.png"}
+                <img
+                    src={providerData?.profileImage || "/logo.png"}
                     alt={`${providerData.firstName} ${providerData.lastName}`}
                     className="w-32 h-32 md:w-48 md:h-48 rounded-full object-cover shadow-lg border-4 border-green-500 mb-6"
                 />
@@ -88,7 +86,7 @@ export default function Builder() {
                     {providerData.firstName} {providerData.lastName}
                 </h2>
                 {providerData.organizationName && (
-                     <p className="text-lg md:text-xl text-gray-600">{providerData.organizationName}</p>
+                    <p className="text-lg md:text-xl text-gray-600">{providerData.organizationName}</p>
                 )}
                 <p className="text-base text-gray-500 mb-8 mt-1">
                     Assigned Service Provider
