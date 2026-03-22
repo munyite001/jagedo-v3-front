@@ -263,21 +263,21 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    if (user.profileStatus === "INCOMPLETE") {
-      try {
-        setIsLoading(true);
-        const profileResponse = await getProviderProfile(axios, user.id);
-        const profileData = profileResponse?.data || profileResponse;
-        setRegisteredUser({ ...user, ...profileData });
-        setShowProfileCompletionModal(true);
-      } catch (error) {
-        console.error("Error fetching provider profile:", error);
-        toast.error("Failed to fetch profile details");
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
+    // if (user.profileStatus === "INCOMPLETE") {
+    //   try {
+    //     setIsLoading(true);
+    //     const profileResponse = await getProviderProfile(axios, user.id);
+    //     const profileData = profileResponse?.data || profileResponse;
+    //     setRegisteredUser({ ...user, ...profileData });
+    //     setShowProfileCompletionModal(true);
+    //   } catch (error) {
+    //     console.error("Error fetching provider profile:", error);
+    //     toast.error("Failed to fetch profile details");
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    //   return;
+    // }
 
     toast.success("Login successful!");
 

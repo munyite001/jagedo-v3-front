@@ -151,6 +151,7 @@ function ProfileSide({ activeComponent, setActiveComponent, user, completionStat
               const isActive = activeComponent === item.id;
               const status = completionStatus[item.id] || 'incomplete';
               const isComplete = status === 'complete';
+              console.log(`Rendering ${item.id} - Status: ${status} - isComplete: ${isComplete}`);
               const showStatus = item.id !== 'Activities';
 
               return (
