@@ -10,12 +10,7 @@ import {
 } from "react-icons/fi";
 import { FileText, Image, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import {
-  adminDynamicUpdateAccountUploads,
-  adminVerifyDocuments,
-  adminRejectDocuments,
-  adminResubmitDocuments,
-} from "@/api/uploads.api";
+import { adminDynamicUpdateAccountUploads, adminVerifyDocuments, adminRejectDocuments, adminResubmitDocuments, adminUpdateSingleDocumentStatus } from "@/api/uploads.api";
 import { handleVerifyUser } from "@/api/provider.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFileWithAxios } from "@/utils/fileUpload";
@@ -168,9 +163,25 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
     const initialDocs: Record<string, UploadedDocument> = {};
     const profile = userData;
 
-    const status = userData?.status == "VERIFIED" ? "approved" : "pending";
+    const globalStatus = userData?.status == 'VERIFIED' ? "approved" : "pending";
+    const documentDetails = userData?.documentDetails || {};
+
+    const getStatus = (key: string): DocumentStatus => {
+      if (documentDetails[key]) {
+        return documentDetails[key].status as DocumentStatus;
+      }
+      return globalStatus as DocumentStatus;
+    };
+
+    const getReason = (key: string): string | undefined => {
+      if (documentDetails[key]) {
+        return documentDetails[key].reason;
+      }
+      return undefined;
+    };
 
     if (profile) {
+      // Process standard documents
       if (profile.idFrontUrl) {
         const key = userType === "hardware" ? "ownerIdFront" : "idFront";
         initialDocs[key] = {
@@ -179,7 +190,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.idFrontUrl,
           type: key,
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus(key),
+          statusReason: getReason(key),
         };
       }
       if (profile.idBackUrl) {
@@ -190,7 +202,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.idBackUrl,
           type: key,
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus(key),
+          statusReason: getReason(key),
         };
       }
       if (profile.krapin || profile.kraPIN) {
@@ -200,7 +213,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: (profile.krapin || profile.kraPIN) as string,
           type: key,
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus(key),
+          statusReason: getReason(key),
         };
       }
 
@@ -210,7 +224,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.certificateUrl,
           type: "certificate",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("certificate"),
+          statusReason: getReason("certificate"),
         };
       }
 
@@ -220,7 +235,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.academicCertificateUrl,
           type: "academicCertificate",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("academicCertificate"),
+          statusReason: getReason("academicCertificate"),
         };
       }
       if (profile.cvUrl) {
@@ -229,7 +245,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.cvUrl,
           type: "cv",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("cv"),
+          statusReason: getReason("cv"),
         };
       }
       if (profile.practiceLicense) {
@@ -238,7 +255,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.practiceLicense,
           type: "practiceLicense",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("practiceLicense"),
+          statusReason: getReason("practiceLicense"),
         };
       }
 
@@ -249,7 +267,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             profile.singleBusinessPermit) as string,
           type: "businessPermit",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("businessPermit"),
+          statusReason: getReason("businessPermit"),
         };
       }
 
@@ -270,7 +289,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: bizRegUrl as string,
           type: key,
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus(key),
+          statusReason: getReason(key),
         };
       }
       if (profile.companyProfile) {
@@ -279,7 +299,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
           url: profile.companyProfile,
           type: "companyProfile",
           uploadedAt: "Existing",
-          status: status as DocumentStatus,
+          status: getStatus("companyProfile"),
+          statusReason: getReason("companyProfile"),
         };
       }
       // if (profile.ncaCertificate || profile.ncaRegCardUrl) {
@@ -308,7 +329,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               url: cat.certificate,
               type: certKey,
               uploadedAt: "Existing",
-              status: status as DocumentStatus,
+              status: getStatus(certKey),
+              statusReason: getReason(certKey),
             };
           }
           if (cat.license) {
@@ -317,7 +339,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               url: cat.license,
               type: licenseKey,
               uploadedAt: "Existing",
-              status: status as DocumentStatus,
+              status: getStatus(licenseKey),
+              statusReason: getReason(licenseKey),
             };
           }
         });
@@ -335,7 +358,8 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
             url: proj.fileUrl || proj.url,
             type: key,
             uploadedAt: "Existing",
-            status: status as DocumentStatus,
+            status: getStatus(key),
+            statusReason: getReason(key),
           };
         });
       }
@@ -711,12 +735,32 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       return;
     }
 
-    if (action === "approve" && docKey) {
-      handleApprove(docKey);
-    } else if (action === "reject" && docKey) {
-      handleReject(docKey, actionReason);
-    } else if (action === "resubmit" && docKey) {
-      handleRequestReupload(docKey, actionReason);
+    
+    // Admin actions for single document
+    if (docKey) {
+      setIsPendingAction(true);
+      const statusMap = {
+        approve: "VERIFIED",
+        reject: "REJECTED",
+        resubmit: "RESUBMIT",
+      };
+      
+      try {
+        await adminUpdateSingleDocumentStatus(
+          axiosInstance,
+          userData.id,
+          docKey,
+          statusMap[action as keyof typeof statusMap],
+          actionReason
+        );
+        toast.success(`Document ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'requested for reupload'}`);
+        window.location.reload();
+      } catch (error: any) {
+        toast.error(error.message || "Action failed");
+      } finally {
+        setIsPendingAction(false);
+        closeActionModal();
+      }
     }
   };
 
@@ -946,6 +990,34 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
               }}
             />
           </label>
+          {isAdmin && (
+            <div className="flex gap-2 w-full mt-2 border-t pt-2">
+              <button
+                onClick={() => openActionModal(doc.key, "approve")}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-green-50 text-green-600 rounded-lg text-[10px] font-semibold hover:bg-green-100 transition"
+                title="Approve"
+              >
+                <FiCheck className="w-3 h-3" />
+                Approve
+              </button>
+              <button
+                onClick={() => openActionModal(doc.key, "resubmit")}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-semibold hover:bg-amber-100 transition"
+                title="Resubmit"
+              >
+                <FiRefreshCw className="w-3 h-3" />
+                Resubmit
+              </button>
+              <button
+                onClick={() => openActionModal(doc.key, "reject")}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
+                title="Reject"
+              >
+                <XCircle className="w-3 h-3" />
+                Reject
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
