@@ -229,6 +229,7 @@ const ShopApp = () => {
         const result = addToCart(product);
         if (result.success) {
             toast.success(`${product.name} added to cart!`);
+            navigate("/customer/cart");
         } else {
             toast.error(result.message);
         }
@@ -236,6 +237,27 @@ const ShopApp = () => {
 
     const handleBuyNow = (product: Product) => {
         if (!ensureLocationSelected(product)) return;
+
+        const token = localStorage.getItem("token");
+        const userStr = localStorage.getItem("user");
+        let user = null;
+        try {
+            user = userStr ? JSON.parse(userStr) : null;
+        } catch {
+            user = null;
+        }
+
+        if (!token || !user) {
+            navigate("/login", { state: { from: "/customer/checkout" } });
+            return;
+        }
+
+        const role = (user.userType || user.role || "").toString().toUpperCase();
+        if (role !== "CUSTOMER") {
+            navigate("/login", { state: { from: "/customer/checkout" } });
+            return;
+        }
+
         const result = addToCart(product);
         if (result.success) {
             toast.success(`Proceeding to checkout for ${product.name}`);

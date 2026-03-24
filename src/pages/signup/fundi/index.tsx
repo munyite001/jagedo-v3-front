@@ -164,8 +164,8 @@ export default function FundiSignup() {
                 country: profileData.country || "Kenya",
                 county: profileData.county || "",
                 subCounty: profileData.subCounty || "",
-                townCity: profileData.town || "", // Ensure mapping is correct
-                estateVillage: profileData.estate || "", // Ensure mapping is correct
+                townCity: profileData.town || "", 
+                estateVillage: profileData.estate || "", 
                 referenceInfo: profileData.howDidYouHearAboutUs || "",
             };
 

@@ -403,7 +403,7 @@ export function ProfileCompletion({
     return (
         <div className={cn("w-full font-roboto", isModal ? "bg-gray-50 p-0" : "min-h-screen bg-gray-50 py-8")}>
             <div className={cn("mx-auto", isModal ? "w-full p-6" : "max-w-2xl px-4")}>
-                {/* Header */}
+                
                 <div className="mb-6 flex items-center justify-between">
                     <div>
                         <h1 className={cn("font-bold text-gray-800", isModal ? "text-2xl" : "text-3xl")}>
@@ -423,7 +423,7 @@ export function ProfileCompletion({
                     )}
                 </div>
 
-                {/* Step Indicators */}
+                
                 <div className="flex items-center justify-between mb-6 px-2">
                     {stepInfo.map((step, index) => {
                         const StepIcon = step.icon;
@@ -460,7 +460,7 @@ export function ProfileCompletion({
                     })}
                 </div>
 
-                {/* Progress Bar */}
+                
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
                     <div
                         className="bg-blue-600 h-1.5 rounded-full transition-all duration-500 ease-out"
@@ -612,7 +612,7 @@ export function ProfileCompletion({
 
                     {currentStep === 3 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* Header */}
+                            
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-50 mb-4">
                                     <MessageSquare className="h-8 w-8 text-violet-600" />
@@ -621,7 +621,7 @@ export function ProfileCompletion({
                                 <p className="text-sm text-gray-500 mt-1">How did you find us?</p>
                             </div>
 
-                            {/* How did you hear about us */}
+                            
                             <div className="space-y-2">
                                 <Label>How did you hear about us? *</Label>
                                 <Select
@@ -644,7 +644,7 @@ export function ProfileCompletion({
                                 </Select>
                             </div>
 
-                            {/* Referral Details */}
+                            
                             {["SOCIAL_MEDIA", "DIRECT_REFERRAL", "OTHER"].includes(reference.howDidYouHearAboutUs) && (
                                 <div className="space-y-2 animate-fade-in">
                                     <Label>
@@ -697,7 +697,7 @@ export function ProfileCompletion({
                                 </div>
                             )}
 
-                            {/* CUSTOMER ONLY: Interested Services - hide for service providers */}
+                            
                             {(userType === "CUSTOMER" || (!userType && (accountType === "INDIVIDUAL" || accountType === "ORGANIZATION"))) &&
                                 !(userType && ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType)) && (
 
@@ -720,7 +720,7 @@ export function ProfileCompletion({
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        {/* Show input only when "Other" is selected */}
+                                        
                                         {reference.interestedServices.includes("Other") && (
                                             <div className="mt-3 space-y-2">
                                                 <Label>Please specify the other service *</Label>
@@ -741,7 +741,7 @@ export function ProfileCompletion({
 
                     {currentStep === 4 && (
                         <div className="space-y-5 animate-fade-in">
-                            {/* ... Verification step remains unchanged ... */}
+                            
                             <div className="text-center mb-6">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 mb-4">
                                     <ShieldCheck className="h-8 w-8 text-amber-600" />
