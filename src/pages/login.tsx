@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { loginUser, verifyOtpLogin, phoneLogin } from "@/api/auth.api";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import GoogleSignIn from "@/components/GoogleSignIn";
@@ -36,6 +36,7 @@ const Input = (props) => (
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: contextUser, setUser, setIsLoggedIn } = useGlobalContext();
 
   const [showProfileCompletionModal, setShowProfileCompletionModal] = useState(false);
@@ -288,6 +289,8 @@ export default function Login() {
   const redirectUser = (user) => {
     const role = user.userType.toLowerCase();
 
+    const fromPath = location.state?.from;
+
     let path = "/dashboard/customer";
 
     switch (role) {
@@ -297,6 +300,10 @@ export default function Login() {
         break;
 
       case "customer":
+        if (fromPath && fromPath.startsWith("/customer/")) {
+          navigate(fromPath, { replace: true });
+          return;
+        }
         path =
           user.profileType === "organization"
             ? "/dashboard/customer/organization"

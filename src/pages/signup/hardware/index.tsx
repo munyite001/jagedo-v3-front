@@ -170,10 +170,10 @@ export default function HardwareSignup() {
             const response = await completeProfile(completeProfilePayload);
 
             if (response.data.success) {
-                // Use the user object returned from backend as source of truth
+                
                 const finalUser = response.data.user;
 
-                // Sync with localStorage and Global Context
+                
                 localStorage.setItem("user", JSON.stringify(finalUser));
                 setUser(finalUser);
                 setIsLoggedIn(true);

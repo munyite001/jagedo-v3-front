@@ -22,19 +22,11 @@ const ProductCard = ({ product, onProductClick, onAddToCart, onBuyNow, isDetailV
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isLoggedIn) {
-      toast.error("Please log in first to add products to your cart.");
-      return;
-    }
     onAddToCart();
   };
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isLoggedIn) {
-      toast.error("Please log in first to buy products.");
-      return;
-    }
     if (onBuyNow) {
       onBuyNow(product);
     }
