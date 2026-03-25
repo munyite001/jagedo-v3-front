@@ -264,7 +264,7 @@ export default function Login() {
     setUser(user);
     setIsLoggedIn(true);
 
-    if (user.status === "SIGNED_UP") {
+    if (user.status === "SIGNED_UP" && !user.isSuperAdmin) {
       try {
         setIsLoading(true);
         const profileResponse = await getProviderProfile(axios, user.id);

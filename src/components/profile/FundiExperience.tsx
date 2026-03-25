@@ -214,7 +214,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
         <h1 className="text-4xl font-bold mb-8">Fundi Experience</h1>
 
         {data?.experienceStatusReason && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant={data.experienceStatus === "PENDING" ? "default" : "destructive"} className={data.experienceStatus === "PENDING" ? "bg-amber-200 mb-6" : "mb-6"}>
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Status Update</AlertTitle>
             <AlertDescription>

@@ -79,6 +79,7 @@ function ProfilePage() {
       accountType === "business" ||
       userType === "contractor" || // ✅ always org-based
       userType === "hardware"; // ✅ always org-based
+      
 
     if (isOrgType) {
       return ["organizationName", "phone", "email"];
@@ -207,17 +208,13 @@ function ProfilePage() {
       } else if (userType === "fundi") {
         // Fundi need: ID front/back + certificate + KRA PIN
         // Check with fallback field names
-        const hasIdFront = up?.idFrontUrl || up?.idFront;
-        const hasIdBack = up?.idBackUrl || up?.idBack;
-        const hasCertificate = up?.certificateUrl || up?.certificate;
-        const hasKrapin = up?.krapin;
+        const hasIdFront = !!(up?.idFrontUrl);
+        const hasIdBack = !!(up?.idBackUrl);
+        const hasCertificate = !!(up?.certificateUrl);
+        const hasKrapin = !!(up?.krapin);
 
-        uploadsComplete = !!(
-          hasIdFront &&
-          hasIdBack &&
-          hasCertificate &&
-          hasKrapin
-        );
+        uploadsComplete = hasIdFront && hasIdBack && hasCertificate && hasKrapin;
+
       } else {
         const requiredDocs = getRequiredDocuments();
         uploadsComplete =

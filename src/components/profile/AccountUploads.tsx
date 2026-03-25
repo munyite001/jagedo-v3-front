@@ -600,7 +600,7 @@ const AccountUploads = ({ data, refreshData }) => {
           </div>
 
           {data?.documentStatusReason && (
-            <Alert variant="destructive" className="mb-6">
+            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>Status Update</AlertTitle>
               <AlertDescription>{data.documentStatusReason}</AlertDescription>
