@@ -17,12 +17,11 @@ function ProfilePage() {
   const [activeComponent, setActiveComponent] = useState("Account Info");
   const { user, logout } = useGlobalContext();
   const [rerender, setRerender] = useState(0);
-  const [providerData, setProviderData] = useState(null); // State for API Data
+  const [providerData, setProviderData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
 
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
 
-  // 1. Fetch Data Once Here
   useEffect(() => {
     const fetchProviderProfile = async () => {
       if (!user?.id) {
@@ -44,7 +43,7 @@ function ProfilePage() {
     };
 
     fetchProviderProfile();
-  }, [user?.id, rerender]); // Added rerender to dependencies to allow refetching
+  }, [user?.id, rerender]);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -77,13 +76,21 @@ function ProfilePage() {
     const isOrgType =
       accountType === "organization" ||
       accountType === "business" ||
-      userType === "contractor" || // ✅ always org-based
-      userType === "hardware"; // ✅ always org-based
-      
+      userType === "contractor" ||
+      userType === "hardware";
 
     if (isOrgType) {
-      return ["organizationName", "phone", "email"];
+
+      const showsContactName =
+        userType === "customer" ||
+        userType === "contractor" ||
+        userType === "hardware";
+
+      return showsContactName
+        ? ["organizationName", "contactFullName", "phone", "email"]
+        : ["organizationName", "phone", "email"];
     }
+
 
     return ["firstName", "lastName", "phone", "email"];
   };
@@ -97,14 +104,16 @@ function ProfilePage() {
   };
 
   const completionStatus = useMemo(() => {
-    const userType = user?.userType?.toLowerCase() || "";
-    // Prioritize providerData from API, fallback to user
+
     const up = providerData || user;
-    const accountType = user?.accountType?.toLowerCase();
+
+
+    const userType = (up?.userType || "").toLowerCase();
+    const accountType = (up?.accountType || "").toLowerCase();
 
     const getRequiredDocuments = () => {
       const accountType = user?.accountType?.toLowerCase() || "";
-      // If it's a customer and individual, they need ID docs
+
       if (userType === "customer" && accountType === "individual") {
         return ["idFrontUrl", "idBackUrl", "krapin"];
       }
@@ -137,17 +146,15 @@ function ProfilePage() {
       return docMap[userType] || [];
     };
 
-    // const requiredDocs = getRequiredDocuments();
     let uploadsComplete = false;
 
-    // If verified by admin, definitely complete
     if (providerData?.documentStatus === "VERIFIED") {
       uploadsComplete = true;
     } else {
-      // For contractors: check base docs + all category-specific certificates & licenses
-      // For others: check if all required base documents are present
+
+
       if (userType === "contractor") {
-        // Contractors need: (businessRegistration OR certificateOfIncorporation) + businessPermit + krapin + companyProfile
+
         const hasBusinessReg =
           up?.businessRegistration || up?.certificateOfIncorporation;
         const hasPermit = up?.businessPermit;
@@ -161,7 +168,6 @@ function ProfilePage() {
           hasCompanyProfile
         );
 
-        // Check if all category-specific docs are present
         let categoryDocsComplete = true;
         const contractorCategories =
           up?.contractorCategories || up?.contractorExperiences || [];
@@ -170,10 +176,10 @@ function ProfilePage() {
           Array.isArray(contractorCategories) &&
           contractorCategories.length > 0
         ) {
-          // For each category, check if both certificate AND license are uploaded
+
           categoryDocsComplete = contractorCategories.every((cat: any) => {
             const categoryName = cat.category || "";
-            if (!categoryName) return true; // Skip if no category name
+            if (!categoryName) return true;
 
             const categoryKey = categoryName.toUpperCase().replace(/\s+/g, "_");
             const certKey = `${categoryKey}_CERTIFICATE`;
@@ -188,9 +194,7 @@ function ProfilePage() {
 
         uploadsComplete = baseDocsComplete && categoryDocsComplete;
       } else if (userType === "professional") {
-        // Professionals need: ID front/back + academic cert + CV + KRA PIN
-        // Practice license is optional
-        // Check with fallback field names (some might be stored without "Url" suffix)
+
         const hasIdFront = up?.idFrontUrl || up?.idFront;
         const hasIdBack = up?.idBackUrl || up?.idBack;
         const hasAcademicCert =
@@ -206,8 +210,8 @@ function ProfilePage() {
           hasKrapin
         );
       } else if (userType === "fundi") {
-        // Fundi need: ID front/back + certificate + KRA PIN
-        // Check with fallback field names
+
+
         const hasIdFront = !!(up?.idFrontUrl);
         const hasIdBack = !!(up?.idBackUrl);
         const hasCertificate = !!(up?.certificateUrl);
@@ -226,60 +230,14 @@ function ProfilePage() {
       }
     }
 
-    // if (up) {
-    //     // Priority 1: Check the 'complete' flag from backend
-    //     if (up.profileComplete === true) {
-    //         uploadsComplete = true;
-    //     } else {
-    //         // Priority 2: Manual check of required documents
-    //         uploadsComplete = requiredDocs.length > 0 && requiredDocs.every(key => {
-    //             const value = up[key];
-    //             return value !== null && value !== undefined && value !== '';
-    //         });
-
-    //         // If there are no required docs for this type (shouldn't happen for providers), mark as complete
-    //         if (requiredDocs.length === 0) uploadsComplete = true;
-    //     }
-    // }
-
     let experienceComplete =
       providerData?.experienceStatus == "VERIFIED" ||
       providerData?.experienceStatus == "PENDING";
-    // if (up?.profileComplete === true) {
-    //     experienceComplete = true;
-    // } else if (userType === 'fundi') {
-    //     const hasGrade = !!up?.grade;
-    //     const hasExperience = !!up?.experience;
-    //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-    //     const hasJobPhotos = up?.previousJobPhotoUrls && Array.isArray(up.previousJobPhotoUrls) && up.previousJobPhotoUrls.length > 0;
 
-    //     const grade = up?.grade || "";
-    //     const isUnskilled = grade.includes("G4") || grade.includes("Unskilled");
-
-    //     // Re-calculate based on what's actually in the response
-    //     experienceComplete = hasGrade && hasExperience && (hasProjects || hasJobPhotos || isUnskilled);
-    // } else if (userType === 'professional') {
-    //     const hasProfession = !!up?.profession;
-    //     const hasLevel = !!up?.professionalLevel;
-    //     const hasExperience = !!up?.yearsOfExperience;
-    //     const hasProjects = up?.professionalProjects && Array.isArray(up.professionalProjects) && up.professionalProjects.length > 0;
-
-    //     const level = up?.professionalLevel || "";
-    //     const isStudent = level.toLowerCase().includes("student");
-
-    //     experienceComplete = hasProfession && hasLevel && hasExperience && (hasProjects || isStudent);
-    // } else if (userType === 'contractor') {
-    //     const hasExperiences = up?.contractorExperiences && Array.isArray(up.contractorExperiences) && up.contractorExperiences.length > 0;
-    //     const hasProjects = up?.contractorProjects && Array.isArray(up.contractorProjects) && up.contractorProjects.length > 0;
-    //     experienceComplete = hasExperiences && hasProjects;
-    // } else {
-    //     experienceComplete = true; // Customer & Hardware
-    // }
-    // ✅ Account Info
     const accountFields = getAccountInfoFields(userType, accountType);
     const accountComplete = isSectionComplete(up, accountFields);
 
-    // ✅ Address
+
     const addressFields = getAddressFields();
     const addressComplete = isSectionComplete(up, addressFields);
 
@@ -288,7 +246,7 @@ function ProfilePage() {
       Address: addressComplete ? "complete" : "incomplete",
       "Account Uploads": uploadsComplete ? "complete" : "incomplete",
       Experience: experienceComplete ? "complete" : "incomplete",
-      // Products: "incomplete",
+
       Activities: "complete",
     };
   }, [
@@ -322,11 +280,11 @@ function ProfilePage() {
     return Math.round((completedCount / finalKeys.length) * 100);
   }, [completionStatus, user]);
 
-  // 2. Prop Drill 'data' to children
+
   const renderContent = () => {
     const userType = (user?.userType || "").toLowerCase();
 
-    // Common props passed to all relevant components
+
     const props = {
       data: providerData,
       refreshData: () => setRerender((prev) => prev + 1),
@@ -433,11 +391,10 @@ function ProfilePage() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${
-                      progressPercentage === 100
+                    className={`h-2.5 rounded-full transition-all duration-1000 ease-out ${progressPercentage === 100
                         ? "bg-green-500"
                         : "bg-blue-600"
-                    }`}
+                      }`}
                     style={{ width: `${progressPercentage}%` }}
                   ></div>
                 </div>
