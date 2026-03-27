@@ -69,9 +69,14 @@ export default function ShopCategories() {
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
   const [showAddSubCategoryModal, setShowAddSubCategoryModal] = useState(false);
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const [categoryToToggle, setCategoryToToggle] = useState<Category | null>(null);
-  const [parentCategoryForSub, setParentCategoryForSub] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
+  const [categoryToToggle, setCategoryToToggle] = useState<Category | null>(
+    null,
+  );
+  const [parentCategoryForSub, setParentCategoryForSub] =
+    useState<Category | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [selectedCategoryType, setSelectedCategoryType] = useState("HARDWARE");
 
@@ -113,7 +118,11 @@ export default function ShopCategories() {
     { id: "HARDWARE", label: "Hardware", type: "HARDWARE" },
     { id: "CUSTOM_PRODUCTS", label: "Custom Products", type: "FUNDI" },
     { id: "DESIGNS", label: "Designs", type: "PROFESSIONAL" },
-    { id: "HIRE_MACHINERY", label: "Hire Machinery & Equipment", type: "CONTRACTOR" },
+    {
+      id: "HIRE_MACHINERY",
+      label: "Hire Machinery & Equipment",
+      type: "CONTRACTOR",
+    },
   ];
 
   const fetchCategories = useCallback(async () => {
@@ -137,7 +146,9 @@ export default function ShopCategories() {
     setEditCategoryData({
       id: category.id,
       name: category.name,
-      subCategory: Array.isArray(category.subCategory) ? category.subCategory : [],
+      subCategory: Array.isArray(category.subCategory)
+        ? category.subCategory
+        : [],
       urlKey: category.urlKey || "",
       metaTitle: category.metaTitle || "",
       metaKeywords: category.metaKeywords || "",
@@ -151,11 +162,15 @@ export default function ShopCategories() {
   const handleAddSubCategoryTag = () => {
     const val = newSubCategoryInput.trim();
     if (!val) return;
-    if (editCategoryData.subCategory.map(s => s.toLowerCase()).includes(val.toLowerCase())) {
+    if (
+      editCategoryData.subCategory
+        .map((s) => s.toLowerCase())
+        .includes(val.toLowerCase())
+    ) {
       toast.error(`"${val}" already exists`);
       return;
     }
-    setEditCategoryData(prev => ({
+    setEditCategoryData((prev) => ({
       ...prev,
       subCategory: [...prev.subCategory, val],
     }));
@@ -164,7 +179,7 @@ export default function ShopCategories() {
 
   // Remove subcategory tag in edit modal
   const handleRemoveSubCategoryTag = (index: number) => {
-    setEditCategoryData(prev => ({
+    setEditCategoryData((prev) => ({
       ...prev,
       subCategory: prev.subCategory.filter((_, i) => i !== index),
     }));
@@ -229,9 +244,15 @@ export default function ShopCategories() {
   const toggleCategoryStatus = async () => {
     if (!categoryToToggle) return;
     try {
-      await toggleCategoryStatusAPI(axiosInstance, categoryToToggle.id, categoryToToggle.active);
+      await toggleCategoryStatusAPI(
+        axiosInstance,
+        categoryToToggle.id,
+        categoryToToggle.active,
+      );
       toast.success(
-        categoryToToggle.active ? "Category disabled successfully" : "Category enabled successfully",
+        categoryToToggle.active
+          ? "Category disabled successfully"
+          : "Category enabled successfully",
       );
       fetchCategories();
     } catch (error) {
@@ -250,7 +271,8 @@ export default function ShopCategories() {
       return;
     }
     const isDuplicate = categories.some(
-      (category) => category.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+      (category) =>
+        category.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     );
     if (isDuplicate) {
       toast.error(`A category with the name "${trimmedName}" already exists.`);
@@ -285,7 +307,11 @@ export default function ShopCategories() {
       ? parentCategoryForSub.subCategory
       : [];
 
-    if (existing.map((s) => s.toLowerCase()).includes(subCategoryData.name.trim().toLowerCase())) {
+    if (
+      existing
+        .map((s) => s.toLowerCase())
+        .includes(subCategoryData.name.trim().toLowerCase())
+    ) {
       toast.error(`"${subCategoryData.name.trim()}" already exists`);
       return;
     }
@@ -298,11 +324,19 @@ export default function ShopCategories() {
         type: parentCategoryForSub.type || selectedCategoryType,
         subCategory: [...existing, subCategoryData.name.trim()], // ✅ append to array
         urlKey: subCategoryData.urlKey.trim() || parentCategoryForSub.urlKey,
-        metaTitle: subCategoryData.metaTitle.trim() || parentCategoryForSub.metaTitle,
-        metaKeywords: subCategoryData.metaKeywords.trim() || parentCategoryForSub.metaKeywords,
+        metaTitle:
+          subCategoryData.metaTitle.trim() || parentCategoryForSub.metaTitle,
+        metaKeywords:
+          subCategoryData.metaKeywords.trim() ||
+          parentCategoryForSub.metaKeywords,
       });
       toast.success("Sub-category added successfully");
-      setSubCategoryData({ name: "", urlKey: "", metaTitle: "", metaKeywords: "" });
+      setSubCategoryData({
+        name: "",
+        urlKey: "",
+        metaTitle: "",
+        metaKeywords: "",
+      });
       setShowAddSubCategoryModal(false);
       setParentCategoryForSub(null);
       fetchCategories();
@@ -317,10 +351,16 @@ export default function ShopCategories() {
     const matchesSearch =
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (Array.isArray(category.subCategory)
-        ? category.subCategory.some((s) => s.toLowerCase().includes(searchTerm.toLowerCase()))
+        ? category.subCategory.some((s) =>
+            s.toLowerCase().includes(searchTerm.toLowerCase()),
+          )
         : false) ||
-      (category.urlKey || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (category.metaTitle || "").toLowerCase().includes(searchTerm.toLowerCase());
+      (category.urlKey || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (category.metaTitle || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
     let matchesStatus = true;
     if (selectedStatus === "active") matchesStatus = category.active;
@@ -378,7 +418,9 @@ export default function ShopCategories() {
               <Folder className="h-5 w-5" />
               Category Details
             </DialogTitle>
-            <DialogDescription>Detailed information about {category.name}</DialogDescription>
+            <DialogDescription>
+              Detailed information about {category.name}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -386,34 +428,43 @@ export default function ShopCategories() {
               <h3 className="text-lg font-semibold">Basic Information</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Category Name</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    Category Name
+                  </label>
                   <p className="text-lg font-semibold">{category.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Category ID</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    Category ID
+                  </label>
                   <p className="font-mono text-sm">{category.id}</p>
                 </div>
 
                 {/* ✅ Render subcategories as badges */}
-                {Array.isArray(category.subCategory) && category.subCategory.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Sub Categories</label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {category.subCategory.map((sub, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
-                        >
-                          {sub}
-                        </span>
-                      ))}
+                {Array.isArray(category.subCategory) &&
+                  category.subCategory.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Sub Categories
+                      </label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {category.subCategory.map((sub, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
+                          >
+                            {sub}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {category.urlKey && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">URL Key</label>
+                    <label className="text-sm font-medium text-gray-500">
+                      URL Key
+                    </label>
                     <p className="font-mono text-sm">{category.urlKey}</p>
                   </div>
                 )}
@@ -426,13 +477,17 @@ export default function ShopCategories() {
                 <div className="space-y-3">
                   {category.metaTitle && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Meta Title</label>
+                      <label className="text-sm font-medium text-gray-500">
+                        Meta Title
+                      </label>
                       <p className="text-gray-700">{category.metaTitle}</p>
                     </div>
                   )}
                   {category.metaKeywords && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Meta Keywords</label>
+                      <label className="text-sm font-medium text-gray-500">
+                        Meta Keywords
+                      </label>
                       <p className="text-gray-700">{category.metaKeywords}</p>
                     </div>
                   )}
@@ -444,7 +499,9 @@ export default function ShopCategories() {
               <h3 className="text-lg font-semibold">Status Information</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    Status
+                  </label>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant={category.active ? "default" : "secondary"}>
                       {category.active ? "Active" : "Inactive"}
@@ -468,7 +525,9 @@ export default function ShopCategories() {
                 </div>
                 <div className="p-4 border rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {Array.isArray(category.subCategory) ? category.subCategory.length : 0}
+                    {Array.isArray(category.subCategory)
+                      ? category.subCategory.length
+                      : 0}
                   </div>
                   <div className="text-sm text-gray-500">Subcategories</div>
                 </div>
@@ -561,7 +620,9 @@ export default function ShopCategories() {
       <Card className="bg-white border-none shadow-md">
         <CardHeader>
           <CardTitle>Categories</CardTitle>
-          <CardDescription>Manage all product categories in the shop</CardDescription>
+          <CardDescription>
+            Manage all product categories in the shop
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -595,7 +656,9 @@ export default function ShopCategories() {
                           <Folder className="h-5 w-5 text-blue-500" />
                           <div>
                             <div className="font-medium">{category.name}</div>
-                            <div className="text-sm text-muted-foreground">ID: {category.id}</div>
+                            <div className="text-sm text-muted-foreground">
+                              ID: {category.id}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -606,20 +669,29 @@ export default function ShopCategories() {
                       </TableCell>
 
                       <TableCell>
-                        <div className="text-sm text-muted-foreground">{category.urlKey || "-"}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {category.urlKey || "-"}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-muted-foreground">{category.metaTitle || "-"}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {category.metaTitle || "-"}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-muted-foreground">{category.metaKeywords || "-"}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {category.metaKeywords || "-"}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Button
                             size="sm"
                             onClick={() => handleAddSubCategory(category)}
-                            style={{ backgroundColor: "#00007A", color: "white" }}
+                            style={{
+                              backgroundColor: "#00007A",
+                              color: "white",
+                            }}
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             Add Sub
@@ -632,11 +704,17 @@ export default function ShopCategories() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditCategory(category)}>
+                              <DropdownMenuItem
+                                onClick={() => handleEditCategory(category)}
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleCategoryStatus(category)}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleToggleCategoryStatus(category)
+                                }
+                              >
                                 {category.active ? (
                                   <XCircle className="mr-2 h-4 w-4" />
                                 ) : (
@@ -675,9 +753,13 @@ export default function ShopCategories() {
           </select>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" disabled>Prev</Button>
+          <Button variant="outline" size="sm" disabled>
+            Prev
+          </Button>
           <span className="text-sm text-muted-foreground">Page 1 of 0</span>
-          <Button variant="outline" size="sm" disabled>Next</Button>
+          <Button variant="outline" size="sm" disabled>
+            Next
+          </Button>
         </div>
       </div>
 
@@ -691,15 +773,23 @@ export default function ShopCategories() {
       />
 
       {/* Create Category Modal */}
-      <Dialog open={showCreateCategoryModal} onOpenChange={setShowCreateCategoryModal}>
+      <Dialog
+        open={showCreateCategoryModal}
+        onOpenChange={setShowCreateCategoryModal}
+      >
         <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Create New Category</DialogTitle>
-            <DialogDescription>Enter the name for the new category</DialogDescription>
+            <DialogDescription>
+              Enter the name for the new category
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="categoryName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Category Name *
               </label>
               <Input
@@ -707,13 +797,23 @@ export default function ShopCategories() {
                 placeholder="Enter category name"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyPress={(e) => { if (e.key === "Enter") handleCreateCategory(); }}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter") handleCreateCategory();
+                }}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateCategoryModal(false)}>Cancel</Button>
-            <Button onClick={handleCreateCategory} style={{ backgroundColor: "#00007A", color: "white" }}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateCategoryModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCategory}
+              style={{ backgroundColor: "#00007A", color: "white" }}
+            >
               Create Category
             </Button>
           </DialogFooter>
@@ -721,7 +821,10 @@ export default function ShopCategories() {
       </Dialog>
 
       {/* Add Sub-Category Modal */}
-      <Dialog open={showAddSubCategoryModal} onOpenChange={setShowAddSubCategoryModal}>
+      <Dialog
+        open={showAddSubCategoryModal}
+        onOpenChange={setShowAddSubCategoryModal}
+      >
         <DialogContent className="max-w-2xl bg-white">
           <DialogHeader>
             <DialogTitle>Add Sub-Category</DialogTitle>
@@ -731,72 +834,130 @@ export default function ShopCategories() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
-              <Input value={parentCategoryForSub?.name || ""} disabled className="bg-gray-50" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Parent Category
+              </label>
+              <Input
+                value={parentCategoryForSub?.name || ""}
+                disabled
+                className="bg-gray-50"
+              />
             </div>
 
             {/* Show existing subcategories */}
-            {Array.isArray(parentCategoryForSub?.subCategory) && parentCategoryForSub.subCategory.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Existing Sub-Categories
-                </label>
-                <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-lg border">
-                  {parentCategoryForSub.subCategory.map((sub, i) => (
-                    <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
-                      {sub}
-                    </span>
-                  ))}
+            {Array.isArray(parentCategoryForSub?.subCategory) &&
+              parentCategoryForSub.subCategory.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Existing Sub-Categories
+                  </label>
+                  <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-lg border">
+                    {parentCategoryForSub.subCategory.map((sub, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
+                      >
+                        {sub}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div>
-              <label htmlFor="subCategoryName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="subCategoryName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 New Sub-category Name *
               </label>
               <Input
                 id="subCategoryName"
                 placeholder="Enter sub-category name"
                 value={subCategoryData.name}
-                onChange={(e) => setSubCategoryData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setSubCategoryData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
               />
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-700">Search Engine Optimize</h4>
+              <h4 className="text-sm font-medium text-gray-700">
+                Search Engine Optimize
+              </h4>
               <div>
-                <label htmlFor="urlKey" className="block text-sm font-medium text-gray-700 mb-2">URL Key</label>
+                <label
+                  htmlFor="urlKey"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  URL Key
+                </label>
                 <Input
                   id="urlKey"
                   placeholder="Enter URL key"
                   value={subCategoryData.urlKey}
-                  onChange={(e) => setSubCategoryData((prev) => ({ ...prev, urlKey: e.target.value }))}
+                  onChange={(e) =>
+                    setSubCategoryData((prev) => ({
+                      ...prev,
+                      urlKey: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div>
-                <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-2">Meta Title</label>
+                <label
+                  htmlFor="metaTitle"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Meta Title
+                </label>
                 <Input
                   id="metaTitle"
                   placeholder="Enter meta title"
                   value={subCategoryData.metaTitle}
-                  onChange={(e) => setSubCategoryData((prev) => ({ ...prev, metaTitle: e.target.value }))}
+                  onChange={(e) =>
+                    setSubCategoryData((prev) => ({
+                      ...prev,
+                      metaTitle: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div>
-                <label htmlFor="metaKeywords" className="block text-sm font-medium text-gray-700 mb-2">Meta Keywords</label>
+                <label
+                  htmlFor="metaKeywords"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Meta Keywords
+                </label>
                 <Input
                   id="metaKeywords"
                   placeholder="Enter meta keywords (comma separated)"
                   value={subCategoryData.metaKeywords}
-                  onChange={(e) => setSubCategoryData((prev) => ({ ...prev, metaKeywords: e.target.value }))}
+                  onChange={(e) =>
+                    setSubCategoryData((prev) => ({
+                      ...prev,
+                      metaKeywords: e.target.value,
+                    }))
+                  }
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSubCategoryModal(false)}>Cancel</Button>
-            <Button onClick={handleCreateSubCategory} style={{ backgroundColor: "#00007A", color: "white" }}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddSubCategoryModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateSubCategory}
+              style={{ backgroundColor: "#00007A", color: "white" }}
+            >
               Add Sub-Category
             </Button>
           </DialogFooter>
@@ -809,12 +970,28 @@ export default function ShopCategories() {
           <DialogHeader>
             <DialogTitle>Delete Category</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{categoryToDelete?.name}"? This action cannot be undone.
+              You are about to delete the category{" "}
+              <strong>{categoryToDelete?.name}</strong>.
+              <br />
+              <span style={{ color: "red", fontWeight: "bold" }}>
+                Warning: This will also delete all related attributes! This
+                action cannot be undone.
+              </span>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-            <Button onClick={deleteCategory} style={{ backgroundColor: "#dc2626", color: "white" }}>Delete</Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={deleteCategory}
+              style={{ backgroundColor: "#dc2626", color: "white" }}
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -823,14 +1000,26 @@ export default function ShopCategories() {
       <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
         <DialogContent className="bg-white">
           <DialogHeader>
-            <DialogTitle>{categoryToToggle?.active ? "Disable" : "Enable"} Category</DialogTitle>
+            <DialogTitle>
+              {categoryToToggle?.active ? "Disable" : "Enable"} Category
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to {categoryToToggle?.active ? "disable" : "enable"} "{categoryToToggle?.name}"?
+              Are you sure you want to{" "}
+              {categoryToToggle?.active ? "disable" : "enable"} "
+              {categoryToToggle?.name}"?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStatusConfirm(false)}>Cancel</Button>
-            <Button onClick={toggleCategoryStatus} style={{ backgroundColor: "#00007A", color: "white" }}>
+            <Button
+              variant="outline"
+              onClick={() => setShowStatusConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={toggleCategoryStatus}
+              style={{ backgroundColor: "#00007A", color: "white" }}
+            >
               {categoryToToggle?.active ? "Disable" : "Enable"}
             </Button>
           </DialogFooter>
@@ -838,28 +1027,43 @@ export default function ShopCategories() {
       </Dialog>
 
       {/* Edit Category Modal */}
-      <Dialog open={showEditCategoryModal} onOpenChange={setShowEditCategoryModal}>
+      <Dialog
+        open={showEditCategoryModal}
+        onOpenChange={setShowEditCategoryModal}
+      >
         <DialogContent className="max-w-2xl bg-white">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Update category information for "{editCategoryData.name}"</DialogDescription>
+            <DialogDescription>
+              Update category information for "{editCategoryData.name}"
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label htmlFor="editCategoryName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="editCategoryName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Category Name *
               </label>
               <Input
                 id="editCategoryName"
                 placeholder="Enter category name"
                 value={editCategoryData.name}
-                onChange={(e) => setEditCategoryData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setEditCategoryData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
               />
             </div>
 
             {/* ✅ Sub-categories as tag input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sub Categories</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sub Categories
+              </label>
 
               {/* Existing tags */}
               {editCategoryData.subCategory.length > 0 && (
@@ -888,7 +1092,12 @@ export default function ShopCategories() {
                   placeholder="Type a sub-category and press Add"
                   value={newSubCategoryInput}
                   onChange={(e) => setNewSubCategoryInput(e.target.value)}
-                  onKeyPress={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddSubCategoryTag(); } }}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSubCategoryTag();
+                    }
+                  }}
                 />
                 <Button
                   type="button"
@@ -902,39 +1111,79 @@ export default function ShopCategories() {
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-700">Search Engine Optimize</h4>
+              <h4 className="text-sm font-medium text-gray-700">
+                Search Engine Optimize
+              </h4>
               <div>
-                <label htmlFor="editUrlKey" className="block text-sm font-medium text-gray-700 mb-2">URL Key</label>
+                <label
+                  htmlFor="editUrlKey"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  URL Key
+                </label>
                 <Input
                   id="editUrlKey"
                   placeholder="Enter URL key"
                   value={editCategoryData.urlKey}
-                  onChange={(e) => setEditCategoryData((prev) => ({ ...prev, urlKey: e.target.value }))}
+                  onChange={(e) =>
+                    setEditCategoryData((prev) => ({
+                      ...prev,
+                      urlKey: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div>
-                <label htmlFor="editMetaTitle" className="block text-sm font-medium text-gray-700 mb-2">Meta Title</label>
+                <label
+                  htmlFor="editMetaTitle"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Meta Title
+                </label>
                 <Input
                   id="editMetaTitle"
                   placeholder="Enter meta title"
                   value={editCategoryData.metaTitle}
-                  onChange={(e) => setEditCategoryData((prev) => ({ ...prev, metaTitle: e.target.value }))}
+                  onChange={(e) =>
+                    setEditCategoryData((prev) => ({
+                      ...prev,
+                      metaTitle: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div>
-                <label htmlFor="editMetaKeywords" className="block text-sm font-medium text-gray-700 mb-2">Meta Keywords</label>
+                <label
+                  htmlFor="editMetaKeywords"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Meta Keywords
+                </label>
                 <Input
                   id="editMetaKeywords"
                   placeholder="Enter meta keywords (comma separated)"
                   value={editCategoryData.metaKeywords}
-                  onChange={(e) => setEditCategoryData((prev) => ({ ...prev, metaKeywords: e.target.value }))}
+                  onChange={(e) =>
+                    setEditCategoryData((prev) => ({
+                      ...prev,
+                      metaKeywords: e.target.value,
+                    }))
+                  }
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditCategoryModal(false)}>Cancel</Button>
-            <Button onClick={handleUpdateCategory} style={{ backgroundColor: "#00007A", color: "white" }}>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditCategoryModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateCategory}
+              style={{ backgroundColor: "#00007A", color: "white" }}
+            >
               Update Category
             </Button>
           </DialogFooter>

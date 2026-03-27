@@ -211,7 +211,7 @@ const AccountUploads = ({ data, refreshData }) => {
   };
 
   const generalFields = [
-    { label: "Business Registration", key: "businessRegistration" },
+    { label: "Certificate of Incorporation", key: "businessRegistration" },
     { label: "Business Permit", key: "businessPermit" },
     { label: "KRA PIN", key: "krapin" },
     { label: "Company Profile", key: "companyProfile" },
@@ -438,7 +438,7 @@ const AccountUploads = ({ data, refreshData }) => {
         response = await uploadProfessionalDocuments(axiosInstance, payload);
       } else if (userType === "contractor") {
         const payload = {
-          businessRegistration: updatedUrls.businessRegistration || null,
+          certificateOfIncorporation: updatedUrls.certificateOfIncorporation  || null,
           businessPermit: updatedUrls.businessPermit || null,
           krapin: updatedUrls.krapin || null,
           companyProfile: updatedUrls.companyProfile || null,
@@ -600,7 +600,7 @@ const AccountUploads = ({ data, refreshData }) => {
           </div>
 
           {data?.documentStatusReason && (
-            <Alert variant="destructive" className="mb-6">
+            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
               <InfoIcon className="h-4 w-4" />
               <AlertTitle>Status Update</AlertTitle>
               <AlertDescription>{data.documentStatusReason}</AlertDescription>
