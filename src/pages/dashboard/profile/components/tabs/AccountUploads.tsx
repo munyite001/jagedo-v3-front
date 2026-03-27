@@ -1006,14 +1006,14 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
                 <FiRefreshCw className="w-3 h-3" />
                 Resubmit
               </button>
-              <button
+              {/* <button
                 onClick={() => openActionModal(doc.key, "reject")}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-semibold hover:bg-red-100 transition"
                 title="Reject"
               >
                 <XCircle className="w-3 h-3" />
                 Reject
-              </button>
+              </button> */}
             </div>
           )}
         </div>
