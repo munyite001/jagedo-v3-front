@@ -341,6 +341,7 @@ export function ProfileCompletion({
         setIsSubmitting(true);
         try {
             const profileData = {
+                email: user?.email,
                 ...personalInfo,
                 ...location,
                 ...reference,
