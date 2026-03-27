@@ -349,9 +349,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ userData, completionStatus })
         return action;
     }
   };
-console.log("completionStatus:", completionStatus);
-console.log("allSectionsComplete:", allSectionsComplete);
-console.log("displayStatus:", displayStatus);
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* <ProfileNavBarVerification /> */}

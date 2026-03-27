@@ -149,64 +149,64 @@ export const useProfileCompletion = (
     let experienceComplete = false;
     const userTypeUpper = userType.toUpperCase();
 
-    if (
-      userData?.experienceStatus === "PENDING" ||
-      userData?.experienceStatus === "VERIFIED"
-    ) {
-      experienceComplete = true;
-    } else if (userTypeUpper === "CUSTOMER") {
-      // CUSTOMER doesn't have experience section
-      experienceComplete = true;
-    } else if (userTypeUpper === "FUNDI") {
-      // FUNDI: needs grade, experience, and previousJobPhotoUrls
-      const hasGrade = userData?.grade;
-      const hasExperience = userData?.experience;
-      const hasProjects =
-        userData?.previousJobPhotoUrls &&
-        userData.previousJobPhotoUrls.length > 0;
-      experienceComplete = !!(hasGrade && hasExperience && hasProjects);
-    } else if (userTypeUpper === "PROFESSIONAL") {
-      // PROFESSIONAL: needs profession, professionalLevel, yearsOfExperience, and professionalProjects
-      const hasProfession = userData?.profession;
-      const hasLevel = userData?.levelOrClass;
-      const hasExperience = userData?.yearsOfExperience;
-      const hasProjects =
-        userData?.professionalProjects &&
-        userData.professionalProjects.length > 0;
-      experienceComplete = !!(
-        hasProfession &&
-        hasLevel &&
-        hasExperience &&
-        hasProjects
-      );
-    } else if (userTypeUpper === "CONTRACTOR") {
-      // CONTRACTOR: needs contractorType, licenseLevel, contractorExperiences, and contractorProjects
-      const hasType = userData?.contractorType;
-      const hasLevel = userData?.licenseLevel;
-      const hasExperience = userData?.contractorExperiences;
-      const hasProjects =
-        userData?.contractorProjects && userData.contractorProjects.length > 0;
-      experienceComplete = !!(
-        hasType &&
-        hasLevel &&
-        hasExperience &&
-        hasProjects
-      );
-    } else if (userTypeUpper === "HARDWARE") {
-      // HARDWARE: needs hardwareType, businessType, experience, and hardwareProjects
-      const hasType = userData?.hardwareType;
-      const hasBusinessType = userData?.businessType;
-      const hasExperience = userData?.experience;
-      const hasProjects =
-        userData?.hardwareProjects && userData.hardwareProjects.length > 0;
-      // experienceComplete = !!(
-      //   hasType &&
-      //   hasBusinessType &&
-      //   hasExperience &&
-      //   hasProjects
-      // );
-      experienceComplete = true;  // ← ADD THIS, currently checks hardwareType etc which may be missing
+    // Helper: check individual field requirements per user type
+    const checkExperienceFields = (): boolean => {
+      if (userTypeUpper === "CUSTOMER") {
+        return true; // No experience section for customers
+      } else if (userTypeUpper === "FUNDI") {
+        const hasGrade = !!userData?.grade;
+        const hasExperience = !!userData?.experience;
+        const hasProjects =
+          userData?.previousJobPhotoUrls &&
+          userData.previousJobPhotoUrls.length > 0;
+        return !!(hasGrade && hasExperience && hasProjects);
+      } else if (userTypeUpper === "PROFESSIONAL") {
+        const hasProfession = !!userData?.profession;
+        const hasLevel = !!userData?.levelOrClass;
+        const hasExperience = !!userData?.yearsOfExperience;
+        const hasProjects =
+          userData?.professionalProjects &&
+          userData.professionalProjects.length > 0;
+        return !!(hasProfession && hasLevel && hasExperience && hasProjects);
+      } else if (userTypeUpper === "CONTRACTOR") {
+        const hasType = !!userData?.contractorType;
+        const hasLevel = !!userData?.licenseLevel;
+        const hasExperience = !!userData?.contractorExperiences;
+        const hasProjects =
+          userData?.contractorProjects &&
+          userData.contractorProjects.length > 0;
+        return !!(hasType && hasLevel && hasExperience && hasProjects);
+      } else if (userTypeUpper === "HARDWARE") {
+        const hasType = !!userData?.hardwareType;
+        const hasBusinessType = !!userData?.businessType;
+        const hasExperience = !!userData?.experience;
+        const hasProjects =
+          userData?.hardwareProjects && userData.hardwareProjects.length > 0;
+        return !!(hasType && hasBusinessType && hasExperience && hasProjects);
+      }
+      return false;
+    };
 
+    const fieldsComplete = checkExperienceFields();
+
+    if (userTypeUpper === "CUSTOMER") {
+      // Customers have no experience section at all
+      experienceComplete = true;
+    } else if (
+      userData?.experienceStatus === "VERIFIED" ||
+      userData?.experienceStatus === "PENDING"
+    ) {
+      // Status is good AND fields must actually be filled
+      experienceComplete = fieldsComplete;
+    } else if (
+      userData?.experienceStatus === "RESUBMIT" ||
+      userData?.experienceStatus === "REJECTED"
+    ) {
+      // Explicitly rejected/needs resubmission → always false, regardless of fields
+      experienceComplete = false;
+    } else {
+      // No status yet → rely purely on whether fields are filled
+      experienceComplete = fieldsComplete;
     }
     const addressComplete = !!(
       userData?.country &&
