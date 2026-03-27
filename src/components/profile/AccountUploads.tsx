@@ -42,10 +42,18 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
+  if (status === "resubmit") {
+    return (
+      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+        <AlertCircle className="w-3.5 h-3.5" />
+        Resubmit
+      </div>
+    );
+  }
   return null;
 };
 
-const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status = "pending" }) => {
+const DocumentCard = ({ label, url, onReplace, isUploading, disabled, status }) => {
   const fileName = url?.split("/").pop();
 
   if (!url && !isUploading) {
@@ -220,9 +228,9 @@ const AccountUploads = ({ data, refreshData }) => {
   
   const baseFields = defaultFields[userType] || [];
   
-  
+  // Add portfolio items dynamically based on user type
   let fields = [...baseFields];
-  if ((userType === "professional" || userType === "fundi") && data?.professionalProjects) {
+  if (userType === "professional" && data?.professionalProjects) {
     const projects = Array.isArray(data.professionalProjects) ? data.professionalProjects : [];
     projects.forEach((project, index) => {
       fields.push({
@@ -231,8 +239,8 @@ const AccountUploads = ({ data, refreshData }) => {
       });
     });
   }
-  if (userType === "fundi" && data?.fundiEvaluation) {
-    const projects = Array.isArray(data.fundiEvaluation) ? data.fundiEvaluation : [];
+  if (userType === "fundi" && data?.previousJobPhotoUrls) {
+    const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
     projects.forEach((project, index) => {
       fields.push({
         label: `Portfolio - ${project.projectName || `Project ${index + 1}`}`,
@@ -297,6 +305,10 @@ const AccountUploads = ({ data, refreshData }) => {
         Object.keys(data.documentDetails).forEach((backendKey) => {
           const detail = data.documentDetails[backendKey];
           
+          // Handle both { status: 'VERIFIED' } and direct value 'VERIFIED'
+          let actualStatus = detail?.status || detail;
+          console.log(actualStatus)
+          const status = actualStatus === 'VERIFIED' ? 'approved' : actualStatus === 'RESUBMIT' ? 'resubmit' :actualStatus === 'REJECTED' ? 'rejected': 'pending';
           
           let actualStatus = detail?.status || detail;
           let status = 'pending';
@@ -355,17 +367,16 @@ const AccountUploads = ({ data, refreshData }) => {
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
           docsMap[key] = project.fileUrl;
-          
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
       }
-      if (userType === "fundi" && data.fundiEvaluation) {
-        const projects = Array.isArray(data.fundiEvaluation) ? data.fundiEvaluation : [];
+      if (userType === "fundi" && data.previousJobPhotoUrls) {
+        const projects = Array.isArray(data.previousJobPhotoUrls) ? data.previousJobPhotoUrls : [];
         projects.forEach((project, index) => {
           const key = `portfolio${index + 1}`;
-          docsMap[key] = project.fileUrl;
-          
+          const url = typeof project.fileUrl === 'object' ? project.fileUrl?.url : project.fileUrl;
+          docsMap[key] = url;
           const portfolioStatus = data.documentStatus === 'VERIFIED' ? 'approved' : 'pending';
           statusMap[key] = portfolioStatus;
         });
@@ -506,12 +517,12 @@ const AccountUploads = ({ data, refreshData }) => {
             </div>
 
             {data?.documentStatusReason && (
-              <Alert variant="destructive" className="mb-6">
-                <InfoIcon className="h-4 w-4 text-red-600" />
-                <AlertTitle>Status Update</AlertTitle>
-                <AlertDescription>{data.documentStatusReason}</AlertDescription>
-              </Alert>
-            )}
+            <Alert variant={data.documentStatus ==="PENDING" ? "default" : "destructive"} className={data.documentStatus ==="PENDING" ? "mb-6 bg-amber-100" : "mb-6"}>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Status Update</AlertTitle>
+              <AlertDescription>{data.documentStatusReason}</AlertDescription>
+            </Alert>
+          )}
 
             {/* ✅ Approval Status Summary */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
