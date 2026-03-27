@@ -172,7 +172,7 @@ export function ProfileCompletion({
         ? counties[location.county as keyof typeof counties] || []
         : [];
 
-    const isOrganizationType = accountType === "ORGANIZATION";
+    const isOrganizationType = accountType === "ORGANIZATION" || userType === "CONTRACTOR" || userType === "HARDWARE";
 
 
     const validateStep1 = (): boolean => {
@@ -340,8 +340,15 @@ export function ProfileCompletion({
         }
         setIsSubmitting(true);
         try {
+            const { firstName, lastName, organizationName, contactFullName, ...restPersonalInfo } = personalInfo;
+            const nameFields = isOrganizationType
+                ? { organizationName, contactFullName }
+                : { firstName, lastName };
+
             const profileData = {
-                ...personalInfo,
+                email: user?.email,
+                ...restPersonalInfo,
+                ...nameFields,
                 ...location,
                 ...reference,
                 secondaryContactVerification: {

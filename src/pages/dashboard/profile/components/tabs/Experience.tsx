@@ -10,15 +10,40 @@ import {
   PencilIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { UploadCloud, FileText, CheckCircle, XCircle, EyeIcon, InfoIcon as LucideInfoIcon } from "lucide-react";
-import { FiCheck, FiChevronDown, FiRefreshCw, FiAlertCircle, FiInfo } from "react-icons/fi";
+import {
+  UploadCloud,
+  FileText,
+  CheckCircle,
+  XCircle,
+  EyeIcon,
+  InfoIcon as LucideInfoIcon,
+} from "lucide-react";
+import {
+  FiCheck,
+  FiChevronDown,
+  FiRefreshCw,
+  FiAlertCircle,
+  FiInfo,
+} from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
-import { adminVerifyExperience, adminRejectExperience, adminResubmitExperience, adminUpdateFundiExperience, adminUpdateProfessionalExperience, adminUpdateContractorExperience, getEvaluationQuestions, createEvaluationQuestion, updateEvaluationQuestion, deleteEvaluationQuestion, uploadEvaluationAudio, updateEvaluation } from "@/api/experience.api";
+import {
+  adminVerifyExperience,
+  adminRejectExperience,
+  adminResubmitExperience,
+  adminUpdateFundiExperience,
+  adminUpdateProfessionalExperience,
+  adminUpdateContractorExperience,
+  getEvaluationQuestions,
+  createEvaluationQuestion,
+  updateEvaluationQuestion,
+  deleteEvaluationQuestion,
+  uploadEvaluationAudio,
+  updateEvaluation,
+} from "@/api/experience.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile } from "@/utils/fileUpload";
-
 
 const FUNDI_SPECIALIZATIONS = {
   Mason: [
@@ -303,12 +328,14 @@ const CONTRACTOR_SPECIALIZATIONS = {
   ],
 };
 
-
-
 const deepMerge = (target: any, source: any): any => {
   const result = { ...target };
   for (const key in source) {
-    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+    if (
+      source[key] &&
+      typeof source[key] === "object" &&
+      !Array.isArray(source[key])
+    ) {
       result[key] = deepMerge(result[key] || {}, source[key]);
     } else {
       result[key] = source[key];
@@ -317,14 +344,10 @@ const deepMerge = (target: any, source: any): any => {
   return result;
 };
 
-
-
 const resolveSpecialization = (user: any) => {
   if (!user) return "";
 
-
   if (user.specialization) return user.specialization;
-
 
   if (user.fundispecialization) return user.fundispecialization;
   if (user.professionalSpecialization) return user.professionalSpecialization;
@@ -333,16 +356,10 @@ const resolveSpecialization = (user: any) => {
   return "";
 };
 
-
-
-
-const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
-
-
-  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL)
+const Experience = ({ userData, isAdmin = false, refetch = () => {} }) => {
+  const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const [isEditingFields, setIsEditingFields] = useState(false);
   const [editingFields, setEditingFields] = useState({});
-
 
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -350,17 +367,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [isPendingAction, setIsPendingAction] = useState(false);
   const [showGlobalActions, setShowGlobalActions] = useState(false);
 
-
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     action: "approve" | "reject" | "resubmit" | null;
   }>({ isOpen: false, action: null });
   const [actionReason, setActionReason] = useState("");
 
-
   const userType = userData?.userType || "FUNDI";
   const status = userData?.experienceStatus;
-
 
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -375,7 +389,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
         const extractedData = Array.isArray(response)
           ? response
-          : (response?.data && Array.isArray(response.data) ? response.data : []);
+          : response?.data && Array.isArray(response.data)
+            ? response.data
+            : [];
 
         setAvailableQuestions(extractedData);
       } catch (error: any) {
@@ -391,10 +407,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   }, [userType, userData?.id]);
 
-
   useEffect(() => {
     if (availableQuestions.length > 0) {
-      const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+      const evaluation =
+        userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
       if (evaluation) {
         prefillQuestionsFromData();
       } else {
@@ -410,17 +426,24 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         setQuestions(initial);
       }
     }
-  }, [availableQuestions, userData?.fundiEvaluation, userData?.userProfile?.fundiEvaluation]);
+  }, [
+    availableQuestions,
+    userData?.fundiEvaluation,
+    userData?.userProfile?.fundiEvaluation,
+  ]);
 
   const prefillQuestionsFromData = () => {
-    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+    const evaluation =
+      userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     if (!evaluation || !availableQuestions.length) return;
 
     const prefilled = availableQuestions.map((q: any, index: number) => {
       let answer = "";
       let score = 0;
 
-      const savedResponse = evaluation.responses?.find((r: any) => r.questionId === q.id || r.text === q.text);
+      const savedResponse = evaluation.responses?.find(
+        (r: any) => r.questionId === q.id || r.text === q.text,
+      );
 
       if (savedResponse) {
         answer = savedResponse.answer;
@@ -429,8 +452,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         const legacyFields = [
           { ans: evaluation.hasMajorWorks, sc: evaluation.majorWorksScore },
           { ans: evaluation.materialsUsed, sc: evaluation.materialsUsedScore },
-          { ans: evaluation.essentialEquipment, sc: evaluation.essentialEquipmentScore },
-          { ans: evaluation.quotationFormulation, sc: evaluation.quotationFormulaScore }
+          {
+            ans: evaluation.essentialEquipment,
+            sc: evaluation.essentialEquipmentScore,
+          },
+          {
+            ans: evaluation.quotationFormulation,
+            sc: evaluation.quotationFormulaScore,
+          },
         ];
         if (legacyFields[index]) {
           answer = legacyFields[index].ans || "";
@@ -451,11 +480,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setQuestions(prefilled);
   };
 
-
   const PREFILL_STATUSES = ["COMPLETED", "VERIFIED", "PENDING", "RETURNED"];
 
   const getInitialAttachments = () => {
-
     if (!userData) {
       return [];
     }
@@ -487,7 +514,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       const pName = project.projectName || `${userType} Project ${index + 1}`;
       let pUrl = "";
 
-      if (typeof project.fileUrl === 'object' && project.fileUrl !== null) {
+      if (typeof project.fileUrl === "object" && project.fileUrl !== null) {
         pUrl = project.fileUrl.url || "";
       } else {
         pUrl = project.fileUrl || project?.projectFile || "";
@@ -522,14 +549,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         );
       case "HARDWARE":
         return (
-          userData?.hardwareProjects &&
-          userData?.hardwareProjects.length > 0
+          userData?.hardwareProjects && userData?.hardwareProjects.length > 0
         );
       default:
         return false;
     }
   };
-
 
   const getProjectFieldName = () => {
     switch (userType) {
@@ -568,7 +593,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [newProjects, setNewProjects] = useState<{ [key: string]: any }>({});
 
   const getInitialCategories = (): ContractorCategory[] => {
-    if (userData?.contractorCategories && Array.isArray(userData.contractorCategories)) {
+    if (
+      userData?.contractorCategories &&
+      Array.isArray(userData.contractorCategories)
+    ) {
       return userData.contractorCategories.map((cat: any) => ({
         category: cat.category || "",
         specialization: cat.specialization || "",
@@ -577,7 +605,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       }));
     }
 
-    if (userData?.contractorExperiences && Array.isArray(userData.contractorExperiences)) {
+    if (
+      userData?.contractorExperiences &&
+      Array.isArray(userData.contractorExperiences)
+    ) {
       return userData.contractorExperiences.map((exp: any) => ({
         category: exp.category || "",
         specialization: exp.specialization || "",
@@ -588,7 +619,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     return [{ category: "", specialization: "", class: "", years: "" }];
   };
 
-  const [categories, setCategories] = useState<ContractorCategory[]>(getInitialCategories());
+  const [categories, setCategories] = useState<ContractorCategory[]>(
+    getInitialCategories(),
+  );
   const addCategory = () => {
     setCategories([
       ...categories,
@@ -605,7 +638,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setCategories(categories.filter((_, i) => i !== index));
   };
 
-
   const getInitialInfo = () => {
     if (!userData) {
       return getDefaultInfo();
@@ -614,8 +646,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     switch (userType) {
       case "FUNDI":
         const fundiSkill = userData.skill || userData.skills || "";
-        const fundiSpecOptions = FUNDI_SPECIALIZATIONS[fundiSkill as keyof typeof FUNDI_SPECIALIZATIONS] || [];
-        const defaultFundiSpec = fundiSpecOptions.length > 0 ? fundiSpecOptions[0] : "";
+        const fundiSpecOptions =
+          FUNDI_SPECIALIZATIONS[
+            fundiSkill as keyof typeof FUNDI_SPECIALIZATIONS
+          ] || [];
+        const defaultFundiSpec =
+          fundiSpecOptions.length > 0 ? fundiSpecOptions[0] : "";
         return {
           skill: fundiSkill,
           specialization:
@@ -628,8 +664,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
       case "PROFESSIONAL":
         const profession = userData.profession || "";
-        const profSpecOptions = PROFESSIONAL_SPECIALIZATIONS[profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS] || [];
-        const defaultProfSpec = profSpecOptions.length > 0 ? profSpecOptions[0] : "";
+        const profSpecOptions =
+          PROFESSIONAL_SPECIALIZATIONS[
+            profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS
+          ] || [];
+        const defaultProfSpec =
+          profSpecOptions.length > 0 ? profSpecOptions[0] : "";
         return {
           profession: profession,
           specialization:
@@ -638,14 +678,18 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             defaultProfSpec,
           professionalLevel:
             userData.professionalLevel || userData.levelOrClass || "",
-          yearsOfExperience:
-            userData.yearsOfExperience || "",
+          yearsOfExperience: userData.yearsOfExperience || "",
         };
 
       case "CONTRACTOR":
-        const category = userData.contractorType || userData.contractorTypes || "";
-        const contSpecOptions = CONTRACTOR_SPECIALIZATIONS[category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || [];
-        const defaultContSpec = contSpecOptions.length > 0 ? contSpecOptions[0] : "";
+        const category =
+          userData.contractorType || userData.contractorTypes || "";
+        const contSpecOptions =
+          CONTRACTOR_SPECIALIZATIONS[
+            category as keyof typeof CONTRACTOR_SPECIALIZATIONS
+          ] || [];
+        const defaultContSpec =
+          contSpecOptions.length > 0 ? contSpecOptions[0] : "";
         return {
           category: category,
           specialization:
@@ -654,18 +698,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             defaultContSpec,
           class: userData.licenseLevel || "",
           yearsOfExperience:
-            userData.contractorExperiences?.[0]?.yearsOfExperience ||
-            "",
-
+            userData.contractorExperiences?.[0]?.yearsOfExperience || "",
         };
 
       case "HARDWARE":
-        const hardwareType = userData.hardwareType || userData.hardwareTypes || "";
+        const hardwareType =
+          userData.hardwareType || userData.hardwareTypes || "";
         return {
           hardwareType: hardwareType,
           specialization:
-            userData.specialization ||
-            "Cement & Concrete Products",
+            userData.specialization || "Cement & Concrete Products",
           businessType: userData.businessType || "",
           experience: userData.experience || "",
         };
@@ -714,7 +756,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "specialization",
             label: "Specialization",
-            options: FUNDI_SPECIALIZATIONS[currentData.skill as keyof typeof FUNDI_SPECIALIZATIONS] || [
+            options: FUNDI_SPECIALIZATIONS[
+              currentData.skill as keyof typeof FUNDI_SPECIALIZATIONS
+            ] || [
               "Block Work & Brick Laying",
               "Plastering & Rendering",
               "Stone Masonry",
@@ -760,7 +804,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "specialization",
             label: "Specialization",
-            options: PROFESSIONAL_SPECIALIZATIONS[currentData.profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS] || [
+            options: PROFESSIONAL_SPECIALIZATIONS[
+              currentData.profession as keyof typeof PROFESSIONAL_SPECIALIZATIONS
+            ] || [
               "Residential Architecture",
               "Commercial Architecture",
               "Industrial Architecture",
@@ -777,7 +823,14 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "yearsOfExperience",
             label: "Years of Experience",
-            options: ["15+ years", "10-15 years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
+            options: [
+              "15+ years",
+              "10-15 years",
+              "5-10 years",
+              "3-5 years",
+              "1-3 years",
+              "Less than 1 year",
+            ],
           },
         ];
 
@@ -798,8 +851,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "specialization",
             label: "Specialization",
-            options: CONTRACTOR_SPECIALIZATIONS[currentData.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] ||
-              CONTRACTOR_SPECIALIZATIONS[currentData.contractorType as keyof typeof CONTRACTOR_SPECIALIZATIONS] || [
+            options: CONTRACTOR_SPECIALIZATIONS[
+              currentData.category as keyof typeof CONTRACTOR_SPECIALIZATIONS
+            ] ||
+              CONTRACTOR_SPECIALIZATIONS[
+                currentData.contractorType as keyof typeof CONTRACTOR_SPECIALIZATIONS
+              ] || [
                 "Residential Construction",
                 "Commercial Construction",
                 "Industrial Construction",
@@ -811,12 +868,28 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "class",
             label: "NCA Class",
-            options: ["NCA1", "NCA2", "NCA3", "NCA4", "NCA5", "NCA6", "NCA7", "NCA8"],
+            options: [
+              "NCA1",
+              "NCA2",
+              "NCA3",
+              "NCA4",
+              "NCA5",
+              "NCA6",
+              "NCA7",
+              "NCA8",
+            ],
           },
           {
             name: "yearsOfExperience",
             label: "Years of Experience",
-            options: ["10+ years", "7-10 years", "5-7 years", "3-5 years", "1-3 years", "Less than 1 year"],
+            options: [
+              "10+ years",
+              "7-10 years",
+              "5-7 years",
+              "3-5 years",
+              "1-3 years",
+              "Less than 1 year",
+            ],
           },
         ];
 
@@ -855,12 +928,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           {
             name: "businessType",
             label: "Business Type",
-            options: ["Retail Store", "Wholesale Supplier", "Manufacturer", "Distributor"],
+            options: [
+              "Retail Store",
+              "Wholesale Supplier",
+              "Manufacturer",
+              "Distributor",
+            ],
           },
           {
             name: "experience",
             label: "Business Experience",
-            options: ["10+ years", "5-10 years", "3-5 years", "1-3 years", "Less than 1 year"],
+            options: [
+              "10+ years",
+              "5-10 years",
+              "3-5 years",
+              "1-3 years",
+              "Less than 1 year",
+            ],
           },
         ];
 
@@ -912,9 +996,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   const fields = getFieldsConfig();
 
-
-
-
   const handleFileUpload = (e, rowIndex) => {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
@@ -942,10 +1023,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-
   const getRequiredProjectCount = () => {
     const currentGrade = isEditingFields ? editingFields.grade : info.grade;
-    const currentLevel = isEditingFields ? editingFields.professionalLevel : info.professionalLevel;
+    const currentLevel = isEditingFields
+      ? editingFields.professionalLevel
+      : info.professionalLevel;
 
     switch (userType) {
       case "FUNDI":
@@ -974,7 +1056,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     0,
     requiredProjectCount - attachments.length,
   );
-
 
   const handleAddNewProject = (
     projectId: string,
@@ -1011,9 +1092,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setUploadingProjects((prev) => ({ ...prev, [projectId]: false }));
   };
 
-
-
-
   const updateUserProjects = (updatedAttachments) => {
     try {
       const profile = userData?.userProfile || {};
@@ -1027,8 +1105,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           ),
         }))
         .filter((project) => project.files.length > 0);
-
-
 
       const projectData = cleanAttachments.flatMap((project) =>
         project.files.map((file) => ({
@@ -1054,7 +1130,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       throw error;
     }
   };
-
 
   const handleReplaceFile = (e, rowIndex, fileIndex) => {
     const file = e.target.files?.[0];
@@ -1085,7 +1160,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-
   const handleRemoveFile = (rowIndex, fileIndex) => {
     const loadingKey = `remove-${rowIndex}-${fileIndex}`;
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: true }));
@@ -1108,9 +1182,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setFileActionLoading((prev) => ({ ...prev, [loadingKey]: false }));
   };
 
-
-
-
   const addNewQuestion = () => {
     if (!isAdmin) return;
 
@@ -1128,7 +1199,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     setQuestions((prev) => [...prev, newQuestion]);
   };
 
-
   const handleSaveNewQuestion = async (draft: any) => {
     if (!draft.isDraft) return;
 
@@ -1144,22 +1214,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       const response = await createEvaluationQuestion(axiosInstance, payload);
       const realQuestion = response?.data || response;
 
-
       setQuestions((prev) =>
         (Array.isArray(prev) ? prev : []).map((q) =>
           q.id === draft.id
             ? {
-              ...q,
-              id: realQuestion.id,
-              isEditing: false,
-              isDraft: false,
-            }
+                ...q,
+                id: realQuestion.id,
+                isEditing: false,
+                isDraft: false,
+              }
             : q,
         ),
       );
 
-
-      setAvailableQuestions((prev) => [...(Array.isArray(prev) ? prev : []), realQuestion]);
+      setAvailableQuestions((prev) => [
+        ...(Array.isArray(prev) ? prev : []),
+        realQuestion,
+      ]);
 
       toast.success("Question created and synced");
     } catch (error: any) {
@@ -1169,16 +1240,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-
   const handleDeleteQuestion = async (questionId: any) => {
     const q = questions.find((item) => item.id === questionId);
     if (!q) return;
 
-    if (!isAdmin || !window.confirm("Are you sure you want to delete this question?"))
+    if (
+      !isAdmin ||
+      !window.confirm("Are you sure you want to delete this question?")
+    )
       return;
 
     if (q.isDraft) {
-
       setQuestions((prev) => prev.filter((item) => item.id !== questionId));
       return;
     }
@@ -1187,8 +1259,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     try {
       await deleteEvaluationQuestion(axiosInstance, questionId);
 
-      setAvailableQuestions((prev) => (Array.isArray(prev) ? prev : []).filter((q) => q.id !== questionId));
-      setQuestions((prev) => (Array.isArray(prev) ? prev : []).filter((q) => q.id !== questionId));
+      setAvailableQuestions((prev) =>
+        (Array.isArray(prev) ? prev : []).filter((q) => q.id !== questionId),
+      );
+      setQuestions((prev) =>
+        (Array.isArray(prev) ? prev : []).filter((q) => q.id !== questionId),
+      );
       toast.success("Question deleted");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete question");
@@ -1197,10 +1273,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-
-  const handleUpdateTemplate = async (questionId: any, text: string, type: string, options?: string[]) => {
+  const handleUpdateTemplate = async (
+    questionId: any,
+    text: string,
+    type: string,
+    options?: string[],
+  ) => {
     if (!isAdmin) return;
-
 
     const q = questions.find((item) => item.id === questionId);
     if (!q || q.isDraft) return;
@@ -1212,24 +1291,23 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         options,
       };
 
-      const response = await updateEvaluationQuestion(axiosInstance, questionId, payload);
+      const response = await updateEvaluationQuestion(
+        axiosInstance,
+        questionId,
+        payload,
+      );
       const updated = response?.data || response;
 
-      setAvailableQuestions(prev => (Array.isArray(prev) ? prev : []).map(q => q.id === questionId ? updated : q));
+      setAvailableQuestions((prev) =>
+        (Array.isArray(prev) ? prev : []).map((q) =>
+          q.id === questionId ? updated : q,
+        ),
+      );
       toast.success("Question updated successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to update question");
     }
   };
-
-
-
-
-
-
-
-
-
 
   useEffect(() => {
     const initialNewProjects: { [key: string]: any } = {};
@@ -1241,7 +1319,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
   const handleTextChange = (id, value) => {
     setQuestions((prev) =>
-      (Array.isArray(prev) ? prev : []).map((q) => (q.id === id ? { ...q, answer: value } : q)),
+      (Array.isArray(prev) ? prev : []).map((q) =>
+        q.id === id ? { ...q, answer: value } : q,
+      ),
     );
   };
 
@@ -1249,13 +1329,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     const num = parseFloat(value) || 0;
     if (num > 100) return;
     setQuestions((prev) =>
-      (Array.isArray(prev) ? prev : []).map((q) => (q.id === id ? { ...q, score: num } : q)),
+      (Array.isArray(prev) ? prev : []).map((q) =>
+        q.id === id ? { ...q, score: num } : q,
+      ),
     );
   };
 
   const handleEditToggle = (id) => {
     setQuestions((prev) =>
-      (Array.isArray(prev) ? prev : []).map((q) => (q.id === id ? { ...q, isEditing: !q.isEditing } : q)),
+      (Array.isArray(prev) ? prev : []).map((q) =>
+        q.id === id ? { ...q, isEditing: !q.isEditing } : q,
+      ),
     );
   };
 
@@ -1265,7 +1349,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         q.id === id ? { ...q, text: newText, isEditing: false } : q,
       ),
     );
-
 
     if (isAdmin) {
       const q = questions.find((item) => item.id === id);
@@ -1345,8 +1428,13 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
-        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{config.title}</h3>
+        <div
+          className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {config.title}
+          </h3>
           <p className="text-sm text-gray-600 mb-4">{config.description}</p>
 
           {config.needsReason && (
@@ -1385,12 +1473,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   };
 
   const renderEvaluationResults = () => {
-    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+    const evaluation =
+      userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     if (!evaluation) return null;
 
-
-
-    const displayQuestions = questions.length > 0 ? questions : (evaluation.responses || []);
+    const displayQuestions =
+      questions.length > 0 ? questions : evaluation.responses || [];
 
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
@@ -1398,7 +1486,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
-              <h3 className="text-lg font-bold text-white">Evaluation Results</h3>
+              <h3 className="text-lg font-bold text-white">
+                Evaluation Results
+              </h3>
             </div>
             {isAdmin && !isEditingEvaluation && (
               <button
@@ -1416,7 +1506,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           </div>
           <div className="bg-white/10 px-4 py-1 rounded-full border border-white/20">
             <span className="text-sm font-semibold text-white">
-              Total Score: <span className="text-green-400 text-lg">{evaluation.totalScore}%</span>
+              Total Score:{" "}
+              <span className="text-green-400 text-lg">
+                {evaluation.totalScore}%
+              </span>
             </span>
           </div>
         </div>
@@ -1424,18 +1517,27 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {displayQuestions.map((q, idx) => (
-              <div key={idx} className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <div
+                key={idx}
+                className="bg-gray-50 p-4 rounded-lg border border-gray-100"
+              >
                 <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">
                   Question {idx + 1}
                 </p>
-                <h4 className="text-base font-semibold text-gray-800 mb-3">{q.text}</h4>
+                <h4 className="text-base font-semibold text-gray-800 mb-3">
+                  {q.text}
+                </h4>
                 <div className="bg-white p-3 rounded border border-gray-200 mb-2">
                   <p className="text-sm text-gray-700 italic">
-                    {Array.isArray(q.answer) ? q.answer.join(", ") : (q.answer || "N/A")}
+                    {Array.isArray(q.answer)
+                      ? q.answer.join(", ")
+                      : q.answer || "N/A"}
                   </p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs font-medium text-gray-400">Score</span>
+                  <span className="text-xs font-medium text-gray-400">
+                    Score
+                  </span>
                   <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
                     {q.score}/100
                   </span>
@@ -1451,7 +1553,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 Audio Feedback Reference
               </h4>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <audio key={evaluation.audioUrl} src={evaluation.audioUrl} controls className="w-full h-10 custom-audio-player">
+                <audio
+                  key={evaluation.audioUrl}
+                  src={evaluation.audioUrl}
+                  controls
+                  className="w-full h-10 custom-audio-player"
+                >
                   Your browser does not support the audio element.
                 </audio>
               </div>
@@ -1465,8 +1572,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
 
   /* -------------------- Status Badge Component -------------------- */
-  const StatusBadge = ({ status, showIcon = true }: { status: string; showIcon?: boolean }) => {
-    const configs: Record<string, { bg: string; text: string; border: string; icon: any; label: string }> = {
+  const StatusBadge = ({
+    status,
+    showIcon = true,
+  }: {
+    status: string;
+    showIcon?: boolean;
+  }) => {
+    const configs: Record<
+      string,
+      { bg: string; text: string; border: string; icon: any; label: string }
+    > = {
       pending: {
         bg: "bg-amber-50",
         text: "text-amber-700",
@@ -1501,7 +1617,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     const Icon = config.icon;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} border ${config.border}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} border ${config.border}`}
+      >
         {showIcon && <Icon className="w-3 h-3" />}
         {config.label}
       </span>
@@ -1512,14 +1630,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
 
-
   useEffect(() => {
-
     const stored = localStorage.getItem("showVerificationMessage");
     if (stored === "true") {
       setShowVerificationMessage(true);
     }
-
 
     const isVerified = userData?.userProfile?.fundiEvaluation?.isVerified;
 
@@ -1527,18 +1642,15 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       setShowVerificationMessage(true);
     }
 
-
-    const evaluation = userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
+    const evaluation =
+      userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation;
     const audioUrlFromData =
-      evaluation?.audioUrl ||
-      userData?.userProfile?.audioUploadUrl;
+      evaluation?.audioUrl || userData?.userProfile?.audioUploadUrl;
 
     if (audioUrlFromData) {
       setAudioUrl(audioUrlFromData);
-
     }
   }, [userData]);
-
 
   const handleVerify = async () => {
     setIsVerifying(true);
@@ -1549,7 +1661,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       return;
     }
     try {
-      await handleVerifyUser(axiosInstance, userId)
+      await handleVerifyUser(axiosInstance, userId);
       toast.success("User verified successfully!");
       localStorage.setItem("showVerificationMessage", "true");
       setShowVerificationMessage(true);
@@ -1561,12 +1673,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-
   const handleClose = () => {
     localStorage.removeItem("showVerificationMessage");
     setShowVerificationMessage(false);
   };
-
 
   const handleAudioUpload = async (event) => {
     const file = event.target.files[0];
@@ -1589,9 +1699,7 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-
   const handleEvaluationSubmit = async (e) => {
-
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitMessage("");
@@ -1604,8 +1712,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
 
     const body = {
-
-
       hasMajorWorks: questions[0]?.answer || "",
       materialsUsed: questions[1]?.answer || "",
       essentialEquipment: questions[2]?.answer || "",
@@ -1616,17 +1722,16 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
       essentialEquipmentScore: questions[2]?.score || 0,
       quotationFormulaScore: questions[3]?.score || 0,
 
-
-      responses: questions.map(q => ({
+      responses: questions.map((q) => ({
         questionId: q.id,
         text: q.text,
         answer: q.answer,
         score: q.score,
-        type: q.type
+        type: q.type,
       })),
 
       totalScore: totalScore,
-      audioUrl: audioUrl || null
+      audioUrl: audioUrl || null,
     };
 
     try {
@@ -1647,30 +1752,26 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
-
   const handleSaveChanges = async () => {
     setIsSavingInfo(true);
     const toastId = toast.loading("Saving all changes...");
     try {
       if (!userData?.id) throw new Error("User ID not found");
 
-
       const updatedAttachments = await Promise.all(
         attachments.map(async (project) => {
           const updatedFiles = await Promise.all(
             project.files.map(async (f) => {
               if (f.rawFile) {
-
                 const uploaded = await uploadFile(f.rawFile);
                 return { name: f.name, url: uploaded.url };
               }
               return { name: f.name, url: f.url };
-            })
+            }),
           );
           return { ...project, files: updatedFiles };
-        })
+        }),
       );
-
 
       let response;
       if (userType === "FUNDI") {
@@ -1678,18 +1779,26 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           project.files.map((file) => ({
             projectName: project.projectName,
             fileUrl: file.url,
-          }))
+          })),
         );
 
         const payload = {
           skill: isEditingFields ? editingFields.skill : info.skill,
-          specialization: isEditingFields ? editingFields.specialization : info.specialization,
+          specialization: isEditingFields
+            ? editingFields.specialization
+            : info.specialization,
           grade: isEditingFields ? editingFields.grade : info.grade,
-          experience: isEditingFields ? editingFields.experience : info.experience,
+          experience: isEditingFields
+            ? editingFields.experience
+            : info.experience,
           previousJobPhotoUrls: flattenedProjectFiles,
         };
 
-        response = await adminUpdateFundiExperience(axiosInstance, userData.id, payload);
+        response = await adminUpdateFundiExperience(
+          axiosInstance,
+          userData.id,
+          payload,
+        );
       } else if (userType === "PROFESSIONAL") {
         const professionalProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
@@ -1697,21 +1806,33 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
         }));
 
         const payload = {
-          profession: isEditingFields ? editingFields.profession : info.profession,
-          level: isEditingFields ? editingFields.professionalLevel : info.professionalLevel,
-          yearsOfExperience: isEditingFields ? editingFields.yearsOfExperience : info.yearsOfExperience,
+          profession: isEditingFields
+            ? editingFields.profession
+            : info.profession,
+          level: isEditingFields
+            ? editingFields.professionalLevel
+            : info.professionalLevel,
+          yearsOfExperience: isEditingFields
+            ? editingFields.yearsOfExperience
+            : info.yearsOfExperience,
           professionalProjects,
         };
 
-        response = await adminUpdateProfessionalExperience(axiosInstance, userData.id, payload);
+        response = await adminUpdateProfessionalExperience(
+          axiosInstance,
+          userData.id,
+          payload,
+        );
       } else if (userType === "CONTRACTOR") {
         const contractorProjects = updatedAttachments.map((project) => ({
           projectName: project.projectName,
           files: project.files.map((f) => f.url),
         }));
 
-        const validCategories = categories.filter(c => c.category && c.class && c.years);
-        const contractorExperiences = validCategories.map(c => ({
+        const validCategories = categories.filter(
+          (c) => c.category && c.class && c.years,
+        );
+        const contractorExperiences = validCategories.map((c) => ({
           category: c.category,
           specialization: c.specialization,
           categoryClass: c.class,
@@ -1723,22 +1844,27 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
           contractorProjects,
         };
 
-        response = await adminUpdateContractorExperience(axiosInstance, userData.id, payload);
+        response = await adminUpdateContractorExperience(
+          axiosInstance,
+          userData.id,
+          payload,
+        );
       } else {
-
         await updateBuilderLevel(
           axiosInstance,
           userData.id,
           userType,
           isEditingFields ? editingFields : {},
-          (userData.userProfile || userData)
+          userData.userProfile || userData,
         );
       }
 
       toast.success("All changes saved successfully!", { id: toastId });
 
       if (isEditingFields) {
-        setInfo((prevInfo) => deepMerge(prevInfo, isEditingFields ? editingFields : {}));
+        setInfo((prevInfo) =>
+          deepMerge(prevInfo, isEditingFields ? editingFields : {}),
+        );
         setIsEditingFields(false);
       }
 
@@ -1755,6 +1881,73 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
     }
   };
 
+  // Add this inside the Experience component, before the return statement
+  const isExperienceReadyToApprove = (): boolean => {
+    const requiredCount = getRequiredProjectCount(); // reuse the existing function
+
+    switch (userType) {
+      case "FUNDI": {
+        const hasGrade = !!(isEditingFields ? editingFields.grade : info.grade);
+        const hasExperience = !!(isEditingFields
+          ? editingFields.experience
+          : info.experience);
+        const hasSkill = !!(isEditingFields ? editingFields.skill : info.skill);
+        // Must meet required count AND every project must have at least one file
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return hasGrade && hasExperience && hasSkill && hasEnoughProjects;
+      }
+      case "PROFESSIONAL": {
+        const hasProfession = !!(isEditingFields
+          ? editingFields.profession
+          : info.profession);
+        const hasLevel = !!(isEditingFields
+          ? editingFields.professionalLevel
+          : info.professionalLevel);
+        const hasYears = !!(isEditingFields
+          ? editingFields.yearsOfExperience
+          : info.yearsOfExperience);
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return hasProfession && hasLevel && hasYears && hasEnoughProjects;
+      }
+      case "CONTRACTOR": {
+        const hasValidCategories = categories.some(
+          (c) => c.category && c.class && c.years,
+        );
+        // Contractor always requires at least 1 project with files
+        const hasEnoughProjects =
+          attachments.length >= 1 &&
+          attachments.every((a) => a.files.length > 0);
+        return hasValidCategories && hasEnoughProjects;
+      }
+      case "HARDWARE": {
+        const hasType = !!(isEditingFields
+          ? editingFields.hardwareType
+          : info.hardwareType);
+        const hasBusinessType = !!(isEditingFields
+          ? editingFields.businessType
+          : info.businessType);
+        const hasExperience = !!(isEditingFields
+          ? editingFields.experience
+          : info.experience);
+        // Hardware requires 2 projects
+        const hasEnoughProjects =
+          attachments.length >= requiredCount &&
+          requiredCount > 0 &&
+          attachments.every((a) => a.files.length > 0);
+        return hasType && hasBusinessType && hasExperience && hasEnoughProjects;
+      }
+      default:
+        return false;
+    }
+  };
+
+  const readyToApprove = isExperienceReadyToApprove();
   return (
     <div className="flex">
       <Toaster position="top-center" richColors />
@@ -1777,29 +1970,52 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                     className="flex items-center gap-2 py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
                   >
                     Actions
-                    <FiChevronDown className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`} />
+                    <FiChevronDown
+                      className={`w-4 h-4 transition-transform ${showGlobalActions ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {showGlobalActions && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
                       <button
                         type="button"
+                        disabled={!readyToApprove || isPendingAction}
+                        title={
+                          !readyToApprove
+                            ? "All required fields and projects must be filled before approving"
+                            : "Approve experience"
+                        }
                         onClick={async () => {
                           setShowGlobalActions(false);
                           setIsPendingAction(true);
                           try {
-                            await adminVerifyExperience(axiosInstance, userData.id);
+                            await adminVerifyExperience(
+                              axiosInstance,
+                              userData.id,
+                            );
                             toast.success("Experience approved successfully");
                             window.location.reload();
                           } catch (error: any) {
-                            toast.error(error.message || "Failed to approve experience");
+                            toast.error(
+                              error.message || "Failed to approve experience",
+                            );
                           } finally {
                             setIsPendingAction(false);
                           }
                         }}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-green-700 hover:bg-gray-50 transition border-b border-gray-100"
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+    ${
+      !readyToApprove
+        ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+        : "text-green-700 hover:bg-gray-50"
+    }`}
                       >
                         <FiCheck className="w-4 h-4" />
                         Approve
+                        {!readyToApprove && (
+                          <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                            Incomplete
+                          </span>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -1832,36 +2048,73 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
           {userType === "FUNDI" && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
-              <p className="font-semibold mb-1">Administrative Review Process</p>
+              <p className="font-semibold mb-1">
+                Administrative Review Process
+              </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Review the fundi's skill set and specialization.</li>
-                <li>Conduct a <strong>15-minute technical interview</strong> if required.</li>
+                <li>
+                  Conduct a <strong>15-minute technical interview</strong> if
+                  required.
+                </li>
                 <li>Evaluate projects and proof of work provided.</li>
-                <li>Ensure audio responses and evaluation scores are recorded before verification.</li>
+                <li>
+                  Ensure audio responses and evaluation scores are recorded
+                  before verification.
+                </li>
               </ul>
             </div>
           )}
 
-          {(userData?.experienceStatus === "REJECTED" || userData?.experienceStatus === "RESUBMIT") && userData?.experienceStatusReason && (
-            <div className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${userData.experienceStatus === "REJECTED" ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"
-              }`}>
-              <div className={`p-2 rounded-lg ${userData.experienceStatus === "REJECTED" ? "bg-red-100" : "bg-blue-100"
-                }`}>
-                <FiAlertCircle className={`w-5 h-5 ${userData.experienceStatus === "REJECTED" ? "text-red-600" : "text-blue-600"
-                  }`} />
+          {(userData?.experienceStatus === "REJECTED" ||
+            userData?.experienceStatus === "RESUBMIT") &&
+            userData?.experienceStatusReason && (
+              <div
+                className={`mb-8 p-4 rounded-xl border flex items-start gap-4 ${
+                  userData.experienceStatus === "REJECTED"
+                    ? "bg-red-50 border-red-200"
+                    : "bg-blue-50 border-blue-200"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-lg ${
+                    userData.experienceStatus === "REJECTED"
+                      ? "bg-red-100"
+                      : "bg-blue-100"
+                  }`}
+                >
+                  <FiAlertCircle
+                    className={`w-5 h-5 ${
+                      userData.experienceStatus === "REJECTED"
+                        ? "text-red-600"
+                        : "text-blue-600"
+                    }`}
+                  />
+                </div>
+                <div>
+                  <h3
+                    className={`font-semibold text-sm ${
+                      userData.experienceStatus === "REJECTED"
+                        ? "text-red-900"
+                        : "text-blue-900"
+                    }`}
+                  >
+                    {userData.experienceStatus === "REJECTED"
+                      ? "Experience Rejected"
+                      : "Resubmission Required"}
+                  </h3>
+                  <p
+                    className={`text-sm mt-1 ${
+                      userData.experienceStatus === "REJECTED"
+                        ? "text-red-700"
+                        : "text-blue-700"
+                    }`}
+                  >
+                    {userData.experienceStatusReason}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className={`font-semibold text-sm ${userData.experienceStatus === "REJECTED" ? "text-red-900" : "text-blue-900"
-                  }`}>
-                  {userData.experienceStatus === "REJECTED" ? "Experience Rejected" : "Resubmission Required"}
-                </h3>
-                <p className={`text-sm mt-1 ${userData.experienceStatus === "REJECTED" ? "text-red-700" : "text-blue-700"
-                  }`}>
-                  {userData.experienceStatusReason}
-                </p>
-              </div>
-            </div>
-          )}
+            )}
 
           <form onSubmit={handleEvaluationSubmit} className="space-y-8">
             {/* Skills Section - Card Based Design */}
@@ -1875,9 +2128,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {fields.map((field, index) => {
                     const isGradeField =
-                      field.name === "grade" || field.name === "professionalLevel";
+                      field.name === "grade" ||
+                      field.name === "professionalLevel";
                     const fieldValue =
-                      typeof info[field.name] === "string" ? info[field.name] : "";
+                      typeof info[field.name] === "string"
+                        ? info[field.name]
+                        : "";
 
                     return (
                       <div
@@ -1888,27 +2144,37 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             {field.label}
                           </label>
-                          {!isEditingFields && isAdmin && !(userType === "FUNDI" && field.name === "skill") && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingFields({ ...info });
-                                setIsEditingFields(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 transition"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                          {!isEditingFields &&
+                            isAdmin &&
+                            !(
+                              userType === "FUNDI" && field.name === "skill"
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingFields({ ...info });
+                                  setIsEditingFields(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 transition"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                            )}
                         </div>
 
-                        {isEditingFields && !(userType === "FUNDI" && field.name === "skill") ? (
+                        {isEditingFields &&
+                        !(userType === "FUNDI" && field.name === "skill") ? (
                           <select
-                            value={editingFields[field.name] ?? fieldValue ?? ""}
+                            value={
+                              editingFields[field.name] ?? fieldValue ?? ""
+                            }
                             onChange={(e) => {
                               const newValue = e.target.value;
                               setEditingFields((prev) => {
-                                const updated = { ...prev, [field.name]: newValue };
+                                const updated = {
+                                  ...prev,
+                                  [field.name]: newValue,
+                                };
                                 if (
                                   field.name === "skill" ||
                                   field.name === "profession" ||
@@ -1977,7 +2243,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
                 <div className="space-y-6">
                   {categories.map((cat, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 relative">
+                    <div
+                      key={index}
+                      className="bg-white p-4 rounded-lg border border-gray-200 relative"
+                    >
                       {categories.length > 1 && (
                         <button
                           type="button"
@@ -2004,10 +2273,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               updated[index].specialization = "";
                               setCategories(updated);
 
-
                               if (newCategory) {
-                                const projectExists = attachments.some(
-                                  (att) => att.projectName?.toLowerCase().includes(newCategory.toLowerCase())
+                                const projectExists = attachments.some((att) =>
+                                  att.projectName
+                                    ?.toLowerCase()
+                                    .includes(newCategory.toLowerCase()),
                                 );
                                 if (!projectExists) {
                                   const newProject = {
@@ -2017,16 +2287,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                     category: newCategory,
                                   };
                                   setAttachments([...attachments, newProject]);
-                                  toast.info(`Project row added for ${newCategory}`);
+                                  toast.info(
+                                    `Project row added for ${newCategory}`,
+                                  );
                                 }
                               }
                             }}
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select category</option>
-                            {Object.keys(CONTRACTOR_SPECIALIZATIONS).map((cat, i) => (
-                              <option key={i} value={cat}>{cat}</option>
-                            ))}
+                            {Object.keys(CONTRACTOR_SPECIALIZATIONS).map(
+                              (cat, i) => (
+                                <option key={i} value={cat}>
+                                  {cat}
+                                </option>
+                              ),
+                            )}
                           </select>
                         </div>
 
@@ -2046,8 +2322,19 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             disabled={!cat.category}
                           >
                             <option value="">Select specialization</option>
-                            {Array.from(new Set([...(CONTRACTOR_SPECIALIZATIONS[cat.category as keyof typeof CONTRACTOR_SPECIALIZATIONS] || []), cat.specialization].filter(Boolean))).map((spec, i) => (
-                              <option key={i} value={spec as string}>{spec as string}</option>
+                            {Array.from(
+                              new Set(
+                                [
+                                  ...(CONTRACTOR_SPECIALIZATIONS[
+                                    cat.category as keyof typeof CONTRACTOR_SPECIALIZATIONS
+                                  ] || []),
+                                  cat.specialization,
+                                ].filter(Boolean),
+                              ),
+                            ).map((spec, i) => (
+                              <option key={i} value={spec as string}>
+                                {spec as string}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2067,8 +2354,24 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select class</option>
-                            {Array.from(new Set(["NCA1", "NCA2", "NCA3", "NCA4", "NCA5", "NCA6", "NCA7", "NCA8", cat.class].filter(Boolean))).map((c, i) => (
-                              <option key={i} value={c as string}>{c as string}</option>
+                            {Array.from(
+                              new Set(
+                                [
+                                  "NCA1",
+                                  "NCA2",
+                                  "NCA3",
+                                  "NCA4",
+                                  "NCA5",
+                                  "NCA6",
+                                  "NCA7",
+                                  "NCA8",
+                                  cat.class,
+                                ].filter(Boolean),
+                              ),
+                            ).map((c, i) => (
+                              <option key={i} value={c as string}>
+                                {c as string}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2088,8 +2391,22 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             className="w-full p-2 border border-gray-300 rounded-md text-sm"
                           >
                             <option value="">Select experience</option>
-                            {Array.from(new Set(["10+ years", "7-10 years", "5-7 years", "3-5 years", "1-3 years", "Less than 1 year", cat.years].filter(Boolean))).map((y, i) => (
-                              <option key={i} value={y as string}>{y as string}</option>
+                            {Array.from(
+                              new Set(
+                                [
+                                  "10+ years",
+                                  "7-10 years",
+                                  "5-7 years",
+                                  "3-5 years",
+                                  "1-3 years",
+                                  "Less than 1 year",
+                                  cat.years,
+                                ].filter(Boolean),
+                              ),
+                            ).map((y, i) => (
+                              <option key={i} value={y as string}>
+                                {y as string}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2099,7 +2416,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       {cat.category && (
                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <p className="text-sm text-blue-700">
-                            <span className="font-medium">Note:</span> For {cat.category}, the following documents will be required in Account Uploads:
+                            <span className="font-medium">Note:</span> For{" "}
+                            {cat.category}, the following documents will be
+                            required in Account Uploads:
                           </p>
                           <ul className="mt-2 text-sm text-blue-600 list-disc list-inside">
                             <li>{cat.category} Certificate</li>
@@ -2112,10 +2431,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                 </div>
 
                 {/* Save Categories Button */}
-
               </div>
             )}
-
 
             {/* {userType} Project Attachments */}
             <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
@@ -2146,7 +2463,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                   <tbody className="divide-y divide-gray-200">
                     {attachments.length > 0 ? (
                       attachments.map((row, index) => (
-                        <tr key={row.id} className="hover:bg-blue-50/30 transition-colors">
+                        <tr
+                          key={row.id}
+                          className="hover:bg-blue-50/30 transition-colors"
+                        >
                           <td className="px-6 py-4 text-gray-400 font-medium whitespace-nowrap">
                             #{index + 1}
                           </td>
@@ -2159,13 +2479,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             <div className="flex flex-wrap gap-2">
                               {row.files.length > 0 ? (
                                 row.files.map((file, fileIndex) => (
-                                  <div key={fileIndex} className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                                  <div
+                                    key={fileIndex}
+                                    className="relative group w-12 h-12 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm"
+                                  >
                                     <img
                                       src={file.url}
                                       alt={file.name}
                                       className="w-full h-full object-cover"
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "https://placehold.co/100x100?text=File";
+                                        (e.target as HTMLImageElement).src =
+                                          "https://placehold.co/100x100?text=File";
                                       }}
                                     />
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
@@ -2181,7 +2505,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                       {isAdmin && (
                                         <button
                                           type="button"
-                                          onClick={() => handleRemoveFile(index, fileIndex)}
+                                          onClick={() =>
+                                            handleRemoveFile(index, fileIndex)
+                                          }
                                           className="p-1 bg-red-500/80 rounded-md hover:bg-red-600 transition-colors text-white"
                                           title="Remove File"
                                         >
@@ -2192,7 +2518,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                   </div>
                                 ))
                               ) : (
-                                <span className="text-gray-400 italic text-xs">No files uploaded</span>
+                                <span className="text-gray-400 italic text-xs">
+                                  No files uploaded
+                                </span>
                               )}
                             </div>
                           </td>
@@ -2210,8 +2538,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                   />
                                   <label
                                     htmlFor={`file-upload-${index}`}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${fileActionLoading[`add-${index}`] ? "opacity-50 cursor-not-allowed" : ""
-                                      }`}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${
+                                      fileActionLoading[`add-${index}`]
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : ""
+                                    }`}
                                   >
                                     {fileActionLoading[`add-${index}`] ? (
                                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -2238,10 +2569,17 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                        <td
+                          colSpan={4}
+                          className="px-6 py-12 text-center text-gray-500"
+                        >
                           <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300 opacity-50" />
-                          <p className="text-sm font-semibold">No Projects Recorded</p>
-                          <p className="text-xs text-gray-400 mt-1">Proof of work projects will appear here.</p>
+                          <p className="text-sm font-semibold">
+                            No Projects Recorded
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Proof of work projects will appear here.
+                          </p>
                         </td>
                       </tr>
                     )}
@@ -2417,19 +2755,31 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
             )}
             {/* Evaluation Results Summary */}
             {userType.toLowerCase() === "fundi" &&
-              (userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) && !isEditingEvaluation && renderEvaluationResults()}
+              (userData?.fundiEvaluation ||
+                userData?.userProfile?.fundiEvaluation) &&
+              !isEditingEvaluation &&
+              renderEvaluationResults()}
 
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
+              (!(
+                userData?.fundiEvaluation ||
+                userData?.userProfile?.fundiEvaluation
+              ) ||
+                isEditingEvaluation) && (
                 <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                  {userType} Evaluation {isEditingEvaluation ? "Update" : "Guidelines"}
+                  {userType} Evaluation{" "}
+                  {isEditingEvaluation ? "Update" : "Guidelines"}
                 </h2>
               )}
 
             {/* Scoring Criteria Description */}
             {userType.toLowerCase() === "fundi" &&
-              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
+              (!(
+                userData?.fundiEvaluation ||
+                userData?.userProfile?.fundiEvaluation
+              ) ||
+                isEditingEvaluation) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                   <h3 className="font-semibold text-blue-900 text-sm mb-2">
                     Scoring Criteria:
@@ -2453,7 +2803,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
 
             {/* Evaluation Criteria Instructions */}
             {userType.toLowerCase() === "fundi" &&
-              (!(userData?.fundiEvaluation || userData?.userProfile?.fundiEvaluation) || isEditingEvaluation) && (
+              (!(
+                userData?.fundiEvaluation ||
+                userData?.userProfile?.fundiEvaluation
+              ) ||
+                isEditingEvaluation) && (
                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -2462,7 +2816,10 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                       </h2>
                       {(userData?.userProfile?.skill || userData?.skills) && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Questions for: <span className="font-medium text-blue-600">{userData?.userProfile?.skill || userData?.skills}</span>
+                          Questions for:{" "}
+                          <span className="font-medium text-blue-600">
+                            {userData?.userProfile?.skill || userData?.skills}
+                          </span>
                         </p>
                       )}
                     </div>
@@ -2482,17 +2839,26 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {questions.map((q) => (
-                        <div key={q.id} className="space-y-2 relative bg-white p-4 rounded-lg border border-gray-200">
+                        <div
+                          key={q.id}
+                          className="space-y-2 relative bg-white p-4 rounded-lg border border-gray-200"
+                        >
                           {q.isEditing ? (
                             <div className="flex items-center gap-2">
                               <input
                                 value={q.text}
                                 onChange={(e) => {
                                   const val = e.target.value;
-                                  setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, text: val } : item));
+                                  setQuestions((prev) =>
+                                    prev.map((item) =>
+                                      item.id === q.id
+                                        ? { ...item, text: val }
+                                        : item,
+                                    ),
+                                  );
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleEditToggle(q.id);
+                                  if (e.key === "Enter") handleEditToggle(q.id);
                                 }}
                                 className="flex-1 text-sm p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900"
                                 placeholder="Type your question here..."
@@ -2537,13 +2903,26 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           {/* Question Type Selector (Admin Only) */}
                           {isAdmin && (
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-[10px] uppercase font-bold text-gray-400">Type:</span>
+                              <span className="text-[10px] uppercase font-bold text-gray-400">
+                                Type:
+                              </span>
                               <select
                                 value={q.type?.toUpperCase()}
                                 onChange={(e) => {
                                   const newType = e.target.value;
-                                  setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, type: newType } : item));
-                                  handleUpdateTemplate(q.id, q.text, newType, q.options);
+                                  setQuestions((prev) =>
+                                    prev.map((item) =>
+                                      item.id === q.id
+                                        ? { ...item, type: newType }
+                                        : item,
+                                    ),
+                                  );
+                                  handleUpdateTemplate(
+                                    q.id,
+                                    q.text,
+                                    newType,
+                                    q.options,
+                                  );
                                 }}
                                 className="text-[10px] border-none bg-gray-100 rounded px-1 py-0.5 focus:ring-0"
                               >
@@ -2554,7 +2933,8 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                             </div>
                           )}
 
-                          {q.type?.toUpperCase() === "RADIO" || q.type?.toUpperCase() === "SELECT" ? (
+                          {q.type?.toUpperCase() === "RADIO" ||
+                          q.type?.toUpperCase() === "SELECT" ? (
                             <div className="space-y-2">
                               <select
                                 value={q.answer}
@@ -2563,7 +2943,9 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                 }
                                 className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900"
                               >
-                                <option value="" disabled>Select an option</option>
+                                <option value="" disabled>
+                                  Select an option
+                                </option>
                                 {q.options?.map((opt, i) => (
                                   <option key={i} value={opt}>
                                     {opt}
@@ -2576,47 +2958,92 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                     placeholder="Add option..."
                                     className="text-xs p-1 border rounded flex-1"
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        const val = e.currentTarget.value.trim();
+                                      if (e.key === "Enter") {
+                                        const val =
+                                          e.currentTarget.value.trim();
                                         if (val) {
-                                          const newOpts = [...(q.options || []), val];
-                                          setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                          handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
-                                          e.currentTarget.value = '';
+                                          const newOpts = [
+                                            ...(q.options || []),
+                                            val,
+                                          ];
+                                          setQuestions((prev) =>
+                                            prev.map((item) =>
+                                              item.id === q.id
+                                                ? { ...item, options: newOpts }
+                                                : item,
+                                            ),
+                                          );
+                                          handleUpdateTemplate(
+                                            q.id,
+                                            q.text,
+                                            q.type?.toUpperCase(),
+                                            newOpts,
+                                          );
+                                          e.currentTarget.value = "";
                                         }
                                       }
                                     }}
                                   />
-                                  <span className="text-[10px] text-gray-400">Press Enter</span>
+                                  <span className="text-[10px] text-gray-400">
+                                    Press Enter
+                                  </span>
                                 </div>
                               )}
                             </div>
                           ) : q.type?.toUpperCase() === "CHECKBOX" ? (
                             <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-300">
                               {q.options?.map((opt, i) => (
-                                <label key={i} className="flex items-center gap-2 cursor-pointer group">
+                                <label
+                                  key={i}
+                                  className="flex items-center gap-2 cursor-pointer group"
+                                >
                                   <input
                                     type="checkbox"
-                                    checked={Array.isArray(q.answer) ? q.answer.includes(opt) : q.answer === opt}
+                                    checked={
+                                      Array.isArray(q.answer)
+                                        ? q.answer.includes(opt)
+                                        : q.answer === opt
+                                    }
                                     onChange={(e) => {
-                                      let newAnswer = Array.isArray(q.answer) ? [...q.answer] : (q.answer ? [q.answer] : []);
+                                      let newAnswer = Array.isArray(q.answer)
+                                        ? [...q.answer]
+                                        : q.answer
+                                          ? [q.answer]
+                                          : [];
                                       if (e.target.checked) {
                                         newAnswer.push(opt);
                                       } else {
-                                        newAnswer = newAnswer.filter(a => a !== opt);
+                                        newAnswer = newAnswer.filter(
+                                          (a) => a !== opt,
+                                        );
                                       }
                                       handleTextChange(q.id, newAnswer);
                                     }}
                                     className="rounded border-gray-300 text-blue-900 focus:ring-blue-900"
                                   />
-                                  <span className="text-sm text-gray-600 group-hover:text-gray-900">{opt}</span>
+                                  <span className="text-sm text-gray-600 group-hover:text-gray-900">
+                                    {opt}
+                                  </span>
                                   {isAdmin && (
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const newOpts = q.options.filter((_, idx) => idx !== i);
-                                        setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                        handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
+                                        const newOpts = q.options.filter(
+                                          (_, idx) => idx !== i,
+                                        );
+                                        setQuestions((prev) =>
+                                          prev.map((item) =>
+                                            item.id === q.id
+                                              ? { ...item, options: newOpts }
+                                              : item,
+                                          ),
+                                        );
+                                        handleUpdateTemplate(
+                                          q.id,
+                                          q.text,
+                                          q.type?.toUpperCase(),
+                                          newOpts,
+                                        );
                                       }}
                                       className="hidden group-hover:block text-red-400 hover:text-red-600"
                                     >
@@ -2630,13 +3057,27 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                                   placeholder="Add option..."
                                   className="text-xs p-1 border rounded w-full bg-white"
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
+                                    if (e.key === "Enter") {
                                       const val = e.currentTarget.value.trim();
                                       if (val) {
-                                        const newOpts = [...(q.options || []), val];
-                                        setQuestions(prev => prev.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
-                                        handleUpdateTemplate(q.id, q.text, q.type?.toUpperCase(), newOpts);
-                                        e.currentTarget.value = '';
+                                        const newOpts = [
+                                          ...(q.options || []),
+                                          val,
+                                        ];
+                                        setQuestions((prev) =>
+                                          prev.map((item) =>
+                                            item.id === q.id
+                                              ? { ...item, options: newOpts }
+                                              : item,
+                                          ),
+                                        );
+                                        handleUpdateTemplate(
+                                          q.id,
+                                          q.text,
+                                          q.type?.toUpperCase(),
+                                          newOpts,
+                                        );
+                                        e.currentTarget.value = "";
                                       }
                                     }
                                   }}
@@ -2691,7 +3132,6 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                               newTotal -
                               prev.reduce((sum, q) => sum + q.score, 0);
                             if (updated.length > 0) {
-
                               updated[updated.length - 1].score += diff;
                             }
                             return [...updated];
@@ -2726,7 +3166,12 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           <p className="text-green-600 text-sm mb-2">
                             Audio uploaded successfully!
                           </p>
-                          <audio key={audioUrl} src={audioUrl} controls className="w-full h-10 shadow-sm rounded-lg overflow-hidden">
+                          <audio
+                            key={audioUrl}
+                            src={audioUrl}
+                            controls
+                            className="w-full h-10 shadow-sm rounded-lg overflow-hidden"
+                          >
                             Your browser does not support the audio element.
                           </audio>
                         </div>
@@ -2752,7 +3197,11 @@ const Experience = ({ userData, isAdmin = false, refetch = () => { } }) => {
                           className="w-full sm:w-auto bg-blue-800 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60 font-medium"
                           disabled={isSubmitting}
                         >
-                          {isSubmitting ? "Submitting..." : (isEditingEvaluation ? "Update Evaluation" : "Submit Evaluation")}
+                          {isSubmitting
+                            ? "Submitting..."
+                            : isEditingEvaluation
+                              ? "Update Evaluation"
+                              : "Submit Evaluation"}
                         </button>
                       }
                       {submitMessage && (
