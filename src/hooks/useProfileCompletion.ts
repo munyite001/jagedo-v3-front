@@ -163,7 +163,7 @@ export const useProfileCompletion = (
           return 0;
         }
         if (userTypeUpper === "PROFESSIONAL") {
-          const level = userData?.professionalLevel;
+          const level = userData?.levelOrClass;
           if (level === "Senior") return 3;
           if (level === "Professional") return 2;
           if (level === "Graduate") return 1;
@@ -204,23 +204,20 @@ export const useProfileCompletion = (
         const hasExperience = !!userData?.experience;
         return hasGrade && hasExperience && hasEnoughProjects;
       }
+
+      if (userTypeUpper === "CONTRACTOR") {
+        
+        const hasExperience = !!userData?.contractorExperiences;
+        return hasExperience && hasEnoughProjects;
+      }
       if (userTypeUpper === "PROFESSIONAL") {
         const hasProfession = !!userData?.profession;
-        const hasLevel = !!userData?.professionalLevel;
+        const hasLevel = !!userData?.levelOrClass; // ✅ use levelOrClass
         const hasExperience = !!userData?.yearsOfExperience;
         return hasProfession && hasLevel && hasExperience && hasEnoughProjects;
       }
-      if (userTypeUpper === "CONTRACTOR") {
-        const hasType = !!userData?.contractorType;
-        const hasLevel = !!userData?.licenseLevel;
-        const hasExperience = !!userData?.contractorExperiences;
-        return hasType && hasLevel && hasExperience && hasEnoughProjects;
-      }
       if (userTypeUpper === "HARDWARE") {
-        const hasType = !!userData?.hardwareType;
-        const hasBusinessType = !!userData?.businessType;
-        const hasExperience = !!userData?.experience;
-        return hasType && hasBusinessType && hasExperience && hasEnoughProjects;
+        return  true;
       }
       return false;
     };
@@ -254,7 +251,6 @@ export const useProfileCompletion = (
       const issues: string[] = [];
 
       if (userTypeUpper === "CUSTOMER") {
-        console.log("✅ CUSTOMER → no experience required");
         return;
       }
 
@@ -269,13 +265,7 @@ export const useProfileCompletion = (
         if (!hasExperience) issues.push("Missing experience");
         if (!hasProjects) issues.push("Missing previous projects");
 
-        console.log("🔎 FUNDI EXPERIENCE CHECK:", {
-          hasGrade,
-          hasExperience,
-          hasProjects,
-          experienceStatus: userData?.experienceStatus,
-          issues,
-        });
+        
       }
 
       if (userTypeUpper === "PROFESSIONAL") {
@@ -291,14 +281,7 @@ export const useProfileCompletion = (
         if (!hasExperience) issues.push("Missing years of experience");
         if (!hasProjects) issues.push("Missing professional projects");
 
-        console.log("🔎 PROFESSIONAL EXPERIENCE CHECK:", {
-          hasProfession,
-          hasLevel,
-          hasExperience,
-          hasProjects,
-          experienceStatus: userData?.experienceStatus,
-          issues,
-        });
+        
       }
 
       if (userTypeUpper === "CONTRACTOR") {

@@ -237,7 +237,7 @@ function ProfilePage() {
         return 0;
       }
       if (userTypeUpper === "PROFESSIONAL") {
-        const level = up?.professionalLevel;
+        const level = up?.levelOrClass;
         if (level === "Senior") return 3;
         if (level === "Professional") return 2;
         if (level === "Graduate") return 1;
