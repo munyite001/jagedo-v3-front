@@ -585,6 +585,12 @@ const AccountUploads = ({ userData, isAdmin = false }: AccountUploadsProps) => {
       setDocuments(updatedDocs);
       await persistDocuments(updatedDocs);
       toast.success(`${file.name} uploaded successfully`);
+      
+      if (isAdmin) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to upload file");
     } finally {
