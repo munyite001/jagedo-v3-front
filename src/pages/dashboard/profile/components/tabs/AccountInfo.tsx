@@ -54,9 +54,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
     : false;
 
   const displayStatus =
-    userData.status === "SIGNED_UP" && allSectionsComplete
-      ? "COMPLETED"
-      : userData.status;
+  userData.status === "VERIFIED"
+    ? "Verified"
+    : userData.status === "SUSPENDED"
+      ? "Suspended"
+      : userData.status === "BLACKLISTED"
+        ? "Blacklisted"
+        : userData.status === "DELETED"
+          ? "Deleted"
+          : userData.status === "SIGNED_UP" && allSectionsComplete
+            ? "Pending Verification"
+            : "Profile Incomplete";
+      
   const [editingField, setEditingField] = useState<string | null>(null);
 
   const isOrganization =
