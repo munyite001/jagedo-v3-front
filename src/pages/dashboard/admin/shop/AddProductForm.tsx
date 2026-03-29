@@ -15,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Upload, X } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Upload, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { createProductAdmin, updateProduct } from "@/api/products.api";
 import useAxiosWithAuth from "@/utils/axiosInterceptor";
 import { uploadFile, validateFile } from "@/utils/fileUpload";
 import { getAllCategories } from "@/api/categories.api";
+import { getAllAttributes, Attribute } from "@/api/attributes.api";
 
 interface AddProductFormProps {
   onBack: () => void;
@@ -348,7 +349,7 @@ const ProductPreviewModal = ({
         </div>
       </div>
     </div>,
-    document.body, // ← portal renders directly on body, escapes all parents
+    document.body, 
   );
 };
 export default function AddProductForm({
@@ -375,8 +376,12 @@ export default function AddProductForm({
   });
 
   const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [allAttributes, setAllAttributes] = useState<Attribute[]>([]);
+  const [filteredAttributes, setFilteredAttributes] = useState<Attribute[]>([]);
+  const [subcategoryOptions, setSubcategoryOptions] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>(
@@ -417,7 +422,7 @@ export default function AddProductForm({
             filteredCategories = categoriesData.filter((cat: any) => {
               const catType = (cat.type || "").trim().toUpperCase();
 
-              // Match type, or include null types in HARDWARE tab as fallback
+              
               return (
                 catType === typeToFilter ||
                 (typeToFilter === "HARDWARE" && !catType)
@@ -437,6 +442,18 @@ export default function AddProductForm({
     [axiosInstance, isEditMode, formData.type],
   );
 
+  const fetchAttributes = useCallback(async () => {
+    try {
+      const response = await getAllAttributes(axiosInstance);
+      if (response.success) {
+        const attributes = (response.data || response.hashSet) as Attribute[];
+        setAllAttributes(attributes);
+      }
+    } catch (error) {
+      console.error("Error fetching attributes:", error);
+    }
+  }, [axiosInstance]);
+
   const uomOptions = [
     { value: "pcs", label: "Pieces" },
     { value: "kg", label: "Kilograms" },
@@ -454,7 +471,19 @@ export default function AddProductForm({
           (cat: any) => cat.name === value,
         );
         if (selectedCategory) {
-          updated.subcategory = selectedCategory.subCategory || "";
+          const subs = Array.isArray(selectedCategory.subCategory) ? selectedCategory.subCategory : [];
+          setSubcategoryOptions(subs);
+          updated.subcategory = subs.length > 0 ? subs[0] : "";
+          
+          
+          const relevantAttributes = allAttributes.filter(attr => 
+            attr.attributeGroup === value || 
+            (attr.active && attr.productType === updated.type && !attr.attributeGroup)
+          );
+          setFilteredAttributes(relevantAttributes);
+        } else {
+          setSubcategoryOptions([]);
+          updated.subcategory = "";
         }
       }
 
@@ -519,7 +548,11 @@ export default function AddProductForm({
       );
       return;
     }
-    setShowPreview(true);
+    setPreviewLoading(true);
+    setTimeout(() => {
+      setShowPreview(true);
+      setPreviewLoading(false);
+    }, 800);
   };
 
   const removeImage = (imageId: string) => {
@@ -614,7 +647,7 @@ export default function AddProductForm({
         color: formData.color,
         uom: formData.uom,
         images: imageUrls,
-        status: "DRAFT", // ← only difference from submit
+        status: "DRAFT", 
       };
 
       await createProductAdmin(axiosInstance, submitData);
@@ -630,6 +663,7 @@ export default function AddProductForm({
 
   useEffect(() => {
     fetchCategories();
+    fetchAttributes();
   }, []);
 
   useEffect(() => {
@@ -648,6 +682,16 @@ export default function AddProductForm({
   }, [formData.type, isEditMode]);
 
   useEffect(() => {
+    if (formData.category && allAttributes.length > 0) {
+      const relevantAttributes = allAttributes.filter(attr => 
+        attr.attributeGroup === formData.category || 
+        (attr.active && attr.productType === formData.type && !attr.attributeGroup)
+      );
+      setFilteredAttributes(relevantAttributes);
+    }
+  }, [formData.category, allAttributes, formData.type]);
+
+  useEffect(() => {
     if (isEditMode && product?.category && categories.length > 0) {
       const categoryExists = categories.some(
         (cat) => cat.name === product.category,
@@ -657,6 +701,12 @@ export default function AddProductForm({
           ...prev,
           category: product.category,
         }));
+      }
+
+      
+      const selected = categories.find(c => c.name === (product.category || formData.category));
+      if (selected && Array.isArray(selected.subCategory)) {
+        setSubcategoryOptions(selected.subCategory);
       }
     }
   }, [categories, isEditMode, product]);
@@ -738,6 +788,28 @@ export default function AddProductForm({
                 placeholder="Enter product name"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="subcategory" className="font-semibold">
+                Sub Category
+              </Label>
+              <Select
+                value={formData.subcategory || ""}
+                onValueChange={(value) => handleInputChange("subcategory", value)}
+                disabled={subcategoryOptions.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={subcategoryOptions.length > 0 ? "Select a sub-category" : "No sub-categories"} />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {subcategoryOptions.map((sub, index) => (
+                    <SelectItem key={`${sub}-${index}`} value={sub}>
+                      {sub}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -782,62 +854,111 @@ export default function AddProductForm({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="material" className="text-sm">
-                Material
-              </Label>
-              <Input
-                id="material"
-                value={formData.material}
-                onChange={(e) => handleInputChange("material", e.target.value)}
-                placeholder="Enter material"
-              />
-            </div>
+            {/* Dynamic Attributes */}
+            {filteredAttributes.map((attr) => {
+              const fieldName = attr.type.toLowerCase() as keyof ProductFormData;
+              const hasValues = attr.values && attr.values.trim().length > 0;
+              const options = hasValues ? attr.values.split(",").map(v => v.trim()) : [];
+              const isSelect = attr.attributeType === 'select' || attr.attributeType === 'multiselect' || hasValues;
 
-            <div className="space-y-2">
-              <Label htmlFor="size" className="text-sm">
-                Size
-              </Label>
-              <Input
-                id="size"
-                value={formData.size}
-                onChange={(e) => handleInputChange("size", e.target.value)}
-                placeholder="Enter size"
-              />
-            </div>
+              return (
+                <div key={attr.id} className="space-y-2">
+                  <Label htmlFor={`attr-${attr.id}`} className="text-sm">
+                    {attr.type}
+                  </Label>
+                  {isSelect ? (
+                    <Select
+                      value={(formData[fieldName] as string) || ""}
+                      onValueChange={(val) => handleInputChange(fieldName, val)}
+                    >
+                      <SelectTrigger id={`attr-${attr.id}`}>
+                        <SelectValue placeholder={`Select ${attr.type}`} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        {options.map((opt) => (
+                          <SelectItem key={opt} value={opt}>
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : attr.attributeType === 'textarea' ? (
+                    <Textarea 
+                      id={`attr-${attr.id}`}
+                      value={(formData[fieldName] as string) || ""}
+                      onChange={(e) => handleInputChange(fieldName, e.target.value)}
+                      placeholder={`Enter ${attr.type}`}
+                      className="min-h-[80px]"
+                    />
+                  ) : (
+                    <Input
+                      id={`attr-${attr.id}`}
+                      value={(formData[fieldName] as string) || ""}
+                      onChange={(e) => handleInputChange(fieldName, e.target.value)}
+                      placeholder={`Enter ${attr.type}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
-            <div className="space-y-2">
-              <Label htmlFor="color" className="text-sm">
-                Color
-              </Label>
-              <Input
-                id="color"
-                value={formData.color}
-                onChange={(e) => handleInputChange("color", e.target.value)}
-                placeholder="Enter color"
-              />
-            </div>
+            {/* Fallback for core fields if not in dynamic attributes */}
+            {!filteredAttributes.some(a => a.type.toLowerCase() === 'material') && (
+              <div className="space-y-2">
+                <Label htmlFor="material" className="text-sm">Material</Label>
+                <Input
+                  id="material"
+                  value={formData.material}
+                  onChange={(e) => handleInputChange("material", e.target.value)}
+                  placeholder="Enter material"
+                />
+              </div>
+            )}
+            
+            {!filteredAttributes.some(a => a.type.toLowerCase() === 'size') && (
+              <div className="space-y-2">
+                <Label htmlFor="size" className="text-sm">Size</Label>
+                <Input
+                  id="size"
+                  value={formData.size}
+                  onChange={(e) => handleInputChange("size", e.target.value)}
+                  placeholder="Enter size"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="uom" className="text-sm">
-                UOM
-              </Label>
-              <Select
-                value={formData.uom}
-                onValueChange={(value) => handleInputChange("uom", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select UOM" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {uomOptions.map((uom) => (
-                    <SelectItem key={uom.value} value={uom.value}>
-                      {uom.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!filteredAttributes.some(a => a.type.toLowerCase() === 'color') && (
+              <div className="space-y-2">
+                <Label htmlFor="color" className="text-sm">Color</Label>
+                <Input
+                  id="color"
+                  value={formData.color}
+                  onChange={(e) => handleInputChange("color", e.target.value)}
+                  placeholder="Enter color"
+                />
+              </div>
+            )}
+
+            {!filteredAttributes.some(a => a.type.toLowerCase() === 'uom') && (
+              <div className="space-y-2">
+                <Label htmlFor="uom" className="text-sm">UOM</Label>
+                <Select
+                  value={formData.uom}
+                  onValueChange={(val) => handleInputChange("uom", val)}
+                >
+                  <SelectTrigger id="uom">
+                    <SelectValue placeholder="Select UOM" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    {uomOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -912,35 +1033,58 @@ export default function AddProductForm({
           <Button
             variant="outline"
             onClick={handlePreview}
-            disabled={loading || uploadingImages}
+            disabled={loading || uploadingImages || previewLoading}
             style={{
               backgroundColor: "#f3f4f6",
               color: "#00007A",
               borderColor: "#00007A",
             }}
           >
-            Preview
+            {previewLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Previewing...
+              </>
+            ) : (
+              "Preview"
+            )}
           </Button>
           {!isEditMode && (
             <Button
               variant="outline"
               onClick={handleSaveChanges}
-              disabled={loading || uploadingImages}
+              disabled={loading || uploadingImages || previewLoading}
               style={{
                 backgroundColor: "#f3f4f6",
                 color: "#00007A",
                 borderColor: "#00007A",
               }}
             >
-              {loading ? "Saving..." : "Save as Draft"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save as Draft"
+              )}
             </Button>
           )}
           <Button
             onClick={handleSubmit}
-            disabled={loading || uploadingImages}
+            disabled={loading || uploadingImages || previewLoading}
             style={{ backgroundColor: "#00007A", color: "white" }}
           >
-            {loading ? "Submitting..." : isEditMode ? "Update" : "Submit"}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isEditMode ? "Updating..." : "Submitting..."}
+              </>
+            ) : isEditMode ? (
+              "Update"
+            ) : (
+              "Submit"
+            )}
           </Button>
         </div>
       </div>
