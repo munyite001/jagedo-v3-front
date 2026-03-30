@@ -331,6 +331,7 @@ const AccountUploads = ({ data, refreshData }) => {
       );
     })
     .map((f) => f.label);
+    
   const hasAllContractorDocs =
     hasPendingFiles &&
     allContractorDocs
