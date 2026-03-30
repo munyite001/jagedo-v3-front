@@ -98,7 +98,7 @@ export default function ShopCategories() {
     type: "",
   });
 
-  // For edit modal — new subcategory input
+  
   const [newSubCategoryInput, setNewSubCategoryInput] = useState("");
 
   const [subCategoryData, setSubCategoryData] = useState({
@@ -130,7 +130,9 @@ export default function ShopCategories() {
       setLoading(true);
       const response = await getAllCategories(axiosInstance);
       if (response.success) {
-        setCategories(response.data || []);
+        
+        const categoryData = (response.data || response.hashSet || []) as Category[];
+        setCategories(categoryData);
       } else {
         toast.error("Failed to fetch categories");
       }
@@ -143,12 +145,17 @@ export default function ShopCategories() {
   }, []);
 
   const handleEditCategory = (category: Category) => {
+    let existingSub = [];
+    if (Array.isArray(category.subCategory)) {
+      existingSub = category.subCategory;
+    } else if (typeof category.subCategory === "string" && (category.subCategory as string).trim() !== "") {
+      existingSub = (category.subCategory as string).split(",").map(s => s.trim());
+    }
+
     setEditCategoryData({
       id: category.id,
       name: category.name,
-      subCategory: Array.isArray(category.subCategory)
-        ? category.subCategory
-        : [],
+      subCategory: existingSub,
       urlKey: category.urlKey || "",
       metaTitle: category.metaTitle || "",
       metaKeywords: category.metaKeywords || "",
@@ -158,7 +165,7 @@ export default function ShopCategories() {
     setShowEditCategoryModal(true);
   };
 
-  // Add subcategory tag in edit modal
+  
   const handleAddSubCategoryTag = () => {
     const val = newSubCategoryInput.trim();
     if (!val) return;
@@ -177,7 +184,7 @@ export default function ShopCategories() {
     setNewSubCategoryInput("");
   };
 
-  // Remove subcategory tag in edit modal
+  
   const handleRemoveSubCategoryTag = (index: number) => {
     setEditCategoryData((prev) => ({
       ...prev,
@@ -196,7 +203,7 @@ export default function ShopCategories() {
         id: editCategoryData.id,
         name: editCategoryData.name.trim(),
         active: true,
-        subCategory: editCategoryData.subCategory, // ✅ array
+        subCategory: editCategoryData.subCategory, 
         urlKey: editCategoryData.urlKey.trim(),
         metaTitle: editCategoryData.metaTitle.trim(),
         metaKeywords: editCategoryData.metaKeywords.trim(),
@@ -303,9 +310,16 @@ export default function ShopCategories() {
       return;
     }
 
-    const existing = Array.isArray(parentCategoryForSub.subCategory)
-      ? parentCategoryForSub.subCategory
-      : [];
+    
+    let existing: string[] = [];
+    //@ts-ignore
+    const rawSub = parentCategoryForSub.subCategory || parentCategoryForSub.subCategories;
+    
+    if (Array.isArray(rawSub)) {
+      existing = rawSub;
+    } else if (typeof rawSub === "string" && rawSub.trim() !== "") {
+      existing = rawSub.split(",").map(s => s.trim());
+    }
 
     if (
       existing
@@ -322,7 +336,7 @@ export default function ShopCategories() {
         name: parentCategoryForSub.name,
         active: parentCategoryForSub.active,
         type: parentCategoryForSub.type || selectedCategoryType,
-        subCategory: [...existing, subCategoryData.name.trim()], // ✅ append to array
+        subCategory: [...existing, subCategoryData.name.trim()], 
         urlKey: subCategoryData.urlKey.trim() || parentCategoryForSub.urlKey,
         metaTitle:
           subCategoryData.metaTitle.trim() || parentCategoryForSub.metaTitle,
@@ -346,7 +360,7 @@ export default function ShopCategories() {
     }
   };
 
-  // ✅ Updated: search inside array
+  
   const filteredCategories = categories?.filter((category) => {
     const matchesSearch =
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -380,14 +394,21 @@ export default function ShopCategories() {
     fetchCategories();
   }, []);
 
-  // ✅ Sub-category badge list renderer (reusable)
-  const SubCategoryBadges = ({ subCategory }: { subCategory?: string[] }) => {
-    if (!Array.isArray(subCategory) || subCategory.length === 0) {
+  
+  const SubCategoryBadges = ({ subCategory }: { subCategory?: string[] | string }) => {
+    let list: string[] = [];
+    if (Array.isArray(subCategory)) {
+      list = subCategory;
+    } else if (typeof subCategory === "string" && subCategory.trim() !== "") {
+      list = subCategory.split(",").map(s => s.trim());
+    }
+
+    if (list.length === 0) {
       return <span className="text-sm text-muted-foreground">-</span>;
     }
     return (
       <div className="flex flex-wrap gap-1">
-        {subCategory.map((sub, i) => (
+        {list.map((sub, i) => (
           <span
             key={i}
             className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
