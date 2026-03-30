@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
 import { initiateSecondaryVerification, verifySecondaryVerification } from "@/api/auth.api";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileCompletionProps {
     user: any;
@@ -31,6 +32,7 @@ export function ProfileCompletion({
     onCancel,
     isModal = false,
 }: ProfileCompletionProps) {
+    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -422,7 +424,7 @@ export function ProfileCompletion({
                     </div>
                     {onCancel && (
                         <button
-                            onClick={handleCancel}
+                            onClick={() => navigate("/")}
                             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
                         >
                             <ArrowLeft className="h-5 w-5" />
