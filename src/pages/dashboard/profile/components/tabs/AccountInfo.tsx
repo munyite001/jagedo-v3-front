@@ -123,6 +123,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
             userData.id,
           );
           toast.success("Profile image updated on server");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
           event.target.value = "";
         } catch (apiErr: any) {
           console.error("Failed to update image on server:", apiErr);
@@ -236,6 +239,9 @@ const AccountInfo: React.FC<AccountInfoProps> = ({
       );
       Object.assign(userData, updates);
       setEditingField(null);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error(`Failed to update ${field}:`, error);
       toast.error(error.message || `Failed to update ${field} on server`);
