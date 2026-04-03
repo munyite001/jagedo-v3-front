@@ -147,6 +147,31 @@ export default function ShopAttributes() {
         }
     );
 
+    const renderAttributeValues = (values: string) => {
+        const items = (values || "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (items.length === 0) {
+            return <span className="text-sm text-muted-foreground">N/A</span>;
+        }
+
+        return (
+            <div className="flex flex-wrap gap-1.5">
+                {items.map((value, index) => (
+                    <Badge
+                        key={`${value}-${index}`}
+                        variant="outline"
+                        className="max-w-full whitespace-normal break-words rounded-md border-slate-200 bg-slate-50 text-slate-700"
+                    >
+                        {value}
+                    </Badge>
+                ))}
+            </div>
+        );
+    };
+
     const handleEditAttribute = (attribute: Attribute) => {
         setEditingAttribute(attribute);
         setEditFormData({
@@ -328,24 +353,25 @@ export default function ShopAttributes() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
+                    <Table className="min-w-[1180px] table-fixed">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>No</TableHead>
-                                <TableHead>Attribute Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Attribute Values</TableHead>
-                                <TableHead>Is Required</TableHead>
-                                <TableHead>Is Filterable</TableHead>
-                                <TableHead>Show To Customers</TableHead>
-                                <TableHead>Actions</TableHead>
+                                <TableHead className="w-14">No</TableHead>
+                                <TableHead className="w-[200px]">Attribute Name</TableHead>
+                                <TableHead className="w-[140px]">Input Type</TableHead>
+                                <TableHead className="w-[220px]">Category</TableHead>
+                                <TableHead className="w-[320px]">Attribute Values</TableHead>
+                                <TableHead className="w-[120px]">Status</TableHead>
+                                <TableHead className="w-[130px]">Filterable</TableHead>
+                                <TableHead className="w-[150px]">Customer View</TableHead>
+                                <TableHead className="w-[90px] text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="text-center py-8"
                                     >
                                         Loading attributes...
@@ -354,7 +380,7 @@ export default function ShopAttributes() {
                             ) : filteredAttributes?.length == 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={8}
+                                        colSpan={9}
                                         className="text-center py-8 text-muted-foreground"
                                     >
                                         No attributes found
@@ -366,21 +392,25 @@ export default function ShopAttributes() {
                                         key={attribute.id}
                                         className={!attribute.active ? "bg-gray-100 opacity-60 grayscale" : ""}
                                     >
-                                        <TableCell>{index + 1}</TableCell>
-                                        <TableCell className="font-medium">
+                                        <TableCell className="align-top text-muted-foreground">
+                                            {index + 1}
+                                        </TableCell>
+                                        <TableCell className="align-top font-medium whitespace-normal break-words">
                                             {attribute.type}
                                         </TableCell>
-                                        <TableCell>
-                                            {attribute.attributeType || "text"}
+                                        <TableCell className="align-top">
+                                            <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-xs font-medium uppercase tracking-wide text-slate-700">
+                                                {attribute.attributeType || "text"}
+                                            </span>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top whitespace-normal break-words text-sm text-slate-700">
                                             {/* @ts-ignore */}
                                             {attribute.category?.name || attribute.attributeGroup || "N/A"}
                                         </TableCell>
-                                        <TableCell>
-                                            {attribute.values || "N/A"}
+                                        <TableCell className="align-top whitespace-normal">
+                                            {renderAttributeValues(attribute.values)}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.active
@@ -389,11 +419,11 @@ export default function ShopAttributes() {
                                                 }
                                             >
                                                 {attribute.active
-                                                    ? "Yes"
+                                                    ? "Active"
                                                     : "Inactive"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.filterable
@@ -406,7 +436,7 @@ export default function ShopAttributes() {
                                                     : "No"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top">
                                             <Badge
                                                 variant={
                                                     attribute.customerView
@@ -419,7 +449,7 @@ export default function ShopAttributes() {
                                                     : "No"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="align-top text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
