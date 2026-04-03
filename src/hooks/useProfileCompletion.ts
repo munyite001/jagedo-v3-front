@@ -157,9 +157,9 @@ export const useProfileCompletion = (
         : requiredDocs.length > 0 &&
           requiredDocs.every((doc) => checkDocument(doc));
 
-    // ============================================
-    // EXPERIENCE COMPLETION
-    // ============================================
+    
+    
+    
     let experienceComplete = false;
 
     const getExperienceState = () => {
@@ -347,20 +347,56 @@ export const useProfileCompletion = (
       userData?.estate
     );
 
-    const AccountInfoComplte = !!(
-      (userData?.firstName &&
-        userData?.lastName &&
-        userData?.phone &&
-        userData?.email) ||
-      userData?.organizationName ||
-      userData?.contactFullName
-    );
+    
+    
+    
+    
+    const checkAccountInfoComplete = (): boolean => {
+      if (!userData) return false;
 
-    // ============================================
-    // RETURN STATUS FOR ALL SECTIONS
-    // ============================================
+      const uType = (userType || "").toUpperCase();
+      const accountType = (userData?.accountType || "").toLowerCase();
+
+      const isOrg =
+        accountType === "organization" ||
+        accountType === "business" ||
+        uType === "CONTRACTOR" ||
+        uType === "HARDWARE";
+
+      if (uType === "CONTRACTOR" || uType === "HARDWARE") {
+        
+        return !!(
+          userData?.organizationName?.trim() &&
+          userData?.contactFullName?.trim() &&
+          userData?.email?.trim() &&
+          userData?.phone?.trim()
+        );
+      }
+
+      if (isOrg) {
+        
+        return !!(
+          userData?.organizationName?.trim() &&
+          userData?.email?.trim() &&
+          userData?.phone?.trim()
+        );
+      }
+
+      
+      return !!(
+        userData?.firstName?.trim() &&
+        userData?.lastName?.trim() &&
+        userData?.email?.trim()
+      );
+    };
+
+    const accountInfoComplete = checkAccountInfoComplete();
+
+    
+    
+    
     const statusObject: { [key: string]: "complete" | "incomplete" } = {
-      "account-info": AccountInfoComplte ? "complete" : "incomplete",
+      "account-info": accountInfoComplete ? "complete" : "incomplete",
       address: addressComplete ? "complete" : "incomplete",
       "account-uploads": uploadsComplete ? "complete" : "incomplete",
       experience: experienceComplete ? "complete" : "incomplete",

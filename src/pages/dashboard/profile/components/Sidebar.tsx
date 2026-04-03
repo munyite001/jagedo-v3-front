@@ -169,13 +169,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             const status = completionStatus[item.id] || "incomplete";
             console.log("Item: ", item, "Status: ", status);
             let isComplete = status === "complete";
-
-            if (
-              item.id === "account-info" &&
-              userData?.userType === "HARDWARE"
-            ) {
-              isComplete = true;
-            }
             const isOptional = item.id === "products";
 
             return (
@@ -183,6 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   onClick={() => {
                     if (isDisabled) return;
+                    localStorage.setItem('profileActiveTab', item.id);
                     onTabChange(item.id);
                   }}
                   title={isDisabled ? "Complete Experience first" : item.label}

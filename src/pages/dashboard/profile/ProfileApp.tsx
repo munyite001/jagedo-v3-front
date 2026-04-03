@@ -12,7 +12,9 @@ import { getProviderProfile } from "@/api/provider.api";
 import { useGlobalContext } from '@/context/GlobalProvider';
 
 function ProfileApp() {
-  const [activeTab, setActiveTab] = useState('account-info');
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('profileActiveTab') || 'account-info';
+  });
   const [userType, setUserType] = useState<string>('CUSTOMER');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,44 @@ function ProfileApp() {
       setIsAdmin(role === 'ADMIN' || role === 'SUPER_ADMIN');
     }
   }, [globalUser]);
+
+  useEffect(() => {
+    localStorage.setItem('profileActiveTab', activeTab);
+  }, [activeTab]);
+
+  // Automatically sync account status when all required sections are complete
+  useEffect(() => {
+    if (!user || user.status === 'PENDING' || user.status === 'VERIFIED') return;
+
+    const requiredSections = Object.entries(completionStatus || {})
+      .filter(([key]) => {
+        if (key === "Activities" || key === "activities") return false;
+        if (key === "Products" || key === "products") return false;
+        if (key === "Experience" || key === "experience") {
+          const uType = user?.userType?.toUpperCase();
+          if (uType === "HARDWARE" || uType === "CUSTOMER") return false;
+        }
+        return true;
+      });
+
+    const isFullyComplete = requiredSections.length > 0 && 
+      requiredSections.every(([, val]) => val === 'complete');
+
+    if (isFullyComplete) {
+      const syncStatus = async () => {
+        try {
+          const endpoint = isAdmin 
+            ? `/admin/profiles/${user.id}/sync-status` 
+            : `/profiles/sync-status`;
+          await axiosInstance.post(endpoint);
+          fetchUserData(); 
+        } catch (err) {
+          console.error("Auto-sync status failed:", err);
+        }
+      };
+      syncStatus();
+    }
+  }, [completionStatus, user?.id, user?.status, isAdmin]);
 
   if (loading) {
     return (

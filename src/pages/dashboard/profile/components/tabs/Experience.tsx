@@ -27,7 +27,7 @@ import {
 } from "react-icons/fi";
 import { SquarePen, Clock } from "lucide-react";
 import { toast, Toaster } from "sonner";
-import { updateBuilderLevel, handleVerifyUser } from "@/api/provider.api";
+import { updateBuilderLevel, handleVerifyUser, submitEvaluation } from "@/api/provider.api";
 import {
   adminVerifyExperience,
   adminRejectExperience,
@@ -1299,16 +1299,16 @@ useEffect(() => {
         needsReason: false,
       },
       reject: {
-        title: "Reject Experience",
-        description: `Please provide a reason for rejecting this experience submission:`,
-        buttonText: "Reject",
+        title: "Disapprove Experience",
+        description: `Please provide a reason for disapproving this experience submission:`,
+        buttonText: "Disapprove all",
         buttonColor: "bg-red-600 hover:bg-red-700",
         needsReason: true,
       },
       resubmit: {
-        title: "Request Resubmission",
+        title: "Return Experience",
         description: `Please specify what needs to be corrected in the experience profile:`,
-        buttonText: "Request Resubmission",
+        buttonText: "Return all",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
         needsReason: true,
       },
@@ -1622,10 +1622,15 @@ useEffect(() => {
 
       totalScore: totalScore,
       audioUrl: audioUrl || null,
+      audioUploadUrl: audioUrl || null,
     };
 
     try {
-      await updateEvaluation(axiosInstance, profileId, body);
+      if (userData?.fundiEvaluation) {
+        await updateEvaluation(axiosInstance, profileId, body);
+      } else {
+        await submitEvaluation(axiosInstance, profileId, body);
+      }
       setSubmitMessage("Evaluation updated successfully!");
       toast.success("Evaluation updated successfully!");
       setIsEditingEvaluation(false);
@@ -1681,7 +1686,10 @@ useEffect(() => {
           experience: isEditingFields
             ? editingFields.experience
             : info.experience,
+          status: status,
+          experienceStatus: status,
           previousJobPhotoUrls: flattenedProjectFiles,
+          audioUploadUrl: audioUrl || null,
         };
 
         response = await adminUpdateFundiExperience(
@@ -1863,12 +1871,8 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => setShowGlobalActions(!showGlobalActions)}
-                    disabled={userData?.experienceStatus === "VERIFIED"}
-                    className={`flex items-center gap-2 py-2 px-4 text-white rounded-lg text-sm font-medium transition ${
-                      userData?.experienceStatus === "VERIFIED"
-                        ? "bg-gray-400 cursor-not-allowed opacity-60"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                    disabled={isPendingAction}
+                    className="flex items-center gap-2 py-2 px-4 text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Actions
                     <FiChevronDown
@@ -1876,86 +1880,87 @@ useEffect(() => {
                     />
                   </button>
                   {showGlobalActions && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                      {/* Approve — only when not already VERIFIED */}
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                      {/* CASE 1: Not Verified - Show Approve and Return all */}
                       {userData?.experienceStatus !== "VERIFIED" && (
-                        <button
-                          type="button"
-                          disabled={!readyToApprove || isPendingAction}
-                          title={
-                            !readyToApprove
-                              ? "All required fields and projects must be filled before approving"
-                              : "Approve experience"
-                          }
-                          onClick={async () => {
-                            setShowGlobalActions(false);
-                            setIsPendingAction(true);
-                            try {
-                              await adminVerifyExperience(
-                                axiosInstance,
-                                userData.id,
-                              );
-                              toast.success("Experience approved successfully");
-                              window.location.reload();
-                            } catch (error: any) {
-                              toast.error(
-                                error.message || "Failed to approve experience",
-                              );
-                            } finally {
-                              setIsPendingAction(false);
+                        <>
+                          <button
+                            type="button"
+                            disabled={!readyToApprove || isPendingAction}
+                            title={
+                              !readyToApprove
+                                ? "All required fields and projects must be filled before approving"
+                                : "Approve experience"
                             }
-                          }}
-                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
-    ${
-      !readyToApprove
-        ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
-        : "text-green-700 hover:bg-gray-50"
-    }`}
-                        >
-                          <FiCheck className="w-4 h-4" />
-                          Approve
-                          {!readyToApprove && (
-                            <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                              Incomplete
-                            </span>
-                          )}
-                        </button>
-                      )}
-                      {/* Resubmit — only when not already VERIFIED */}
-                      {userData?.experienceStatus !== "VERIFIED" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowGlobalActions(false);
-                            setActionModal({
-                              isOpen: true,
-                              action: "resubmit",
-                            });
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition border-b border-gray-100"
-                        >
-                          <FiRefreshCw className="w-4 h-4" />
-                          Resubmit
-                        </button>
-                      )}
-                      {/* Reject — only when not already VERIFIED or REJECTED */}
-                      {userData?.experienceStatus !== "VERIFIED" &&
-                        userData?.experienceStatus !== "REJECTED" && (
+                            onClick={async () => {
+                              setShowGlobalActions(false);
+                              setIsPendingAction(true);
+                              try {
+                                await adminVerifyExperience(
+                                  axiosInstance,
+                                  userData.id,
+                                );
+                                toast.success("Experience approved successfully");
+                                window.location.reload();
+                              } catch (error: any) {
+                                toast.error(
+                                  error.message ||
+                                    "Failed to approve experience",
+                                );
+                              } finally {
+                                setIsPendingAction(false);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-2 px-4 py-3 text-sm transition border-b border-gray-100
+                              ${
+                                !readyToApprove
+                                  ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                                  : "text-green-700 hover:bg-green-50"
+                              }`}
+                          >
+                            <FiCheck className="w-4 h-4" />
+                            Approve
+                            {!readyToApprove && (
+                              <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                                Incomplete
+                              </span>
+                            )}
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => {
                               setShowGlobalActions(false);
                               setActionModal({
                                 isOpen: true,
-                                action: "reject",
+                                action: "resubmit",
                               });
                             }}
-                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition"
+                            className="w-full flex items-center gap-2 px-4 py-3 text-sm text-blue-700 hover:bg-blue-50 transition"
                           >
-                            <XCircle className="w-4 h-4" />
-                            Reject
+                            <FiRefreshCw className="w-4 h-4" />
+                            Return all
                           </button>
-                        )}
+                        </>
+                      )}
+
+                      {/* CASE 2: Verified - Show Disapprove all */}
+                      {userData?.experienceStatus === "VERIFIED" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowGlobalActions(false);
+                            setActionModal({
+                              isOpen: true,
+                              action: "reject",
+                            });
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition font-medium"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Disapprove all
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

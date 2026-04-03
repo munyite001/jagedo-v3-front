@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { getAllCountries } from "@/api/countries.api";
 import { counties } from "@/pages/data/counties";
 import { initiateSecondaryVerification, verifySecondaryVerification } from "@/api/auth.api";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileCompletionProps {
     user: any;
@@ -31,12 +32,23 @@ export function ProfileCompletion({
     onCancel,
     isModal = false,
 }: ProfileCompletionProps) {
+    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
     const [countries, setCountries] = useState<any[]>([]);
     const [isLoadingCountries, setIsLoadingCountries] = useState(true);
+
+    const hasAdminUploadedDocs = 
+        (user?.contractorProjects?.length > 0) || 
+        (user?.previousJobPhotoUrls?.length > 0) ||
+        (user?.professionalProjects?.length > 0) ||
+        (user?.hardwareProjects?.length > 0);
+
+    const isServiceProvider = ["CONTRACTOR", "FUNDI", "PROFESSIONAL", "HARDWARE"].includes(userType || "");
+    const shouldSkipVerification = isServiceProvider && hasAdminUploadedDocs;
+    const totalSteps = shouldSkipVerification ? 3 : 4;
 
 
 
@@ -115,11 +127,11 @@ export function ProfileCompletion({
 
     useEffect(() => {
 
-        if (currentStep === 4 && !secondaryContact.isOtpSent) {
+        if (currentStep === 4 && totalSteps === 4 && !secondaryContact.isOtpSent) {
             handleSendOtp();
         }
 
-    }, [currentStep, secondaryContact.isOtpSent]);
+    }, [currentStep, secondaryContact.isOtpSent, totalSteps]);
     const lastAttemptedOtp = useRef("");
 
     useEffect(() => {
@@ -129,6 +141,7 @@ export function ProfileCompletion({
 
         if (
             currentStep === 4 &&
+            totalSteps === 4 &&
             secondaryContact.otp.length === 6 &&
             !secondaryContact.isVerified &&
             !isVerifying &&
@@ -138,7 +151,7 @@ export function ProfileCompletion({
             handleVerifyOtp();
         }
 
-    }, [secondaryContact.otp, currentStep, secondaryContact.isVerified, isVerifying]);
+    }, [secondaryContact.otp, currentStep, secondaryContact.isVerified, isVerifying, totalSteps]);
 
     useEffect(() => {
         if (!secondaryContact.isOtpSent || secondaryContact.canResend) return;
@@ -243,7 +256,7 @@ export function ProfileCompletion({
             toast.error("Please fill in all required fields correctly.");
             return;
         }
-        if (currentStep < 4) {
+        if (currentStep < totalSteps) {
             setCurrentStep((prev) => prev + 1);
             window.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -278,7 +291,10 @@ export function ProfileCompletion({
             const response = await initiateSecondaryVerification(payload);
 
             if (response.data.success) {
-                toast.success(`OTP sent to ${secondaryContact.contact}. Please Also Check your email spam folder,`);
+                const message = secondaryContact.contactType === "EMAIL"
+                    ? `OTP sent to ${secondaryContact.contact}. Please Also Check your email spam folder`
+                    : `OTP sent to ${secondaryContact.contact}. Check SMS`;
+                toast.success(message);
                 setSecondaryContact((prev) => ({
                     ...prev,
                     isOtpSent: true,
@@ -357,6 +373,7 @@ export function ProfileCompletion({
                     otp: secondaryContact.otp,
                     isVerified: secondaryContact.isVerified,
                 },
+                redirectTo: shouldSkipVerification ? "/profile" : null
             };
 
             console.log("FINAL PROFILE DATA IN MODAL SUBMIT:", profileData);
@@ -377,12 +394,14 @@ export function ProfileCompletion({
         window.location.href = import.meta.env.VITE_APP_URL;
     };
 
-    const stepInfo = [
+    const baseStepInfo = [
         { icon: User, label: isOrganizationType ? "Organization" : "Personal" },
         { icon: MapPin, label: "Location" },
         { icon: MessageSquare, label: "Source" },
         { icon: ShieldCheck, label: "Verify" }
     ];
+
+    const stepInfo = shouldSkipVerification ? baseStepInfo.slice(0, 3) : baseStepInfo;
 
 
     const socialPlatforms = [
@@ -417,12 +436,12 @@ export function ProfileCompletion({
                             Complete Your Profile
                         </h1>
                         <p className="text-gray-500 mt-1 text-sm font-medium">
-                            Step {currentStep} of 4 • {stepInfo[currentStep - 1].label}
+                            Step {currentStep} of {totalSteps} • {stepInfo[currentStep - 1].label}
                         </p>
                     </div>
                     {onCancel && (
                         <button
-                            onClick={handleCancel}
+                            onClick={() => navigate("/")}
                             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200"
                         >
                             <ArrowLeft className="h-5 w-5" />
@@ -471,7 +490,7 @@ export function ProfileCompletion({
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6 overflow-hidden">
                     <div
                         className="bg-blue-600 h-1.5 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${(currentStep / 4) * 100}%` }}
+                        style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                     />
                 </div>
 
@@ -912,7 +931,7 @@ export function ProfileCompletion({
                         Back
                     </Button>
 
-                    {currentStep < 4 ? (
+                    {currentStep < totalSteps ? (
                         <Button
                             onClick={handleNextStep}
                             className="flex-1 h-12 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-all duration-200"
@@ -922,7 +941,7 @@ export function ProfileCompletion({
                     ) : (
                         <Button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !secondaryContact.isVerified}
+                            disabled={isSubmitting || (!shouldSkipVerification && !secondaryContact.isVerified)}
                             className="flex-1 h-12 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-all duration-200 disabled:opacity-50"
                         >
                             {isSubmitting ? (
@@ -930,7 +949,7 @@ export function ProfileCompletion({
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                     Completing...
                                 </span>
-                            ) : "Complete Profile"}
+                            ) : shouldSkipVerification ? "Finish and Go to Profile" : "Complete Profile"}
                         </Button>
                     )}
                 </div>

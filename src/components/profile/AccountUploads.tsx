@@ -44,19 +44,19 @@ const StatusBadge = ({ status }) => {
       </div>
     );
   }
-  if (status === "rejected") {
+  if (status === "rejected" || status === "REJECTED") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
-        Rejected
+        Disapproved
       </div>
     );
   }
-  if (status === "resubmit") {
+  if (status === "resubmit" || status === "RESUBMIT" || status === "reupload_requested") {
     return (
       <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
         <AlertCircle className="w-3.5 h-3.5" />
-        Resubmit
+        Returned for Correction
       </div>
     );
   }
@@ -164,7 +164,7 @@ const DocumentCard = ({
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <div>
             <span className="font-bold uppercase text-[10px] block mb-1">
-              {status === "rejected" ? "Rejection Reason" : "Update Required"}
+              {status === "rejected" ? "Disapproval Reason" : "Correction Required"}
             </span>
             {reason}
           </div>
@@ -383,6 +383,7 @@ const AccountUploads = ({ data, refreshData }) => {
       krapin: "krapin",
       certificate: "certificateUrl",
       academicCertificate: "academicCertificateUrl",
+      cv: "cvUrl",
       cvUrl: "cvUrl",
       practiceLicense: "practiceLicense",
       businessPermit: "businessPermit",
@@ -423,7 +424,13 @@ const AccountUploads = ({ data, refreshData }) => {
     }
 
     const globalStatus =
-      data.documentStatus === "VERIFIED" ? "approved" : "pending";
+      data.documentStatus === "VERIFIED"
+        ? "approved"
+        : data.documentStatus === "REJECTED"
+          ? "rejected"
+          : data.documentStatus === "RESUBMIT"
+            ? "resubmit"
+            : "pending";
     const baseFields = defaultFields[userType] || [];
     baseFields.forEach((field) => {
       if (!statusMap[field.key]) {
@@ -529,6 +536,7 @@ const AccountUploads = ({ data, refreshData }) => {
             certificateOfIncorporation:
               updatedUrls.certificateOfIncorporation || null,
             krapin: updatedUrls.krapin || null,
+            companyProfile: updatedUrls.companyProfile || null,
           };
           response = await uploadOrganizationCustomerDocuments(
             axiosInstance,
