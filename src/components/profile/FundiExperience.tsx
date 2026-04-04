@@ -105,6 +105,11 @@ const FundiExperience = ({ data, refreshData }: any) => {
           headers: { Authorization: getAuthHeaders() },
         });
         
+        // Find the skill in fundiSkills to get its assigned specializations array
+        const selectedSkill = fundiSkills.find((s: any) => 
+          normalizeSkillName(s.skillName) === normalizedSkill
+        );
+        
         const specTypeCode = specMappings[normalizedSkill];
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         
@@ -120,7 +125,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     };
     
     loadSpecializations();
-  }, [skill, specMappings]);
+  }, [skill, specMappings, fundiSkills]);
 
   
 
@@ -359,7 +364,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
                 <select
                   value={skill}
                   onChange={e => { setSkill(e.target.value); setSpecialization(""); }}
-                  disabled={isReadOnly || skillsLoading}
+                  disabled={true}
                   className={inputStyles}
                 >
                   <option value="">{skillsLoading ? "Loading…" : "Select Skill"}</option>
