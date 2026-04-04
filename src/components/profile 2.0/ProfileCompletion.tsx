@@ -788,9 +788,10 @@ export function ProfileCompletion({
                                 </Label>
                                 <Input
                                     value={secondaryContact.contact}
-                                    readOnly
+                                    onChange={(e) => setSecondaryContact({ ...secondaryContact, contact: e.target.value })}
+                                    readOnly={!!(secondaryContact.contactType === "EMAIL" ? user?.email : user?.phone)}
                                     placeholder={`Your ${secondaryContact.contactType.toLowerCase()}`}
-                                    className="w-full border-gray-300 bg-gray-100 cursor-not-allowed select-none"
+                                    className={`w-full border-gray-300 ${!!(secondaryContact.contactType === "EMAIL" ? user?.email : user?.phone) ? "bg-gray-100 cursor-not-allowed select-none" : ""}`}
                                 />
                             </div>
                             {!secondaryContact.isOtpSent ? (
