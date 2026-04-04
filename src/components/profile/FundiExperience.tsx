@@ -47,7 +47,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const [specialization, setSpecialization] = useState("");
   const [skill, setSkill]                   = useState((data?.skills || "plumber").toLowerCase());
   
-  // Dynamic skills and specializations
+  
   const [fundiSkills, setFundiSkills]       = useState<any[]>([]);
   const [specMappings, setSpecMappings]     = useState<Record<string, string>>({});
   const [specializations, setSpecializations] = useState<any[]>([]);
@@ -57,7 +57,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
   const axiosInstance = useAxiosWithAuth(import.meta.env.VITE_SERVER_URL);
   const isReadOnly = !['PENDING', 'RESUBMIT', 'INCOMPLETE', 'REJECTED'].includes(data?.experienceStatus);
 
-  // ── Load Fundi skills and specialization mappings on mount ────────────────
+  
   useEffect(() => {
     const loadSkillsAndMappings = async () => {
       try {
@@ -66,12 +66,12 @@ const FundiExperience = ({ data, refreshData }: any) => {
           headers: { Authorization: getAuthHeaders() },
         });
         
-        // Get all Fundi skills
+        
         const skillsRes = await getBuilderSkillsByType(authAxios, 'FUNDI');
         const activeSkills = skillsRes.filter((s: any) => s.isActive !== false);
         setFundiSkills(activeSkills);
         
-        // Get specialization mappings for Fundi
+        
         const mappingsRes = await getSpecializationMappings(authAxios, 'FUNDI');
         setSpecMappings(mappingsRes);
       } catch (error) {
@@ -85,7 +85,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     loadSkillsAndMappings();
   }, []);
 
-  // ── Load specializations when skill changes ───────────────────────────────
+  
   useEffect(() => {
     const loadSpecializations = async () => {
       if (!skill) {
@@ -108,7 +108,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
         const specTypeCode = specMappings[normalizedSkill];
         const specsRes = await getMasterDataValues(authAxios, specTypeCode);
         
-        // Handle both array and wrapped responses
+        
         const specs = Array.isArray(specsRes) ? specsRes : (specsRes?.data || specsRes?.values || []);
         setSpecializations(specs);
       } catch (error) {
@@ -122,7 +122,7 @@ const FundiExperience = ({ data, refreshData }: any) => {
     loadSpecializations();
   }, [skill, specMappings]);
 
-  // ─────────────────────────────────────────────────────────────────────────
+  
 
   const getStatusMessage = (status: string): string => {
     const statusMap: { [key: string]: string } = {
